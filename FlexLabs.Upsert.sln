@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlexLabs.Upsert", "FlexLabs.Upsert\FlexLabs.Upsert.csproj", "{63EBC704-98C3-4F91-9235-DA1EC06C1C8F}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0DCBBEBD-A5B9-46F1-B9DE-F469447630F1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlexLabs.EntityFrameworkCore.Upsert", "src\FlexLabs.EntityFrameworkCore.Upsert\FlexLabs.EntityFrameworkCore.Upsert.csproj", "{E00DD739-30D8-4FE0-BFD4-99378BD4AD5F}"
@@ -17,10 +15,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{63EBC704-98C3-4F91-9235-DA1EC06C1C8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{63EBC704-98C3-4F91-9235-DA1EC06C1C8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{63EBC704-98C3-4F91-9235-DA1EC06C1C8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{63EBC704-98C3-4F91-9235-DA1EC06C1C8F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E00DD739-30D8-4FE0-BFD4-99378BD4AD5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E00DD739-30D8-4FE0-BFD4-99378BD4AD5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E00DD739-30D8-4FE0-BFD4-99378BD4AD5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
