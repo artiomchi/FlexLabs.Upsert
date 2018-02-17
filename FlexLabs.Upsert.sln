@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlexLabs.EntityFrameworkCor
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlexLabs.EntityFrameworkCore.Upsert.SqlServer", "src\FlexLabs.EntityFrameworkCore.Upsert.SqlServer\FlexLabs.EntityFrameworkCore.Upsert.SqlServer.csproj", "{766506D1-F34B-488C-8336-F215A00FA46E}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlexLabs.EntityFrameworkCore.Upsert.PostgreSQL", "src\FlexLabs.EntityFrameworkCore.Upsert.PostgreSQL\FlexLabs.EntityFrameworkCore.Upsert.PostgreSQL.csproj", "{71AD9E33-7118-4619-8BBD-DB415750AE68}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlexLabs.EntityFrameworkCore.Upsert.Tests", "test\FlexLabs.EntityFrameworkCore.Upsert.Tests\FlexLabs.EntityFrameworkCore.Upsert.Tests.csproj", "{DED725C1-78D6-4060-BC6D-72B6DF164E73}"
 EndProject
 Global
@@ -27,6 +29,10 @@ Global
 		{766506D1-F34B-488C-8336-F215A00FA46E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{766506D1-F34B-488C-8336-F215A00FA46E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{766506D1-F34B-488C-8336-F215A00FA46E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71AD9E33-7118-4619-8BBD-DB415750AE68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71AD9E33-7118-4619-8BBD-DB415750AE68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71AD9E33-7118-4619-8BBD-DB415750AE68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71AD9E33-7118-4619-8BBD-DB415750AE68}.Release|Any CPU.Build.0 = Release|Any CPU
 		{DED725C1-78D6-4060-BC6D-72B6DF164E73}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{DED725C1-78D6-4060-BC6D-72B6DF164E73}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DED725C1-78D6-4060-BC6D-72B6DF164E73}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -38,6 +44,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{E00DD739-30D8-4FE0-BFD4-99378BD4AD5F} = {0DCBBEBD-A5B9-46F1-B9DE-F469447630F1}
 		{766506D1-F34B-488C-8336-F215A00FA46E} = {0DCBBEBD-A5B9-46F1-B9DE-F469447630F1}
+		{71AD9E33-7118-4619-8BBD-DB415750AE68} = {0DCBBEBD-A5B9-46F1-B9DE-F469447630F1}
 		{DED725C1-78D6-4060-BC6D-72B6DF164E73} = {27DD4B6C-174D-436C-84F4-8706DF282194}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution

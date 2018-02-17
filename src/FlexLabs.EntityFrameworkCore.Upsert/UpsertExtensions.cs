@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -17,7 +19,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             return columnAttribute.Name;
         }
 
-        public static void Upsert<TEntity>(this DbSet<TEntity> dataSet, Expression<Func<TEntity>> initialiser, Expression<Func<TEntity, object>> match, Expression<Func<TEntity>> updater)
+        public static TEntity Upsert<TEntity>(this DbSet<TEntity> dataSet, Expression<Func<TEntity>> initialiser, Expression<Func<TEntity>> match, Expression<Func<TEntity>> updater)
             where TEntity : class
         {
             if (initialiser == null)
@@ -26,8 +28,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 throw new ArgumentNullException(nameof(initialiser));
             if (!(initialiser.Body is MemberInitExpression entityInitialiser))
                 throw new ArgumentException("initialiser must be an Initialiser of the TEntity type", nameof(initialiser));
-            if (!(match.Body is NewExpression matchExpression))
-                throw new ArgumentException("match must be an anonymous object initialiser", nameof(match));
+            if (!(match.Body is MemberInitExpression matchInitialiser))
+                throw new ArgumentException("match must be an Initialiser of the TEntity type", nameof(match));
             MemberInitExpression entityUpdater = null;
             if (updater != null)
                 if (!(updater.Body is MemberInitExpression entityUpdaterInner))
@@ -37,14 +39,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
 
 
             var initColumns = new Dictionary<string, Object>();
+            var matchColumns = new Dictionary<string, Object>();
             var updColumns = new Dictionary<string, Object>();
-            var joinColumns = new List<string>();
 
             foreach (MemberAssignment binding in entityInitialiser.Bindings)
             {
                 var columnName = GetColumnName(binding.Member as PropertyInfo);
                 var value = binding.Expression.GetValue();
                 initColumns[columnName] = value;
+            }
+
+            foreach (MemberAssignment binding in matchInitialiser.Bindings)
+            {
+                var columnName = GetColumnName(binding.Member as PropertyInfo);
+                var value = binding.Expression.GetValue();
+                matchColumns[columnName] = value;
             }
 
             if (entityUpdater != null)
@@ -55,12 +64,41 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                     updColumns[columnName] = value;
                 }
 
-            foreach (MemberExpression arg in matchExpression.Arguments)
+            var commandGenerator = dataSet.GetService<IUpsertSqlGenerator>();
+            if (commandGenerator == null)
             {
-                if (arg == null || arg.Member is PropertyInfo || typeof(TEntity).Equals(arg.Type))
-                    throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
-                joinColumns.Add(GetColumnName(arg.Member as PropertyInfo));
+                var query = dataSet.AsQueryable();
+                foreach (var matchEntry in matchColumns)
+                    query = query.WhereEquals(matchEntry.Key, matchEntry.Value);
+                var entity = query.FirstOrDefault();
+                if (entity != null)
+                {
+                    if (updColumns != null)
+                    {
+                        foreach (var col in updColumns)
+                        {
+                            var prop = typeof(TEntity).GetProperty(col.Key);
+                            prop.SetValue(entity, col.Value);
+                        }
+                        dataSet.Update(entity);
+                    }
+                    return entity;
+                }
+
+                entity = initialiser.Compile().Invoke();
+                if (updColumns != null)
+                {
+                    foreach (var col in updColumns.Where(c => !initColumns.ContainsKey(c.Key)))
+                    {
+                        var prop = typeof(TEntity).GetProperty(col.Key);
+                        prop.SetValue(entity, col.Value);
+                    }
+                    dataSet.Add(entity);
+                }
+                return entity;
             }
+
+            throw new NotImplementedException();
         }
     }
 }

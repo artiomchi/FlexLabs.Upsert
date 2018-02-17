@@ -40,5 +40,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                     return expression;
             }
         }
+
+        public static IQueryable<TEntity> WhereEquals<TEntity>(this IQueryable<TEntity> query, string column, Object value)
+        {
+            var paramExp = Expression.Parameter(typeof(TEntity), "e");
+            var propExp = Expression.Property(paramExp, column);
+            var matchExp = Expression.Equal(propExp, Expression.Constant(value));
+            var result = Expression.Lambda<Func<TEntity, bool>>(matchExp, paramExp);
+            return query.Where(result);
+        }
     }
 }
