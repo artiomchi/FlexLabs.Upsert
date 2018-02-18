@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -8,7 +9,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Generators
 {
     public class SqlServerUpsertSqlGenerator : IUpsertSqlGenerator
     {
-        public string GenerateCommand(IEntityType entityType, ICollection<string> insertColumns, ICollection<string> joinColumns, ICollection<string> updateColumns)
+        public string GenerateCommand(IEntityType entityType, ICollection<string> insertColumns, ICollection<string> joinColumns, ICollection<string> updateColumns, List<(string ColumnName, KnownExpressions Value)> updateExpressions)
         {
             var result = new StringBuilder();
             result.Append($"MERGE INTO {entityType.Relational().Schema ?? "dbo"}.[{entityType.Relational().TableName}] AS [T] USING ( VALUES (");
@@ -23,7 +24,26 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Generators
             result.AppendJoin(", ", insertColumns.Select(c => $"[{c}]"));
             result.Append(") WHEN MATCHED THEN UPDATE SET ");
             result.AppendJoin(", ", updateColumns.Select((c, i) => $"[{c}] = @p{i + insertColumns.Count}"));
+            if (updateExpressions.Count > 0)
+            {
+                if (updateColumns.Count > 0)
+                    result.Append(", ");
+                var argumentOffset = insertColumns.Count + updateColumns.Count;
+                result.AppendJoin(", ", updateExpressions.Select((e, i) => ExpandExpression(i + argumentOffset, e.ColumnName, e.Value)));
+            }
             return result.ToString();
+        }
+
+        private string ExpandExpression(int argumentIndex, string columnName, KnownExpressions expression)
+        {
+            switch (expression.ExpressionType)
+            {
+                case System.Linq.Expressions.ExpressionType.Add:
+                    return $"[{columnName}] = [T].[{columnName}] +  @p{argumentIndex}";
+                case System.Linq.Expressions.ExpressionType.Subtract:
+                    return $"[{columnName}] = [T].[{columnName}] -  @p{argumentIndex}";
+                default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
+            }
         }
 
         public bool Supports(string name) => name == "Microsoft.EntifyFrameworkCore.SqlServer";

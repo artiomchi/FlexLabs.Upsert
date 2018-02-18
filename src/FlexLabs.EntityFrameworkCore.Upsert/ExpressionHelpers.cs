@@ -28,6 +28,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                     }
 
                 case BinaryExpression exp:
+                    if (exp.Method == null && exp.Right is ConstantExpression constExp && exp.Left is MemberExpression memberExp && memberExp.Expression is ParameterExpression paramExp && memberExp.Member is PropertyInfo)
+                        return new KnownExpressions(paramExp.Type, memberExp.Member.Name, exp.NodeType, constExp.Value);
                     if (exp.Method != null)
                         return exp.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null, new[] { exp.Left.GetValue(), exp.Right.GetValue() }, CultureInfo.InvariantCulture);
 
@@ -39,15 +41,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 default:
                     return expression;
             }
-        }
-
-        public static IQueryable<TEntity> WhereEquals<TEntity>(this IQueryable<TEntity> query, string column, object value)
-        {
-            var paramExp = Expression.Parameter(typeof(TEntity), "e");
-            var propExp = Expression.Property(paramExp, column);
-            var matchExp = Expression.Equal(propExp, Expression.Constant(value));
-            var result = Expression.Lambda<Func<TEntity, bool>>(matchExp, paramExp);
-            return query.Where(result);
         }
     }
 }

@@ -19,6 +19,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         private readonly IEntityType _entityType;
         private readonly TEntity _entity;
         private IList<IProperty> _joinColumns;
+        private IList<(IProperty Property, KnownExpressions Value)> _updateExpressions;
         private IList<(IProperty Property, object Value)> _updateValues;
 
         internal UpsertCommandBuilder(DbContext dbContext, IEntityType entityType, TEntity entity)
@@ -60,6 +61,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             if (!(updater.Body is MemberInitExpression entityUpdater))
                 throw new ArgumentException("updater must be an Initialiser of the TEntity type", nameof(updater));
 
+            _updateExpressions = new List<(IProperty, KnownExpressions)>();
             _updateValues = new List<(IProperty, object)>();
             foreach (MemberAssignment binding in entityUpdater.Bindings)
             {
@@ -67,15 +69,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 if (property == null)
                     throw new InvalidOperationException("Unknown property " + binding.Member.Name);
                 var value = binding.Expression.GetValue();
-                _updateValues.Add((property, value));
+                if (value is KnownExpressions knownExp && typeof(TEntity).Equals(knownExp.SourceType) && knownExp.SourceProperty == binding.Member.Name)
+                    _updateExpressions.Add((property, knownExp));
+                else
+                    _updateValues.Add((property, value));
             }
 
             return this;
         }
 
-        public void Run() => RunAsync().GetAwaiter().GetResult();
-
-        public async Task RunAsync()
+        private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand()
         {
             var arguments = new List<object>();
             var allColumns = new List<string>();
@@ -113,6 +116,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 }
             }
 
+            var updExpressions = new List<(string ColumnName, KnownExpressions Value)>();
+            if (_updateExpressions != null)
+            {
+                foreach (var (Property, Value) in _updateExpressions)
+                {
+                    updExpressions.Add((Property.Relational().ColumnName, Value));
+                }
+            }
+
             IUpsertSqlGenerator sqlGenerator = null;
             var dbProvider = _dbContext.GetService<IDatabaseProvider>();
             var generators = _dbContext.GetInfrastructure().GetServices<IUpsertSqlGenerator>().Concat(DefaultGenerators.Generators);
@@ -125,8 +137,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             if (sqlGenerator == null)
                 throw new NotSupportedException("Database provider not supported yet!");
 
-            var allArguments = arguments.Concat(updArguments).ToList();
-            await _dbContext.Database.ExecuteSqlCommandAsync(sqlGenerator.GenerateCommand(_entityType, allColumns, joinColumns, updColumns), allArguments);
+            var allArguments = arguments.Concat(updArguments).Concat(updExpressions.Select(e => e.Value.Value)).ToList();
+            return (sqlGenerator.GenerateCommand(_entityType, allColumns, joinColumns, updColumns, updExpressions), allArguments);
+        }
+
+        public void Run()
+        {
+            var (sqlCommand, arguments) = PrepareCommand();
+            _dbContext.Database.ExecuteSqlCommand(sqlCommand, arguments);
+        }
+
+        public Task RunAsync()
+        {
+            var (sqlCommand, arguments) = PrepareCommand();
+            return _dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, arguments);
         }
     }
 }
