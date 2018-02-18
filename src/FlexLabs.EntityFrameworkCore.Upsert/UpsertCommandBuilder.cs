@@ -91,12 +91,26 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             }
 
             var joinColumns = _joinColumns.Select(c => c.Relational().ColumnName).ToArray();
+
             var updArguments = new List<object>();
             var updColumns = new List<string>();
-            foreach (var (Property, Value) in _updateValues)
+            if (_updateValues != null)
             {
-                updColumns.Add(Property.Relational().ColumnName);
-                updArguments.Add(Value);
+                foreach (var (Property, Value) in _updateValues)
+                {
+                    updColumns.Add(Property.Relational().ColumnName);
+                    updArguments.Add(Value);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < allColumns.Count; i++)
+                {
+                    if (joinColumns.Contains(allColumns[i]))
+                        continue;
+                    updArguments.Add(arguments[i]);
+                    updColumns.Add(allColumns[i]);
+                }
             }
 
             IUpsertSqlGenerator sqlGenerator = null;
