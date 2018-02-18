@@ -35,18 +35,30 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 throw new InvalidOperationException($"Can't call {nameof(On)} twice!");
             if (match == null)
                 throw new ArgumentNullException(nameof(match));
-            if (!(match.Body is NewExpression matchExpression))
-                throw new ArgumentException("match must be an anonymous object initialiser", nameof(match));
 
-            _joinColumns = new List<IProperty>();
-            foreach (MemberExpression arg in matchExpression.Arguments)
+            if (match.Body is NewExpression newExpression)
             {
-                if (arg == null || !(arg.Member is PropertyInfo) || !typeof(TEntity).Equals(arg.Expression.Type))
+                _joinColumns = new List<IProperty>();
+                foreach (MemberExpression arg in newExpression.Arguments)
+                {
+                    if (arg == null || !(arg.Member is PropertyInfo) || !typeof(TEntity).Equals(arg.Expression.Type))
+                        throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
+                    var property = _entityType.FindProperty(arg.Member.Name);
+                    if (property == null)
+                        throw new InvalidOperationException("Unknown property " + arg.Member.Name);
+                    _joinColumns.Add(property);
+                }
+            }
+            else if (match.Body is UnaryExpression unaryExpression)
+            {
+                if (!(unaryExpression.Operand is MemberExpression memberExp) || !typeof(TEntity).Equals(memberExp.Expression.Type))
                     throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
-                var property = _entityType.FindProperty(arg.Member.Name);
-                if (property == null)
-                    throw new InvalidOperationException("Unknown property " + arg.Member.Name);
-                _joinColumns.Add(property);
+                var property = _entityType.FindProperty(memberExp.Member.Name);
+                _joinColumns = new List<IProperty> { property };
+            }
+            else
+            {
+                throw new ArgumentException("match must be an anonymous object initialiser", nameof(match));
             }
 
             return this;

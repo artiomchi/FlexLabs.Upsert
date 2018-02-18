@@ -3,7 +3,17 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <LangVersion>7.1</LangVersion>
-    <Version>0.1.1.1-pre</Version>
+    <Authors>Artiom Chilaru</Authors>
+    <Company>Artiom Chilaru</Company>
+    <Description>Adds basic support for "Upsert" operations to EF Core.
+
+Uses INSERT … ON CONFLICT DO UPDATE in PostgreSQL and MERGE in SqlServer.
+
+Also supports injecting sql command generators to add support for other providers</Description>
+    <Copyright>Artiom Chilaru © 2018</Copyright>
+    <PackageProjectUrl>https://github.com/artiomchi/FlexLabs.Upsert</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
+    <Version>1.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
