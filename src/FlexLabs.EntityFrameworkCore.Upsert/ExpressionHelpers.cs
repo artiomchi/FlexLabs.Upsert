@@ -8,7 +8,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
 {
     internal static class ExpressionHelpers
     {
-        public static Object GetValue(this Expression expression)
+        public static object GetValue(this Expression expression)
         {
             switch (expression)
             {
@@ -41,7 +41,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             }
         }
 
-        public static IQueryable<TEntity> WhereEquals<TEntity>(this IQueryable<TEntity> query, string column, Object value)
+        public static IQueryable<TEntity> WhereEquals<TEntity>(this IQueryable<TEntity> query, string column, object value)
         {
             var paramExp = Expression.Parameter(typeof(TEntity), "e");
             var propExp = Expression.Property(paramExp, column);
