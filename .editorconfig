@@ -1,0 +1,27 @@
+[*]
+end_of_line = crlf
+
+[*.cs]
+dotnet_sort_system_directives_first                        = true
+dotnet_style_predefined_type_for_locals_parameters_members = true : warning
+dotnet_style_predefined_type_for_member_access             = true : warning
+trim_trailing_whitespace = true
+insert_final_newline = true
+indent_style = space
+
+dotnet_naming_rule.fields_under_camel_case.symbols = all_fields
+dotnet_naming_rule.fields_under_camel_case.style = under_camel_case
+dotnet_naming_rule.fields_under_camel_case.severity = suggestion
+dotnet_naming_symbols.all_fields.applicable_kinds = field
+dotnet_naming_symbols.all_fields.applicable_accessibilities = private
+dotnet_naming_style.under_camel_case.required_prefix = _
+dotnet_naming_style.under_camel_case.capitalization = camel_case
+
+dotnet_naming_rule.const_pascal_case.symbols = all_consts
+dotnet_naming_rule.const_pascal_case.style = pascal_case
+dotnet_naming_rule.const_pascal_case.severity = suggestion
+dotnet_naming_symbols.all_consts.required_modifiers = const
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+
+[*.xml]
+indent_style = space

@@ -1,14 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Storage;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
+using FlexLabs.EntityFrameworkCore.Upsert.Generators;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert
 {
@@ -98,48 +99,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 updArguments.Add(Value);
             }
 
-            var allArguments = arguments.Concat(updArguments).ToList();
+            IUpsertSqlGenerator sqlGenerator = null;
             var dbProvider = _dbContext.GetService<IDatabaseProvider>();
-            string sqlCommand;
-            if (dbProvider.Name.EndsWith("PostgreSQL"))
-                sqlCommand = CreateCommand_PostgreSQL(allColumns, joinColumns, updColumns, allArguments);
-            else if (dbProvider.Name.EndsWith("SqlServer"))
-                sqlCommand = CreateCommand_MSSQL(allColumns, joinColumns, updColumns, allArguments);
-            else
+            var generators = _dbContext.GetInfrastructure().GetServices<IUpsertSqlGenerator>().Concat(DefaultGenerators.Generators);
+            foreach (var generator in generators)
+                if (generator.Supports(dbProvider.Name))
+                {
+                    sqlGenerator = generator;
+                    break;
+                }
+            if (sqlGenerator == null)
                 throw new NotSupportedException("Database provider not supported yet!");
-            await _dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, allArguments);
-        }
 
-        private string CreateCommand_PostgreSQL(ICollection<string> columns, ICollection<string> joinColumns, ICollection<string> updateColumns, ICollection<object> arguments)
-        {
-            var result = new StringBuilder();
-            result.Append($"INSERT INTO {_entityType.Relational().Schema ?? "public"}.\"{_entityType.Relational().TableName}\" AS \"T\" (");
-            result.AppendJoin(", ", columns.Select(c => $"\"{c}\""));
-            result.Append(") VALUES (");
-            result.AppendJoin(", ", arguments.Take(columns.Count).Select((v, i) => $"@p{i}"));
-            result.Append(") ON CONFLICT (");
-            result.AppendJoin(", ", joinColumns.Select(c => $"\"{c}\""));
-            result.Append(") DO UPDATE SET ");
-            result.AppendJoin(", ", updateColumns.Select((c, i) => $"\"{c}\" = @p{i + columns.Count}"));
-            return result.ToString();
-        }
-
-        private string CreateCommand_MSSQL(ICollection<string> columns, ICollection<string> joinColumns, ICollection<string> updateColumns, ICollection<object> arguments)
-        {
-            var result = new StringBuilder();
-            result.Append($"MERGE INTO {_entityType.Relational().Schema ?? "dbo"}.[{_entityType.Relational().TableName}] AS [T] USING ( VALUES (");
-            result.AppendJoin(", ", arguments.Take(columns.Count).Select((v, i) => $"@p{i}"));
-            result.Append($") ) AS [S] (");
-            result.AppendJoin(", ", columns.Select(c => $"[{c}]"));
-            result.Append(") ON ");
-            result.AppendJoin(" AND ", joinColumns.Select(c => $"[T].[{c}] = [S].[{c}]"));
-            result.Append(" WHEN NOT MATCHED BY TARGET THEN INSERT (");
-            result.AppendJoin(", ", columns.Select(c => $"[{c}]"));
-            result.Append(") VALUES (");
-            result.AppendJoin(", ", columns.Select(c => $"[{c}]"));
-            result.Append(") WHEN MATCHED THEN UPDATE SET ");
-            result.AppendJoin(", ", updateColumns.Select((c, i) => $"[{c}] = @p{i + columns.Count}"));
-            return result.ToString();
+            var allArguments = arguments.Concat(updArguments).ToList();
+            await _dbContext.Database.ExecuteSqlCommandAsync(sqlGenerator.GenerateCommand(_entityType, allColumns, joinColumns, updColumns), allArguments);
         }
     }
 }
