@@ -31,6 +31,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Generators
                 var argumentOffset = insertColumns.Count + updateColumns.Count;
                 result.AppendJoin(", ", updateExpressions.Select((e, i) => ExpandExpression(i + argumentOffset, e.ColumnName, e.Value)));
             }
+            result.Append(";");
             return result.ToString();
         }
 
@@ -46,6 +47,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Generators
             }
         }
 
-        public bool Supports(string name) => name == "Microsoft.EntifyFrameworkCore.SqlServer";
+        public bool Supports(string name) => name == "Microsoft.EntityFrameworkCore.SqlServer";
     }
 }
