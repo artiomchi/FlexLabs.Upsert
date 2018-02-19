@@ -15,7 +15,7 @@ before_build:
 
 build_script:
 - ps: dotnet build -c $Env:CONFIGURATION $Env:VersionSuffixParam $Env:VersionSuffixValue
-- ps: dotnet pack src\R4Mvc.Tools -c $Env:CONFIGURATION $Env:VersionSuffixParam $Env:VersionSuffixValue
+- ps: dotnet pack src\FlexLabs.EntityFrameworkCore.Upsert -c $Env:CONFIGURATION $Env:VersionSuffixParam $Env:VersionSuffixValue
 
 artifacts:
 - path: '**\*.nupkg'
