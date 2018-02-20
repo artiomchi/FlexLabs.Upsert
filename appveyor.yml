@@ -1,0 +1,78 @@
+version: 1.0.0.{build}
+
+image: Visual Studio 2017
+
+configuration: Release
+
+init:
+- ps: $Env:VersionSuffixParam = "--version-suffix"
+- ps: $Env:VersionSuffixValue = ("ci-" + $Env:APPVEYOR_BUILD_NUMBER.PadLeft(5, "0"))
+
+before_build:
+- ps: 'Write-Output ("Build version suffix: " + $Env:VersionSuffixValue)'
+- ps: dotnet --info
+- ps: dotnet restore -v Minimal
+
+build_script:
+- ps: dotnet build -c $Env:CONFIGURATION $Env:VersionSuffixParam $Env:VersionSuffixValue
+- ps: dotnet pack src\FlexLabs.EntityFrameworkCore.Upsert -c $Env:CONFIGURATION $Env:VersionSuffixParam $Env:VersionSuffixValue
+
+artifacts:
+- path: '**\*.nupkg'
+
+for:
+- branches:
+    only:
+    - develop
+
+  deploy:
+    provider: NuGet
+    server: https://www.myget.org/F/artiomchi/api/v2/package
+    symbol_server: https://www.myget.org/F/artiomchi/symbols/api/v2/package
+    api_key:
+      secure: BlCFbX6MZpsBFqMRZHGultlTjjW8N7fwApHSx/AidToI+nIVCGb5G0yJ3+faCHbc
+    artifact: /.*\.nupkg/
+
+- branches:
+    only:
+    - /feature\/.*/
+
+  init:
+  - ps: $Env:VersionSuffixParam = "--version-suffix"
+  - ps: $Env:VersionSuffixValue = ("ci--" + $Env:APPVEYOR_REPO_BRANCH.Substring(8) + "-" + $Env:APPVEYOR_BUILD_NUMBER.PadLeft(5, "0"))
+
+  deploy:
+    provider: NuGet
+    server: https://www.myget.org/F/artiomchi/api/v2/package
+    symbol_server: https://www.myget.org/F/artiomchi/symbols/api/v2/package
+    api_key:
+      secure: BlCFbX6MZpsBFqMRZHGultlTjjW8N7fwApHSx/AidToI+nIVCGb5G0yJ3+faCHbc
+    artifact: /.*\.nupkg/
+
+- branches:
+    only:
+    - /prerelease\/.*/
+
+  init:
+  - ps: $Env:VersionSuffixParam = "--version-suffix"
+  - ps: $Env:VersionSuffixValue = ($Env:APPVEYOR_REPO_BRANCH.Substring(11) + "-" + $Env:APPVEYOR_BUILD_NUMBER.PadLeft(5, "0"))
+
+  deploy:
+    provider: NuGet
+    api_key:
+      secure: BceZKQ4UzRsuP33NdSIEKhPw6kcBZ665gvgYe9oqO2AKoEO/TOp0EcR2hTl4t8MO
+    artifact: /.*\.nupkg/
+
+- branches:
+    only:
+    - master
+
+  init:
+  - ps: $Env:VersionSuffixParam = $null
+  - ps: $Env:VersionSuffixValue = $null
+
+  deploy:
+    provider: NuGet
+    api_key:
+      secure: BceZKQ4UzRsuP33NdSIEKhPw6kcBZ665gvgYe9oqO2AKoEO/TOp0EcR2hTl4t8MO
+    artifact: /.*\.nupkg/
