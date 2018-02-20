@@ -14,17 +14,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Generators
             var result = new StringBuilder();
             var schema = entityType.Relational().Schema;
             result.Append($"INSERT INTO {(schema != null ? schema + "." : null)}{entityType.Relational().TableName} (");
-            result.AppendJoin(", ", insertColumns.Select(c => $"{c}"));
+            result.Append(string.Join(", ", insertColumns.Select(c => $"{c}")));
             result.Append(") VALUES (");
-            result.AppendJoin(", ", insertColumns.Select((v, i) => $"@p{i}"));
+            result.Append(string.Join(", ", insertColumns.Select((v, i) => $"@p{i}")));
             result.Append(") ON DUPLICATE KEY UPDATE ");
-            result.AppendJoin(", ", updateColumns.Select((c, i) => $"{c} = @p{i + insertColumns.Count}"));
+            result.Append(string.Join(", ", updateColumns.Select((c, i) => $"{c} = @p{i + insertColumns.Count}")));
             if (updateExpressions.Count > 0)
             {
                 if (updateColumns.Count > 0)
                     result.Append(", ");
                 var argumentOffset = insertColumns.Count + updateColumns.Count;
-                result.AppendJoin(", ", updateExpressions.Select((e, i) => ExpandExpression(i + argumentOffset, e.ColumnName, e.Value)));
+                result.Append(string.Join(", ", updateExpressions.Select((e, i) => ExpandExpression(i + argumentOffset, e.ColumnName, e.Value))));
             }
             return result.ToString();
         }

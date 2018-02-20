@@ -13,23 +13,23 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Generators
         {
             var result = new StringBuilder();
             result.Append($"MERGE INTO {entityType.Relational().Schema ?? "dbo"}.[{entityType.Relational().TableName}] WITH (HOLDLOCK) AS [T] USING ( VALUES (");
-            result.AppendJoin(", ", insertColumns.Select((v, i) => $"@p{i}"));
+            result.Append(string.Join(", ", insertColumns.Select((v, i) => $"@p{i}")));
             result.Append($") ) AS [S] (");
-            result.AppendJoin(", ", insertColumns.Select(c => $"[{c}]"));
+            result.Append(string.Join(", ", insertColumns.Select(c => $"[{c}]")));
             result.Append(") ON ");
-            result.AppendJoin(" AND ", joinColumns.Select(c => $"[T].[{c}] = [S].[{c}]"));
+            result.Append(string.Join(" AND ", joinColumns.Select(c => $"[T].[{c}] = [S].[{c}]")));
             result.Append(" WHEN NOT MATCHED BY TARGET THEN INSERT (");
-            result.AppendJoin(", ", insertColumns.Select(c => $"[{c}]"));
+            result.Append(string.Join(", ", insertColumns.Select(c => $"[{c}]")));
             result.Append(") VALUES (");
-            result.AppendJoin(", ", insertColumns.Select(c => $"[{c}]"));
+            result.Append(string.Join(", ", insertColumns.Select(c => $"[{c}]")));
             result.Append(") WHEN MATCHED THEN UPDATE SET ");
-            result.AppendJoin(", ", updateColumns.Select((c, i) => $"[{c}] = @p{i + insertColumns.Count}"));
+            result.Append(string.Join(", ", updateColumns.Select((c, i) => $"[{c}] = @p{i + insertColumns.Count}")));
             if (updateExpressions.Count > 0)
             {
                 if (updateColumns.Count > 0)
                     result.Append(", ");
                 var argumentOffset = insertColumns.Count + updateColumns.Count;
-                result.AppendJoin(", ", updateExpressions.Select((e, i) => ExpandExpression(i + argumentOffset, e.ColumnName, e.Value)));
+                result.Append(string.Join(", ", updateExpressions.Select((e, i) => ExpandExpression(i + argumentOffset, e.ColumnName, e.Value))));
             }
             result.Append(";");
             return result.ToString();
