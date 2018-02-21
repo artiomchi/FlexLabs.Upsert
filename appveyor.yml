@@ -4,6 +4,11 @@ image: Visual Studio 2017
 
 configuration: Release
 
+services:
+ - mssql2017
+ - mysql
+ - postgresql
+
 init:
 - ps: $Env:VersionSuffixParam = "--version-suffix"
 - ps: $Env:VersionSuffixValue = ("ci-" + $Env:APPVEYOR_BUILD_NUMBER.PadLeft(5, "0"))

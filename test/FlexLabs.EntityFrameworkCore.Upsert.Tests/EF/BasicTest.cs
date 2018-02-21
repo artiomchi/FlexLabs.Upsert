@@ -21,7 +21,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             private static readonly string MySql_Connection = $"Server=localhost;Port={MySql_Port};Database={Username};Uid=root;Pwd={Password}";
 
             private const string Username = "testuser";
-            private const string Password = "P1ssw0rd";
+            private const string Password = "Password12!";
+
+            private static readonly string AppVeyor_Postgres_Connection = $"Server=localhost;Port=5432;Database={Username};Username=postgres;Password={Password}";
+            private static readonly string AppVeyor_SqlServer_Connection = $"Server=(local)\\SQL2017;Database={Username};User Id=sa;Password={Password}";
+            private static readonly string AppVeyor_MySql_Connection = $"Server=localhost;Port=3306;Database={Username};Uid=root;Pwd={Password}";
 
             private IDictionary<TestDbContext.DbDriver, Process> _processes;
             public IDictionary<TestDbContext.DbDriver, TestDbContext> _dataContexts;
@@ -31,16 +35,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 _processes = new Dictionary<TestDbContext.DbDriver, Process>();
                 _dataContexts = new Dictionary<TestDbContext.DbDriver, TestDbContext>();
 
-                _processes[TestDbContext.DbDriver.Postgres] = Process.Start("docker",
-                    $"run --name {Postgres_ImageName} -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
-                _processes[TestDbContext.DbDriver.MSSQL] = Process.Start("docker",
-                    $"run --name {SqlServer_ImageName} -e ACCEPT_EULA=Y -e MSSQL_PID=Express -e SA_PASSWORD={Password} -p {SqlServer_Port}:1433 microsoft/mssql-server-linux");
-                _processes[TestDbContext.DbDriver.MySQL] = Process.Start("docker",
-                    $"run --name {MySql_ImageName} -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
+                //_processes[TestDbContext.DbDriver.Postgres] = Process.Start("docker",
+                //    $"run --name {Postgres_ImageName} -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
+                //_processes[TestDbContext.DbDriver.MSSQL] = Process.Start("docker",
+                //    $"run --name {SqlServer_ImageName} -e ACCEPT_EULA=Y -e MSSQL_PID=Express -e SA_PASSWORD={Password} -p {SqlServer_Port}:1433 microsoft/mssql-server-linux");
+                //_processes[TestDbContext.DbDriver.MySQL] = Process.Start("docker",
+                //    $"run --name {MySql_ImageName} -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
 
-                WaitForConnection(TestDbContext.DbDriver.Postgres, Postgres_Connection);
-                WaitForConnection(TestDbContext.DbDriver.MSSQL, SqlServer_Connection);
-                WaitForConnection(TestDbContext.DbDriver.MySQL, MySql_Connection);
+                WaitForConnection(TestDbContext.DbDriver.Postgres, AppVeyor_Postgres_Connection);
+                WaitForConnection(TestDbContext.DbDriver.MSSQL, AppVeyor_SqlServer_Connection);
+                WaitForConnection(TestDbContext.DbDriver.MySQL, AppVeyor_MySql_Connection);
             }
 
             private void WaitForConnection(TestDbContext.DbDriver driver, string connectionString)
