@@ -12,7 +12,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Generators
         public string GenerateCommand(IEntityType entityType, ICollection<string> insertColumns, ICollection<string> joinColumns, ICollection<string> updateColumns, List<(string ColumnName, KnownExpressions Value)> updateExpressions)
         {
             var result = new StringBuilder();
-            result.Append($"MERGE INTO {entityType.Relational().Schema ?? "dbo"}.[{entityType.Relational().TableName}] WITH (HOLDLOCK) AS [T] USING ( VALUES (");
+            var schema = entityType.Relational().Schema;
+            if (schema != null)
+                schema = $"[{schema}].";
+            result.Append($"MERGE INTO {schema}[{entityType.Relational().TableName}] WITH (HOLDLOCK) AS [T] USING ( VALUES (");
             result.Append(string.Join(", ", insertColumns.Select((v, i) => $"@p{i}")));
             result.Append($") ) AS [S] (");
             result.Append(string.Join(", ", insertColumns.Select(c => $"[{c}]")));

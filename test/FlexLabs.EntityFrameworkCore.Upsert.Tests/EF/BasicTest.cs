@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
@@ -27,24 +29,35 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             private static readonly string AppVeyor_SqlServer_Connection = $"Server=(local)\\SQL2017;Database={Username};User Id=sa;Password={Password}";
             private static readonly string AppVeyor_MySql_Connection = $"Server=localhost;Port=3306;Database={Username};Uid=root;Pwd={Password}";
 
+            private bool IsAppVeyor => Environment.GetEnvironmentVariable("APPVEYOR") != null;
+
             private IDictionary<TestDbContext.DbDriver, Process> _processes;
-            public IDictionary<TestDbContext.DbDriver, TestDbContext> _dataContexts;
+            public IDictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>> _dataContexts;
 
             public Contexts()
             {
                 _processes = new Dictionary<TestDbContext.DbDriver, Process>();
-                _dataContexts = new Dictionary<TestDbContext.DbDriver, TestDbContext>();
+                _dataContexts = new Dictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>>();
 
-                //_processes[TestDbContext.DbDriver.Postgres] = Process.Start("docker",
-                //    $"run --name {Postgres_ImageName} -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
-                //_processes[TestDbContext.DbDriver.MSSQL] = Process.Start("docker",
-                //    $"run --name {SqlServer_ImageName} -e ACCEPT_EULA=Y -e MSSQL_PID=Express -e SA_PASSWORD={Password} -p {SqlServer_Port}:1433 microsoft/mssql-server-linux");
-                //_processes[TestDbContext.DbDriver.MySQL] = Process.Start("docker",
-                //    $"run --name {MySql_ImageName} -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
+                if (IsAppVeyor)
+                {
+                    WaitForConnection(TestDbContext.DbDriver.Postgres, AppVeyor_Postgres_Connection);
+                    WaitForConnection(TestDbContext.DbDriver.MSSQL, AppVeyor_SqlServer_Connection);
+                    WaitForConnection(TestDbContext.DbDriver.MySQL, AppVeyor_MySql_Connection);
+                }
+                else
+                {
+                    _processes[TestDbContext.DbDriver.Postgres] = Process.Start("docker",
+                        $"run --name {Postgres_ImageName} -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
+                    _processes[TestDbContext.DbDriver.MSSQL] = Process.Start("docker",
+                        $"run --name {SqlServer_ImageName} -e ACCEPT_EULA=Y -e MSSQL_PID=Express -e SA_PASSWORD={Password} -p {SqlServer_Port}:1433 microsoft/mssql-server-linux");
+                    _processes[TestDbContext.DbDriver.MySQL] = Process.Start("docker",
+                        $"run --name {MySql_ImageName} -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
 
-                WaitForConnection(TestDbContext.DbDriver.Postgres, AppVeyor_Postgres_Connection);
-                WaitForConnection(TestDbContext.DbDriver.MSSQL, AppVeyor_SqlServer_Connection);
-                WaitForConnection(TestDbContext.DbDriver.MySQL, AppVeyor_MySql_Connection);
+                    WaitForConnection(TestDbContext.DbDriver.Postgres, Postgres_Connection);
+                    WaitForConnection(TestDbContext.DbDriver.MSSQL, SqlServer_Connection);
+                    WaitForConnection(TestDbContext.DbDriver.MySQL, MySql_Connection);
+                }
             }
 
             private void WaitForConnection(TestDbContext.DbDriver driver, string connectionString)
@@ -60,7 +73,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     {
                         context = new TestDbContext(options);
                         context.Database.EnsureCreated();
-                        _dataContexts[driver] = context;
+                        _dataContexts[driver] = options;
                         isSuccess = true;
                         Console.WriteLine(" - Connection Successful!");
                         break;
@@ -81,41 +94,287 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             public void Dispose()
             {
-                foreach (var context in _dataContexts.Values)
-                    context.Dispose();
                 foreach (var context in _processes.Values)
                     context.Dispose();
 
-                using (var processRm = Process.Start("docker", $"rm -f {Postgres_ImageName}"))
+                if (!IsAppVeyor)
                 {
-                    processRm.WaitForExit();
-                }
-                using (var processRm = Process.Start("docker", $"rm -f {SqlServer_ImageName}"))
-                {
-                    processRm.WaitForExit();
-                }
-                using (var processRm = Process.Start("docker", $"rm -f {MySql_ImageName}"))
-                {
-                    processRm.WaitForExit();
+                    using (var processRm = Process.Start("docker", $"rm -f {Postgres_ImageName}"))
+                    {
+                        processRm.WaitForExit();
+                    }
+                    using (var processRm = Process.Start("docker", $"rm -f {SqlServer_ImageName}"))
+                    {
+                        processRm.WaitForExit();
+                    }
+                    using (var processRm = Process.Start("docker", $"rm -f {MySql_ImageName}"))
+                    {
+                        processRm.WaitForExit();
+                    }
                 }
             }
         }
 
-        private IDictionary<TestDbContext.DbDriver, TestDbContext> _dataContexts;
+        private IDictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>> _dataContexts;
+        Country _dbCountry = new Country
+        {
+            Name = "...loading...",
+            ISO = "AU",
+            Created = new DateTime(1970, 1, 1),
+            Updated = new DateTime(1970, 1, 1),
+        };
+        PageVisit _dbVisit = new PageVisit
+        {
+            UserID = 1,
+            Date = DateTime.Today,
+            Visits = 5,
+            FirstVisit = new DateTime(1970, 1, 1),
+            LastVisit = new DateTime(1970, 1, 1),
+        };
+        DateTime _now = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
         public BasicTest(Contexts contexts)
         {
             _dataContexts = contexts._dataContexts;
+        }
+
+        private void ResetDb(TestDbContext.DbDriver driver)
+        {
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                dbContext.Countries.RemoveRange(dbContext.Countries);
+                dbContext.DashTable.RemoveRange(dbContext.DashTable);
+                dbContext.SchemaTable.RemoveRange(dbContext.SchemaTable);
+                dbContext.PageVisits.RemoveRange(dbContext.PageVisits);
+
+                dbContext.Countries.Add(_dbCountry);
+                dbContext.PageVisits.Add(_dbVisit);
+                dbContext.SaveChanges();
+            }
         }
 
         [Theory]
         [InlineData(TestDbContext.DbDriver.Postgres)]
         [InlineData(TestDbContext.DbDriver.MSSQL)]
         [InlineData(TestDbContext.DbDriver.MySQL)]
-        public void Test(TestDbContext.DbDriver driver)
+        public void Upsert_InitialDbState(TestDbContext.DbDriver driver)
         {
-            var context = _dataContexts[driver];
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                Assert.Empty(dbContext.SchemaTable);
+                Assert.Empty(dbContext.DashTable);
+                Assert.Collection(dbContext.Countries, c => Assert.Equal("AU", c.ISO));
+                Assert.Collection(dbContext.PageVisits, c => Assert.Equal(1, c.UserID));
+            }
+        }
 
-            Assert.Empty(context.Countries);
+        [Theory]
+        [InlineData(TestDbContext.DbDriver.Postgres)]
+        [InlineData(TestDbContext.DbDriver.MSSQL)]
+        [InlineData(TestDbContext.DbDriver.MySQL)]
+        public void Upsert_Country_Update_NoColumns(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newCountry = new Country
+                {
+                    Name = "Australia",
+                    ISO = "AU",
+                    Created = _now,
+                    Updated = _now,
+                };
+
+                dbContext.Upsert(newCountry)
+                    .On(c => new { c.ISO })
+                    .Run();
+
+                var country = dbContext.Countries.Single(c => c.ISO == newCountry.ISO);
+                Assert.NotNull(country);
+                Assert.Equal(newCountry.Name, country.Name);
+                Assert.Equal(newCountry.Created, country.Created);
+                Assert.Equal(newCountry.Updated, country.Updated);
+            }
+        }
+
+        [Theory]
+        [InlineData(TestDbContext.DbDriver.Postgres)]
+        [InlineData(TestDbContext.DbDriver.MSSQL)]
+        [InlineData(TestDbContext.DbDriver.MySQL)]
+        public void Upsert_Country_Update_SelectedColumns(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newCountry = new Country
+                {
+                    Name = "Australia",
+                    ISO = "AU",
+                    Created = _now,
+                    Updated = _now,
+                };
+
+                dbContext.Upsert(newCountry)
+                    .On(c => new { c.ISO })
+                    .UpdateColumns(c => new Country
+                    {
+                        Name = newCountry.Name,
+                        Updated = newCountry.Updated,
+                    })
+                    .Run();
+
+                var country = dbContext.Countries.Single(c => c.ISO == newCountry.ISO);
+                Assert.NotNull(country);
+                Assert.Equal(newCountry.Name, country.Name);
+                Assert.NotEqual(newCountry.Created, country.Created);
+                Assert.Equal(_dbCountry.Created, country.Created);
+                Assert.Equal(newCountry.Updated, country.Updated);
+            }
+        }
+
+        [Theory]
+        [InlineData(TestDbContext.DbDriver.Postgres)]
+        [InlineData(TestDbContext.DbDriver.MSSQL)]
+        [InlineData(TestDbContext.DbDriver.MySQL)]
+        public void Upsert_Country_Insert(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newCountry = new Country
+                {
+                    Name = "United Kingdon",
+                    ISO = "GB",
+                    Created = _now,
+                    Updated = _now,
+                };
+
+                dbContext.Upsert(newCountry)
+                    .On(c => new { c.ISO })
+                    .UpdateColumns(c => new Country
+                    {
+                        Name = newCountry.Name,
+                        Updated = newCountry.Updated,
+                    })
+                    .Run();
+
+                var country = dbContext.Countries.Single(c => c.ISO == newCountry.ISO);
+                Assert.NotNull(country);
+                Assert.Equal(newCountry.Name, country.Name);
+                Assert.Equal(newCountry.Created, country.Created);
+                Assert.Equal(newCountry.Updated, country.Updated);
+            }
+        }
+
+        [Theory]
+        [InlineData(TestDbContext.DbDriver.Postgres)]
+        [InlineData(TestDbContext.DbDriver.MSSQL)]
+        [InlineData(TestDbContext.DbDriver.MySQL)]
+        public void Upsert_PageVisit_Update_NoColumns(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newVisit = new PageVisit
+                {
+                    UserID = 1,
+                    Date = DateTime.Today,
+                    Visits = 1,
+                    FirstVisit = _now,
+                    LastVisit = _now,
+                };
+
+                dbContext.Upsert(newVisit)
+                    .On(pv => new { pv.UserID, pv.Date })
+                    .Run();
+
+                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
+                Assert.NotNull(visit);
+                Assert.Equal(newVisit.Visits, visit.Visits);
+                Assert.Equal(newVisit.FirstVisit, visit.FirstVisit);
+                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+            }
+        }
+
+        [Theory]
+        [InlineData(TestDbContext.DbDriver.Postgres)]
+        [InlineData(TestDbContext.DbDriver.MSSQL)]
+        [InlineData(TestDbContext.DbDriver.MySQL)]
+        public void Upsert_PageVisit_Update_SelectedColumns(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newVisit = new PageVisit
+                {
+                    UserID = 1,
+                    Date = DateTime.Today,
+                    Visits = 1,
+                    FirstVisit = _now,
+                    LastVisit = _now,
+                };
+
+                dbContext.Upsert(newVisit)
+                    .On(pv => new { pv.UserID, pv.Date })
+                    .UpdateColumns(pv => new PageVisit
+                    {
+                        Visits = pv.Visits + 1,
+                        LastVisit = _now,
+                    })
+                    .Run();
+
+                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
+                Assert.NotNull(visit);
+                Assert.NotEqual(newVisit.Visits, visit.Visits);
+                Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
+                Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+            }
+        }
+
+        [Theory]
+        [InlineData(TestDbContext.DbDriver.Postgres)]
+        [InlineData(TestDbContext.DbDriver.MSSQL)]
+        [InlineData(TestDbContext.DbDriver.MySQL)]
+        public void Upsert_DashedTable(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                dbContext.Upsert(new DashTable
+                    {
+                        DataSet = "test",
+                        Updated = _now,
+                    })
+                    .On(x => new { x.DataSet })
+                    .Run();
+
+                var entry = dbContext.DashTable.Single(x => x.DataSet == "test");
+                Assert.NotNull(entry);
+            }
+        }
+
+        [Theory]
+        [InlineData(TestDbContext.DbDriver.Postgres)]
+        [InlineData(TestDbContext.DbDriver.MSSQL)]
+        [InlineData(TestDbContext.DbDriver.MySQL)]
+        public void Upsert_SchemaTable(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                dbContext.Upsert(new SchemaTable
+                    {
+                        Name = 1,
+                        Updated = _now,
+                    })
+                    .On(x => new { x.Name })
+                    .Run();
+
+                var entry = dbContext.SchemaTable.Single(x => x.Name == 1);
+                Assert.NotNull(entry);
+            }
         }
     }
 }
