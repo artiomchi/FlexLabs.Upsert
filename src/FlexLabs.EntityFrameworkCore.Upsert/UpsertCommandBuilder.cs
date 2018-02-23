@@ -29,6 +29,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             _entity = entity ?? throw new ArgumentNullException(nameof(entity));
         }
 
+        public override string ToString() => PrepareCommand().SqlCommand;
+
         public UpsertCommandBuilder<TEntity> On(Expression<Func<TEntity, object>> match)
         {
             if (_joinColumns != null)
