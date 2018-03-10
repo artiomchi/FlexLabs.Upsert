@@ -48,11 +48,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 else
                 {
                     _processes[TestDbContext.DbDriver.Postgres] = Process.Start("docker",
-                        $"run --name {Postgres_ImageName} -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
+                        $"run --name {Postgres_ImageName} --platform linux -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
                     _processes[TestDbContext.DbDriver.MSSQL] = Process.Start("docker",
-                        $"run --name {SqlServer_ImageName} -e ACCEPT_EULA=Y -e MSSQL_PID=Express -e SA_PASSWORD={Password} -p {SqlServer_Port}:1433 microsoft/mssql-server-linux");
+                        $"run --name {SqlServer_ImageName} --platform linux -e ACCEPT_EULA=Y -e MSSQL_PID=Express -e SA_PASSWORD={Password} -p {SqlServer_Port}:1433 microsoft/mssql-server-linux");
                     _processes[TestDbContext.DbDriver.MySQL] = Process.Start("docker",
-                        $"run --name {MySql_ImageName} -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
+                        $"run --name {MySql_ImageName} --platform linux -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
 
                     WaitForConnection(TestDbContext.DbDriver.Postgres, Postgres_Connection);
                     WaitForConnection(TestDbContext.DbDriver.MSSQL, SqlServer_Connection);
@@ -99,18 +99,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
                 if (!IsAppVeyor)
                 {
-                    using (var processRm = Process.Start("docker", $"rm -f {Postgres_ImageName}"))
-                    {
-                        processRm.WaitForExit();
-                    }
-                    using (var processRm = Process.Start("docker", $"rm -f {SqlServer_ImageName}"))
-                    {
-                        processRm.WaitForExit();
-                    }
-                    using (var processRm = Process.Start("docker", $"rm -f {MySql_ImageName}"))
-                    {
-                        processRm.WaitForExit();
-                    }
+                    //using (var processRm = Process.Start("docker", $"rm -f {Postgres_ImageName}"))
+                    //{
+                    //    processRm.WaitForExit();
+                    //}
+                    //using (var processRm = Process.Start("docker", $"rm -f {SqlServer_ImageName}"))
+                    //{
+                    //    processRm.WaitForExit();
+                    //}
+                    //using (var processRm = Process.Start("docker", $"rm -f {MySql_ImageName}"))
+                    //{
+                    //    processRm.WaitForExit();
+                    //}
                 }
             }
         }
@@ -186,7 +186,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 };
 
                 dbContext.Upsert(newCountry)
-                    .On(c => new { c.ISO })
+                    .On(c => c.ISO)
                     .Run();
 
                 var country = dbContext.Countries.Single(c => c.ISO == newCountry.ISO);
@@ -215,7 +215,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 };
 
                 dbContext.Upsert(newCountry)
-                    .On(c => new { c.ISO })
+                    .On(c => c.ISO)
                     .UpdateColumns(c => new Country
                     {
                         Name = newCountry.Name,
@@ -250,7 +250,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 };
 
                 dbContext.Upsert(newCountry)
-                    .On(c => new { c.ISO })
+                    .On(c => c.ISO)
                     .UpdateColumns(c => new Country
                     {
                         Name = newCountry.Name,
@@ -347,7 +347,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                         DataSet = "test",
                         Updated = _now,
                     })
-                    .On(x => new { x.DataSet })
+                    .On(x => x.DataSet)
                     .Run();
 
                 var entry = dbContext.DashTable.Single(x => x.DataSet == "test");
@@ -369,7 +369,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                         Name = 1,
                         Updated = _now,
                     })
-                    .On(x => new { x.Name })
+                    .On(x => x.Name)
                     .Run();
 
                 var entry = dbContext.SchemaTable.Single(x => x.Name == 1);

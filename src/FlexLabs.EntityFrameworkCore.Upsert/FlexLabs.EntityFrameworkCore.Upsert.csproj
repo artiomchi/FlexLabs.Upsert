@@ -13,7 +13,10 @@ Also supports injecting sql command generators to add support for other provider
     <Copyright>Artiom Chilaru © 2018</Copyright>
     <PackageProjectUrl>https://github.com/artiomchi/FlexLabs.Upsert</PackageProjectUrl>
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
-    <VersionPrefix>1.0.3</VersionPrefix>
+    <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
+    <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
+    <VersionPrefix>1.0.4</VersionPrefix>
+    <PackageReleaseNotes>! Patched the crash when using `.On()` with a single column</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
