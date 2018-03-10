@@ -58,6 +58,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 var property = _entityType.FindProperty(memberExp.Member.Name);
                 _joinColumns = new List<IProperty> { property };
             }
+            else if (match.Body is MemberExpression memberExpression)
+            {
+                if (!typeof(TEntity).Equals(memberExpression.Expression.Type))
+                    throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
+                var property = _entityType.FindProperty(memberExpression.Member.Name);
+                _joinColumns = new List<IProperty> { property };
+            }
             else
             {
                 throw new ArgumentException("match must be an anonymous object initialiser", nameof(match));
