@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using FlexLabs.EntityFrameworkCore.Upsert.Generators;
 using Microsoft.EntityFrameworkCore;
@@ -170,8 +171,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
 
         public Task RunAsync()
         {
+            return RunAsync(CancellationToken.None);
+        }
+
+        public Task RunAsync(CancellationToken token = default)
+        {
             var (sqlCommand, arguments) = PrepareCommand();
-            return _dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, arguments);
+            return _dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, arguments, token);
         }
     }
 }
