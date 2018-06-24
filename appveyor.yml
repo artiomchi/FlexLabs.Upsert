@@ -5,6 +5,11 @@ image: Visual Studio 2017
 configuration: Release
 skip_tags: true
 
+services:
+ - mssql2017
+ - mysql
+ - postgresql
+
 environment:
   cert_secret:
     secure: tZ1CLa1H+KzjeZAks/d3fkM3mp7ymDd0hnSmmKa+qe19K1kW2Tt+hMt38tNFMpJIYaOBSAcQ7bwvvqFQwVFNXA==
