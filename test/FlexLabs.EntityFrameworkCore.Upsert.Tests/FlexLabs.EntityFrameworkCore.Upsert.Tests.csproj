@@ -15,11 +15,6 @@
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
   </ItemGroup>
 
-  <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <SignAssembly>True</SignAssembly>
-    <AssemblyOriginatorKeyFile>..\..\certs\FlexLabsStrongKey.snk</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\..\src\FlexLabs.EntityFrameworkCore.Upsert\FlexLabs.EntityFrameworkCore.Upsert.csproj" />
   </ItemGroup>

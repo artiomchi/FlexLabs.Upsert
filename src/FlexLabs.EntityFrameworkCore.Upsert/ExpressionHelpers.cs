@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert
 {
-    internal static class ExpressionHelpers
+    public static class ExpressionHelpers
     {
         public static object GetValue(this Expression expression)
         {
