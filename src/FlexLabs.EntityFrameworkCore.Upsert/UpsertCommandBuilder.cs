@@ -18,16 +18,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
     {
         private readonly DbContext _dbContext;
         private readonly IEntityType _entityType;
-        private readonly TEntity _entity;
+        private readonly TEntity[] _entities;
         private IList<IProperty> _joinColumns;
         private IList<(IProperty Property, KnownExpressions Value)> _updateExpressions;
         private IList<(IProperty Property, object Value)> _updateValues;
 
-        internal UpsertCommandBuilder(DbContext dbContext, IEntityType entityType, TEntity entity)
+        internal UpsertCommandBuilder(DbContext dbContext, IEntityType entityType, TEntity[] entities)
         {
             _dbContext = dbContext;
             _entityType = entityType ?? throw new ArgumentNullException(nameof(entityType));
-            _entity = entity ?? throw new ArgumentNullException(nameof(entity));
+            _entities = entities ?? throw new ArgumentNullException(nameof(entities));
         }
 
         public override string ToString() => PrepareCommand().SqlCommand;
@@ -104,15 +104,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         {
             var arguments = new List<object>();
             var allColumns = new List<string>();
-            foreach (var prop in _entityType.GetProperties())
+            var columnsDone = false;
+            foreach (var entity in _entities)
             {
-                if (prop.ValueGenerated != ValueGenerated.Never)
-                    continue;
-                var classProp = typeof(TEntity).GetProperty(prop.Name);
-                if (classProp == null)
-                    continue;
-                allColumns.Add(prop.Relational().ColumnName);
-                arguments.Add(classProp.GetValue(_entity));
+                foreach (var prop in _entityType.GetProperties())
+                {
+                    if (prop.ValueGenerated != ValueGenerated.Never)
+                        continue;
+                    var classProp = typeof(TEntity).GetProperty(prop.Name);
+                    if (classProp == null)
+                        continue;
+                    if (!columnsDone)
+                        allColumns.Add(prop.Relational().ColumnName);
+                    arguments.Add(classProp.GetValue(entity));
+                }
+                columnsDone = true;
             }
 
             var joinColumns = _joinColumns.Select(c => c.Relational().ColumnName).ToArray();
@@ -160,7 +166,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 throw new NotSupportedException("Database provider not supported yet!");
 
             var allArguments = arguments.Concat(updArguments).Concat(updExpressions.Select(e => e.Value.Value)).ToList();
-            return (sqlGenerator.GenerateCommand(_entityType, allColumns, joinColumns, updColumns, updExpressions), allArguments);
+            return (sqlGenerator.GenerateCommand(_entityType, _entities.Length, allColumns, joinColumns, updColumns, updExpressions), allArguments);
         }
 
         public void Run()
