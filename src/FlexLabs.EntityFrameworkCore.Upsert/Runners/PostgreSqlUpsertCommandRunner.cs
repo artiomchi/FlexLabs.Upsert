@@ -5,18 +5,20 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Generators
+namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
-    public class MySqlUpsertSqlGenerator : IUpsertSqlGenerator
+    public class PostgreSqlUpsertCommandRunner : RelationalUpsertCommandRunner
     {
-        public string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns, ICollection<string> updateColumns, List<(string ColumnName, KnownExpressions Value)> updateExpressions)
+        public override bool Supports(string name) => name == "Npgsql.EntityFrameworkCore.PostgreSQL";
+
+        public override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns, ICollection<string> updateColumns, List<(string ColumnName, KnownExpressions Value)> updateExpressions)
         {
             var result = new StringBuilder();
             var schema = entityType.Relational().Schema;
             if (schema != null)
-                schema = $"`{schema}`.";
-            result.Append($"INSERT INTO {schema}`{entityType.Relational().TableName}` (");
-            result.Append(string.Join(", ", insertColumns.Select(c => $"`{c}`")));
+                schema = $"\"{schema}\".";
+            result.Append($"INSERT INTO {schema}\"{entityType.Relational().TableName}\" AS \"T\" (");
+            result.Append(string.Join(", ", insertColumns.Select(c => $"\"{c}\"")));
             result.Append(") VALUES (");
             foreach (var entity in Enumerable.Range(0, entityCount))
             {
@@ -24,8 +26,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Generators
                 if (entity < entityCount - 1 && entityCount > 1)
                     result.Append("), (");
             }
-            result.Append(") ON DUPLICATE KEY UPDATE ");
-            result.Append(string.Join(", ", updateColumns.Select((c, i) => $"`{c}` = @p{i + insertColumns.Count * entityCount}")));
+            result.Append(") ON CONFLICT (");
+            result.Append(string.Join(", ", joinColumns.Select(c => $"\"{c}\"")));
+            result.Append(") DO UPDATE SET ");
+            result.Append(string.Join(", ", updateColumns.Select((c, i) => $"\"{c}\" = @p{i + insertColumns.Count * entityCount}")));
             if (updateExpressions.Count > 0)
             {
                 if (updateColumns.Count > 0)
@@ -41,13 +45,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Generators
             switch (expression.ExpressionType)
             {
                 case System.Linq.Expressions.ExpressionType.Add:
-                    return $"`{columnName}` = `{columnName}` + @p{argumentIndex}";
+                    return $"\"{columnName}\" = \"T\".\"{columnName}\" + @p{argumentIndex}";
                 case System.Linq.Expressions.ExpressionType.Subtract:
-                    return $"`{columnName}` = `{columnName}` - @p{argumentIndex}";
+                    return $"\"{columnName}\" = \"T\".\"{columnName}\" - @p{argumentIndex}";
                 default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
             }
         }
-
-        public bool Supports(string name) => name == "MySql.Data.EntityFrameworkCore" || name == "Pomelo.EntityFrameworkCore.MySql";
     }
 }

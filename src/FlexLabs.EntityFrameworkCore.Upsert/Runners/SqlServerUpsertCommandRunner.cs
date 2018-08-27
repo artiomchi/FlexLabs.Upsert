@@ -5,11 +5,13 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Generators
+namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
-    public class SqlServerUpsertSqlGenerator : IUpsertSqlGenerator
+    public class SqlServerUpsertCommandRunner : RelationalUpsertCommandRunner
     {
-        public string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns, ICollection<string> updateColumns, List<(string ColumnName, KnownExpressions Value)> updateExpressions)
+        public override bool Supports(string name) => name == "Microsoft.EntityFrameworkCore.SqlServer";
+
+        public override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns, ICollection<string> updateColumns, List<(string ColumnName, KnownExpressions Value)> updateExpressions)
         {
             var result = new StringBuilder();
             var schema = entityType.Relational().Schema;
@@ -54,7 +56,5 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Generators
                 default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
             }
         }
-
-        public bool Supports(string name) => name == "Microsoft.EntityFrameworkCore.SqlServer";
     }
 }

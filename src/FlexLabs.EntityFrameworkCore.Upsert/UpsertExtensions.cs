@@ -15,8 +15,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public static UpsertCommandBuilder<TEntity> UpsertRange<TEntity>(this DbContext dbContext, params TEntity[] entities)
             where TEntity : class
         {
-            var entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity));
-            return new UpsertCommandBuilder<TEntity>(dbContext, entityType, entities);
+            return new UpsertCommandBuilder<TEntity>(dbContext, entities);
         }
     }
 }

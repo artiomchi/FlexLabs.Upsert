@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using FlexLabs.EntityFrameworkCore.Upsert.Generators;
+using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -23,14 +23,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         private IList<(IProperty Property, KnownExpressions Value)> _updateExpressions;
         private IList<(IProperty Property, object Value)> _updateValues;
 
-        internal UpsertCommandBuilder(DbContext dbContext, IEntityType entityType, TEntity[] entities)
+        internal UpsertCommandBuilder(DbContext dbContext, TEntity[] entities)
         {
             _dbContext = dbContext;
-            _entityType = entityType ?? throw new ArgumentNullException(nameof(entityType));
             _entities = entities ?? throw new ArgumentNullException(nameof(entities));
-        }
 
-        public override string ToString() => PrepareCommand().SqlCommand;
+            _entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity));
+        }
 
         public UpsertCommandBuilder<TEntity> On(Expression<Func<TEntity, object>> match)
         {
@@ -100,90 +99,30 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             return this;
         }
 
-        private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand()
+        private IUpsertCommandRunner GetCommandRunner()
         {
-            var arguments = new List<object>();
-            var allColumns = new List<string>();
-            var columnsDone = false;
-            foreach (var entity in _entities)
-            {
-                foreach (var prop in _entityType.GetProperties())
-                {
-                    if (prop.ValueGenerated != ValueGenerated.Never)
-                        continue;
-                    var classProp = typeof(TEntity).GetProperty(prop.Name);
-                    if (classProp == null)
-                        continue;
-                    if (!columnsDone)
-                        allColumns.Add(prop.Relational().ColumnName);
-                    arguments.Add(classProp.GetValue(entity));
-                }
-                columnsDone = true;
-            }
-
-            var joinColumns = _joinColumns.Select(c => c.Relational().ColumnName).ToArray();
-
-            var updArguments = new List<object>();
-            var updColumns = new List<string>();
-            if (_updateValues != null)
-            {
-                foreach (var (Property, Value) in _updateValues)
-                {
-                    updColumns.Add(Property.Relational().ColumnName);
-                    updArguments.Add(Value);
-                }
-            }
-            else
-            {
-                for (int i = 0; i < allColumns.Count; i++)
-                {
-                    if (joinColumns.Contains(allColumns[i]))
-                        continue;
-                    updArguments.Add(arguments[i]);
-                    updColumns.Add(allColumns[i]);
-                }
-            }
-
-            var updExpressions = new List<(string ColumnName, KnownExpressions Value)>();
-            if (_updateExpressions != null)
-            {
-                foreach (var (Property, Value) in _updateExpressions)
-                {
-                    updExpressions.Add((Property.Relational().ColumnName, Value));
-                }
-            }
-
-            IUpsertSqlGenerator sqlGenerator = null;
             var dbProvider = _dbContext.GetService<IDatabaseProvider>();
-            var generators = _dbContext.GetInfrastructure().GetServices<IUpsertSqlGenerator>().Concat(DefaultGenerators.Generators);
-            foreach (var generator in generators)
-                if (generator.Supports(dbProvider.Name))
-                {
-                    sqlGenerator = generator;
-                    break;
-                }
-            if (sqlGenerator == null)
+            var commandRunner = _dbContext.GetInfrastructure().GetServices<IUpsertCommandRunner>()
+                .Concat(DefaultRunners.Generators)
+                .FirstOrDefault(r => r.Supports(dbProvider.Name));
+            if (commandRunner == null)
                 throw new NotSupportedException("Database provider not supported yet!");
 
-            var allArguments = arguments.Concat(updArguments).Concat(updExpressions.Select(e => e.Value.Value)).ToList();
-            return (sqlGenerator.GenerateCommand(_entityType, _entities.Length, allColumns, joinColumns, updColumns, updExpressions), allArguments);
+            return commandRunner;
         }
 
         public void Run()
         {
-            var (sqlCommand, arguments) = PrepareCommand();
-            _dbContext.Database.ExecuteSqlCommand(sqlCommand, arguments);
+            var commandRunner = GetCommandRunner();
+            commandRunner.Run(_dbContext, _entityType, _entities, _joinColumns, _updateExpressions, _updateValues);
         }
 
-        public Task RunAsync()
-        {
-            return RunAsync(CancellationToken.None);
-        }
+        public Task RunAsync() => RunAsync(CancellationToken.None);
 
         public Task RunAsync(CancellationToken token = default)
         {
-            var (sqlCommand, arguments) = PrepareCommand();
-            return _dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, arguments, token);
+            var commandRunner = GetCommandRunner();
+            return commandRunner.RunAsync(_dbContext, _entityType, _entities, _joinColumns, _updateExpressions, _updateValues, token);
         }
     }
 }
