@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -21,7 +22,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .SelectMany(x => x.e2.DefaultIfEmpty(), (x, e2) => new { x.e1, e2 })
                 .ToArray();
 
-            Action<TEntity> updateAction = null;
+            Action<TEntity, TEntity> updateAction = null;
             if (updateExpression != null)
             {
                 if (!(updateExpression.Body is MemberInitExpression entityUpdater))
@@ -29,11 +30,52 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
                 var properties = entityUpdater.Bindings.Select(b => b.Member).OfType<PropertyInfo>();
                 var updateFunc = updateExpression.Compile();
-                updateAction = e =>
+                updateAction = (e1, e2) =>
                 {
-                    var tmp = updateFunc(e);
+                    var tmp = updateFunc(e2);
                     foreach (var prop in properties)
-                        prop.SetValue(e, prop.GetValue(tmp));
+                        prop.SetValue(e2, prop.GetValue(tmp));
+                };
+            }
+            else
+            {
+                List<PropertyInfo> joinColumns;
+                if (matchExpression.Body is NewExpression newExpression)
+                {
+                    joinColumns = new List<PropertyInfo>();
+                    foreach (MemberExpression arg in newExpression.Arguments)
+                    {
+                        if (arg == null || !(arg.Member is PropertyInfo property) || !typeof(TEntity).Equals(arg.Expression.Type))
+                            throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
+                        joinColumns.Add(property);
+                    }
+                }
+                else if (matchExpression.Body is UnaryExpression unaryExpression)
+                {
+                    if (!(unaryExpression.Operand is MemberExpression memberExp) || !typeof(TEntity).Equals(memberExp.Expression.Type) || !(memberExp.Member is PropertyInfo property))
+                        throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
+                    joinColumns = new List<PropertyInfo> { property };
+                }
+                else if (matchExpression.Body is MemberExpression memberExpression)
+                {
+                    if (!typeof(TEntity).Equals(memberExpression.Expression.Type) || !(memberExpression.Member is PropertyInfo property))
+                        throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
+                    joinColumns = new List<PropertyInfo> { property };
+                }
+                else
+                {
+                    throw new ArgumentException("match must be an anonymous object initialiser", nameof(matchExpression));
+                }
+
+                var properties = entityType.GetProperties()
+                    .Where(p => p.ValueGenerated == ValueGenerated.Never)
+                    .Select(p => typeof(TEntity).GetProperty(p.Name))
+                    .Where(p => p != null)
+                    .Except(joinColumns);
+                updateAction = (e1, e2) =>
+                {
+                    foreach (var prop in properties)
+                        prop.SetValue(e2, prop.GetValue(e1));
                 };
             }
 
@@ -45,7 +87,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     continue;
                 }
 
-                updateAction?.Invoke(match.e2);
+                updateAction?.Invoke(match.e1, match.e2);
             }
 
             dbContext.SaveChanges();
