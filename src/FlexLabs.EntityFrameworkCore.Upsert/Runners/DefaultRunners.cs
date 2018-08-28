@@ -6,6 +6,7 @@
         public static IUpsertCommandRunner[] Generators
             => _generators ?? (_generators = new IUpsertCommandRunner[]
             {
+                new InMemoryUpsertCommandRunner(),
                 new MySqlUpsertCommandRunner(),
                 new PostgreSqlUpsertCommandRunner(),
                 new SqlServerUpsertCommandRunner(),

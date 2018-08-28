@@ -22,7 +22,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DbSet<DashTable> DashTable { get; set; }
         public DbSet<SchemaTable> SchemaTable { get; set; }
 
-        public enum DbDriver { Postgres, MSSQL, MySQL }
+        public enum DbDriver { Postgres, MSSQL, MySQL, InMemory }
         public static DbContextOptions<TestDbContext> Configure(string connectionString, DbDriver driver)
         {
             var options = new DbContextOptionsBuilder<TestDbContext>();
@@ -36,6 +36,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
                     break;
                 case DbDriver.MySQL:
                     options.UseMySql(connectionString);
+                    break;
+                case DbDriver.InMemory:
+                    options.UseInMemoryDatabase(connectionString);
                     break;
                 default:
                     throw new InvalidOperationException("Invalid database driver: " + driver);

@@ -10,6 +10,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 {
     public class BasicTest : IClassFixture<BasicTest.Contexts>
     {
+        public static TestDbContext.DbDriver[] DatabaseEngines = new[]
+        {
+            TestDbContext.DbDriver.Postgres,
+            TestDbContext.DbDriver.MSSQL,
+            TestDbContext.DbDriver.MySQL,
+            TestDbContext.DbDriver.InMemory,
+        };
+        public static IEnumerable<object[]> GetDatabaseEngines() => DatabaseEngines.Select(e => new object[] { e });
+
         public class Contexts : IDisposable
         {
             private const string Postgres_ImageName = "flexlabs_upsert_test_postgres";
@@ -21,6 +30,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             private const string MySql_ImageName = "flexlabs_upsert_test_mysql";
             private const string MySql_Port = "23306";
             private static readonly string MySql_Connection = $"Server=localhost;Port={MySql_Port};Database={Username};Uid=root;Pwd={Password}";
+            private static readonly string InMemory_Connection = "Upsert_TestDbContext_Tests";
 
             private const string Username = "testuser";
             private const string Password = "Password12!";
@@ -47,21 +57,28 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 }
                 else
                 {
-                    _processes[TestDbContext.DbDriver.Postgres] = Process.Start("docker",
-                        $"run --name {Postgres_ImageName} --platform linux -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
-                    _processes[TestDbContext.DbDriver.MSSQL] = Process.Start("docker",
-                        $"run --name {SqlServer_ImageName} --platform linux -e ACCEPT_EULA=Y -e MSSQL_PID=Express -e SA_PASSWORD={Password} -p {SqlServer_Port}:1433 microsoft/mssql-server-linux");
-                    _processes[TestDbContext.DbDriver.MySQL] = Process.Start("docker",
-                        $"run --name {MySql_ImageName} --platform linux -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
+                    if (DatabaseEngines.Contains(TestDbContext.DbDriver.Postgres))
+                        _processes[TestDbContext.DbDriver.Postgres] = Process.Start("docker",
+                            $"run --name {Postgres_ImageName} --platform linux -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
+                    if (DatabaseEngines.Contains(TestDbContext.DbDriver.MSSQL))
+                        _processes[TestDbContext.DbDriver.MSSQL] = Process.Start("docker",
+                            $"run --name {SqlServer_ImageName} --platform linux -e ACCEPT_EULA=Y -e MSSQL_PID=Express -e SA_PASSWORD={Password} -p {SqlServer_Port}:1433 microsoft/mssql-server-linux");
+                    if (DatabaseEngines.Contains(TestDbContext.DbDriver.MySQL))
+                        _processes[TestDbContext.DbDriver.MySQL] = Process.Start("docker",
+                            $"run --name {MySql_ImageName} --platform linux -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
 
                     WaitForConnection(TestDbContext.DbDriver.Postgres, Postgres_Connection);
                     WaitForConnection(TestDbContext.DbDriver.MSSQL, SqlServer_Connection);
                     WaitForConnection(TestDbContext.DbDriver.MySQL, MySql_Connection);
+                    WaitForConnection(TestDbContext.DbDriver.InMemory, InMemory_Connection);
                 }
             }
 
             private void WaitForConnection(TestDbContext.DbDriver driver, string connectionString)
             {
+                if (!DatabaseEngines.Contains(driver))
+                    return;
+
                 var options = TestDbContext.Configure(connectionString, driver);
                 var startTime = DateTime.Now;
                 while (DateTime.Now.Subtract(startTime) < TimeSpan.FromSeconds(200))
@@ -153,9 +170,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Theory]
-        [InlineData(TestDbContext.DbDriver.Postgres)]
-        [InlineData(TestDbContext.DbDriver.MSSQL)]
-        [InlineData(TestDbContext.DbDriver.MySQL)]
+        [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_InitialDbState(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
@@ -169,9 +184,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Theory]
-        [InlineData(TestDbContext.DbDriver.Postgres)]
-        [InlineData(TestDbContext.DbDriver.MSSQL)]
-        [InlineData(TestDbContext.DbDriver.MySQL)]
+        [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_Country_Update_NoColumns(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
@@ -198,9 +211,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Theory]
-        [InlineData(TestDbContext.DbDriver.Postgres)]
-        [InlineData(TestDbContext.DbDriver.MSSQL)]
-        [InlineData(TestDbContext.DbDriver.MySQL)]
+        [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_Country_Update_SelectedColumns(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
@@ -233,9 +244,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Theory]
-        [InlineData(TestDbContext.DbDriver.Postgres)]
-        [InlineData(TestDbContext.DbDriver.MSSQL)]
-        [InlineData(TestDbContext.DbDriver.MySQL)]
+        [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_Country_Insert(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
@@ -267,9 +276,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Theory]
-        [InlineData(TestDbContext.DbDriver.Postgres)]
-        [InlineData(TestDbContext.DbDriver.MSSQL)]
-        [InlineData(TestDbContext.DbDriver.MySQL)]
+        [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_PageVisit_Update_NoColumns(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
@@ -297,9 +304,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Theory]
-        [InlineData(TestDbContext.DbDriver.Postgres)]
-        [InlineData(TestDbContext.DbDriver.MSSQL)]
-        [InlineData(TestDbContext.DbDriver.MySQL)]
+        [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_PageVisit_Update_SelectedColumns(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
@@ -334,9 +339,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Theory]
-        [InlineData(TestDbContext.DbDriver.Postgres)]
-        [InlineData(TestDbContext.DbDriver.MSSQL)]
-        [InlineData(TestDbContext.DbDriver.MySQL)]
+        [MemberData(nameof(GetDatabaseEngines))]
         public void UpsertRange_PageVisit_Update_SelectedColumns(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
@@ -386,9 +389,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Theory]
-        [InlineData(TestDbContext.DbDriver.Postgres)]
-        [InlineData(TestDbContext.DbDriver.MSSQL)]
-        [InlineData(TestDbContext.DbDriver.MySQL)]
+        [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_DashedTable(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
@@ -408,9 +409,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Theory]
-        [InlineData(TestDbContext.DbDriver.Postgres)]
-        [InlineData(TestDbContext.DbDriver.MSSQL)]
-        [InlineData(TestDbContext.DbDriver.MySQL)]
+        [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_SchemaTable(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
