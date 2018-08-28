@@ -54,6 +54,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     WaitForConnection(TestDbContext.DbDriver.Postgres, AppVeyor_Postgres_Connection);
                     WaitForConnection(TestDbContext.DbDriver.MSSQL, AppVeyor_SqlServer_Connection);
                     WaitForConnection(TestDbContext.DbDriver.MySQL, AppVeyor_MySql_Connection);
+                    WaitForConnection(TestDbContext.DbDriver.InMemory, InMemory_Connection);
                 }
                 else
                 {
@@ -204,9 +205,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
                 var country = dbContext.Countries.Single(c => c.ISO == newCountry.ISO);
                 Assert.NotNull(country);
-                Assert.Equal(newCountry.Name, country.Name);
-                Assert.Equal(newCountry.Created, country.Created);
-                Assert.Equal(newCountry.Updated, country.Updated);
+                Assert.Equal(_dbCountry.Name, country.Name);
+                Assert.Equal(_dbCountry.Created, country.Created);
+                Assert.Equal(_dbCountry.Updated, country.Updated);
             }
         }
 
@@ -297,9 +298,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
                 var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
                 Assert.NotNull(visit);
-                Assert.Equal(newVisit.Visits, visit.Visits);
-                Assert.Equal(newVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                Assert.Equal(_dbVisit.Visits, visit.Visits);
+                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                Assert.Equal(_dbVisit.LastVisit, visit.LastVisit);
             }
         }
 
