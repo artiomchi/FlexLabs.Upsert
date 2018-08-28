@@ -12,20 +12,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
     public abstract class RelationalUpsertCommandRunner : IUpsertCommandRunner
     {
-        private IList<IProperty> _joinColumns;
-        private IList<(IProperty Property, KnownExpressions Value)> _updateExpressions;
-        private IList<(IProperty Property, object Value)> _updateValues;
-
         public abstract bool Supports(string name);
         public abstract string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns,
             ICollection<string> joinColumns, ICollection<string> updateColumns,
             List<(string ColumnName, KnownExpressions Value)> updateExpressions);
 
-        private void ProcessExpressions<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity>> updater)
+        private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity>> updater) where TEntity : class
         {
+            List<IProperty> joinColumns;
             if (match.Body is NewExpression newExpression)
             {
-                _joinColumns = new List<IProperty>();
+                joinColumns = new List<IProperty>();
                 foreach (MemberExpression arg in newExpression.Arguments)
                 {
                     if (arg == null || !(arg.Member is PropertyInfo) || !typeof(TEntity).Equals(arg.Expression.Type))
@@ -33,7 +30,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     var property = entityType.FindProperty(arg.Member.Name);
                     if (property == null)
                         throw new InvalidOperationException("Unknown property " + arg.Member.Name);
-                    _joinColumns.Add(property);
+                    joinColumns.Add(property);
                 }
             }
             else if (match.Body is UnaryExpression unaryExpression)
@@ -41,27 +38,29 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 if (!(unaryExpression.Operand is MemberExpression memberExp) || !typeof(TEntity).Equals(memberExp.Expression.Type))
                     throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
                 var property = entityType.FindProperty(memberExp.Member.Name);
-                _joinColumns = new List<IProperty> { property };
+                joinColumns = new List<IProperty> { property };
             }
             else if (match.Body is MemberExpression memberExpression)
             {
                 if (!typeof(TEntity).Equals(memberExpression.Expression.Type))
                     throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
                 var property = entityType.FindProperty(memberExpression.Member.Name);
-                _joinColumns = new List<IProperty> { property };
+                joinColumns = new List<IProperty> { property };
             }
             else
             {
                 throw new ArgumentException("match must be an anonymous object initialiser", nameof(match));
             }
 
+            List<(IProperty, KnownExpressions)> updateExpressions = null;
+            List<(IProperty, object)> updateValues = null;
             if (updater != null)
             {
                 if (!(updater.Body is MemberInitExpression entityUpdater))
                     throw new ArgumentException("updater must be an Initialiser of the TEntity type", nameof(updater));
 
-                _updateExpressions = new List<(IProperty, KnownExpressions)>();
-                _updateValues = new List<(IProperty, object)>();
+                updateExpressions = new List<(IProperty, KnownExpressions)>();
+                updateValues = new List<(IProperty, object)>();
                 foreach (MemberAssignment binding in entityUpdater.Bindings)
                 {
                     var property = entityType.FindProperty(binding.Member.Name);
@@ -69,15 +68,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         throw new InvalidOperationException("Unknown property " + binding.Member.Name);
                     var value = binding.Expression.GetValue();
                     if (value is KnownExpressions knownExp && typeof(TEntity).Equals(knownExp.SourceType) && knownExp.SourceProperty == binding.Member.Name)
-                        _updateExpressions.Add((property, knownExp));
+                        updateExpressions.Add((property, knownExp));
                     else
-                        _updateValues.Add((property, value));
+                        updateValues.Add((property, value));
                 }
             }
-        }
 
-        private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, TEntity[] entities) where TEntity : class
-        {
             var arguments = new List<object>();
             var allColumns = new List<string>();
             var columnsDone = false;
@@ -97,13 +93,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 columnsDone = true;
             }
 
-            var joinColumnNames = _joinColumns.Select(c => c.Relational().ColumnName).ToArray();
+            var joinColumnNames = joinColumns.Select(c => c.Relational().ColumnName).ToArray();
 
             var updArguments = new List<object>();
             var updColumns = new List<string>();
-            if (_updateValues != null)
+            if (updateValues != null)
             {
-                foreach (var (Property, Value) in _updateValues)
+                foreach (var (Property, Value) in updateValues)
                 {
                     updColumns.Add(Property.Relational().ColumnName);
                     updArguments.Add(Value);
@@ -121,9 +117,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
 
             var updExpressions = new List<(string ColumnName, KnownExpressions Value)>();
-            if (_updateExpressions != null)
+            if (updateExpressions != null)
             {
-                foreach (var (Property, Value) in _updateExpressions)
+                foreach (var (Property, Value) in updateExpressions)
                 {
                     updExpressions.Add((Property.Relational().ColumnName, Value));
                 }
@@ -135,15 +131,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         public void Run<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression, Expression<Func<TEntity, TEntity>> updateExpression) where TEntity : class
         {
-            ProcessExpressions(entityType, matchExpression, updateExpression);
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities);
+            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression);
             dbContext.Database.ExecuteSqlCommand(sqlCommand, arguments);
         }
 
         public Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression, Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken) where TEntity : class
         {
-            ProcessExpressions(entityType, matchExpression, updateExpression);
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities);
+            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression);
             return dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, arguments);
         }
     }
