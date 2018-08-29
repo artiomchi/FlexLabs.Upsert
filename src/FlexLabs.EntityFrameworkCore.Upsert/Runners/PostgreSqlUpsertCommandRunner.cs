@@ -7,11 +7,15 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
+    /// <summary>
+    /// Upsert command runner for the Npgsql.EntityFrameworkCore.PostgreSQL provider
+    /// </summary>
     public class PostgreSqlUpsertCommandRunner : RelationalUpsertCommandRunner
     {
         public override bool Supports(string name) => name == "Npgsql.EntityFrameworkCore.PostgreSQL";
 
-        public override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns, ICollection<string> updateColumns, List<(string ColumnName, KnownExpressions Value)> updateExpressions)
+        public override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns,
+            ICollection<string> updateColumns, List<(string ColumnName, KnownExpressions Value)> updateExpressions)
         {
             var result = new StringBuilder();
             var schema = entityType.Relational().Schema;

@@ -7,11 +7,15 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
+    /// <summary>
+    /// Upsert command runner for the Microsoft.EntityFrameworkCore.SqlServer provider
+    /// </summary>
     public class SqlServerUpsertCommandRunner : RelationalUpsertCommandRunner
     {
         public override bool Supports(string name) => name == "Microsoft.EntityFrameworkCore.SqlServer";
 
-        public override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns, ICollection<string> updateColumns, List<(string ColumnName, KnownExpressions Value)> updateExpressions)
+        public override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns,
+            ICollection<string> updateColumns, List<(string ColumnName, KnownExpressions Value)> updateExpressions)
         {
             var result = new StringBuilder();
             var schema = entityType.Relational().Schema;

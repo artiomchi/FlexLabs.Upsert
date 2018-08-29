@@ -8,6 +8,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
 {
     public static class ExpressionHelpers
     {
+        /// <summary>
+        /// Attempt to get the value of the expression
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <returns></returns>
         public static object GetValue(this Expression expression)
         {
             switch (expression)

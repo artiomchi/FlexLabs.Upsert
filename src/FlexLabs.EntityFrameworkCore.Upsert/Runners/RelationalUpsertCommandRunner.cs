@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -10,47 +9,16 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
-    public abstract class RelationalUpsertCommandRunner : IUpsertCommandRunner
+    public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     {
-        public abstract bool Supports(string name);
         public abstract string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns,
             ICollection<string> joinColumns, ICollection<string> updateColumns,
             List<(string ColumnName, KnownExpressions Value)> updateExpressions);
 
-        private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity>> updater) where TEntity : class
+        private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, TEntity[] entities,
+            Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity>> updater) where TEntity : class
         {
-            List<IProperty> joinColumns;
-            if (match.Body is NewExpression newExpression)
-            {
-                joinColumns = new List<IProperty>();
-                foreach (MemberExpression arg in newExpression.Arguments)
-                {
-                    if (arg == null || !(arg.Member is PropertyInfo) || !typeof(TEntity).Equals(arg.Expression.Type))
-                        throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
-                    var property = entityType.FindProperty(arg.Member.Name);
-                    if (property == null)
-                        throw new InvalidOperationException("Unknown property " + arg.Member.Name);
-                    joinColumns.Add(property);
-                }
-            }
-            else if (match.Body is UnaryExpression unaryExpression)
-            {
-                if (!(unaryExpression.Operand is MemberExpression memberExp) || !typeof(TEntity).Equals(memberExp.Expression.Type))
-                    throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
-                var property = entityType.FindProperty(memberExp.Member.Name);
-                joinColumns = new List<IProperty> { property };
-            }
-            else if (match.Body is MemberExpression memberExpression)
-            {
-                if (!typeof(TEntity).Equals(memberExpression.Expression.Type))
-                    throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
-                var property = entityType.FindProperty(memberExpression.Member.Name);
-                joinColumns = new List<IProperty> { property };
-            }
-            else
-            {
-                throw new ArgumentException("match must be an anonymous object initialiser", nameof(match));
-            }
+            var joinColumns = ProcessMatchExpression(entityType, match);
 
             List<(IProperty, KnownExpressions)> updateExpressions = null;
             List<(IProperty, object)> updateValues = null;
@@ -93,7 +61,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 columnsDone = true;
             }
 
-            var joinColumnNames = joinColumns.Select(c => c.Relational().ColumnName).ToArray();
+            var joinColumnNames = joinColumns.Select(c => c.PropertyMetadata.Relational().ColumnName).ToArray();
 
             var updArguments = new List<object>();
             var updColumns = new List<string>();
@@ -129,13 +97,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             return (GenerateCommand(entityType, entities.Length, allColumns, joinColumnNames, updColumns, updExpressions), allArguments);
         }
 
-        public void Run<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression, Expression<Func<TEntity, TEntity>> updateExpression) where TEntity : class
+        public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+            Expression<Func<TEntity, TEntity>> updateExpression)
         {
             var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression);
             dbContext.Database.ExecuteSqlCommand(sqlCommand, arguments);
         }
 
-        public Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression, Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken) where TEntity : class
+        public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+            Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken)
         {
             var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression);
             return dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, arguments);

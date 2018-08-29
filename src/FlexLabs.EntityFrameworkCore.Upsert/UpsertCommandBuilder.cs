@@ -54,7 +54,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         {
             var dbProvider = _dbContext.GetService<IDatabaseProvider>();
             var commandRunner = _dbContext.GetInfrastructure().GetServices<IUpsertCommandRunner>()
-                .Concat(DefaultRunners.Generators)
+                .Concat(DefaultRunners.Runners)
                 .FirstOrDefault(r => r.Supports(dbProvider.Name));
             if (commandRunner == null)
                 throw new NotSupportedException("Database provider not supported yet!");
