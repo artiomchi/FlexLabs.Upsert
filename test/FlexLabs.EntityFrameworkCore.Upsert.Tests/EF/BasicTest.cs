@@ -12,10 +12,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
     {
         public static TestDbContext.DbDriver[] DatabaseEngines = new[]
         {
-            //TestDbContext.DbDriver.Postgres,
-            //TestDbContext.DbDriver.MSSQL,
-            //TestDbContext.DbDriver.MySQL,
-            //TestDbContext.DbDriver.InMemory,
+            TestDbContext.DbDriver.Postgres,
+            TestDbContext.DbDriver.MSSQL,
+            TestDbContext.DbDriver.MySQL,
+            TestDbContext.DbDriver.InMemory,
             TestDbContext.DbDriver.Sqlite,
         };
         public static IEnumerable<object[]> GetDatabaseEngines() => DatabaseEngines.Select(e => new object[] { e });
