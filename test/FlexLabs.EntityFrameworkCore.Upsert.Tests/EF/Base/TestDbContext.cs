@@ -50,34 +50,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
                     options.UseInMemoryDatabase(connectionString);
                     break;
                 case DbDriver.Sqlite:
-                    try
+                    // If we are on Windows platform, we can copy Sqlite 3.24.0 binary to the output directory.
+                    // The dynamic libraries in the current execution path will load first.
+                    if (Environment.OSVersion.Platform == PlatformID.Win32NT)
                     {
-                        // If we are on Windows platform, we can copy Sqlite 3.24.0 binary to the output directory.
-                        // The dynamic libraries in the current execution path will load first.
-                        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-                        {
-                            File.Copy(Environment.Is64BitProcess ? "sqlite3_x64.dll" : "sqlite3_x86.dll", "sqlite3.dll", true);
-                        }
-                        // The SQLitePCL.SQLite3Provider_sqlite3 provider is in the SQLitePCLRaw.provider.sqlite3.netstandard11 package.
-                        // Don't worry, this package is an official package that provides SQLite3Provider_sqlite3
-                        // which load external sqlite3 standard dynamic library instead of the embeded old ones.
-                        SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
-                        // Stop other packages from loading embeded sqlite3 library.
-                        SQLitePCL.raw.FreezeProvider();
+                        File.Copy(Environment.Is64BitProcess ? "sqlite3_x64.dll" : "sqlite3_x86.dll", "sqlite3.dll", true);
                     }
-                    catch
-                    {
-                        // ignored
-                        // Swollow all exceptions, in these cases, we will fall back to embeded ones.
-                        // For example, on mobile platforms it is not quite easy to ship a custom sqlite3 build,
-                        // although the SQLite.Raw also provides a package named SQLite3Provider_custom_sqlite3,
-                        // which is not in active development.
-                    }
+                    // Using the SQLitePCLRaw.provider.sqlite3.netstandard11 package
+                    // which loads the external sqlite3 standard dynamic library instead of the embeded old one.
+                    SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
+                    // Stop other packages from loading embeded sqlite3 library.
+                    SQLitePCL.raw.FreezeProvider();
 
                     // For debugging purpose, we want to see which sqlite3 version we are using.
-                    var v = SQLitePCL.raw.sqlite3_libversion();
-                    Console.WriteLine($"Currently using Sqlite v{v}");
-                    
+                    //Console.WriteLine($"Currently using Sqlite v{SQLitePCL.raw.sqlite3_libversion()}");
+
                     options.UseSqlite(connectionString);
                     break;
                 default:
