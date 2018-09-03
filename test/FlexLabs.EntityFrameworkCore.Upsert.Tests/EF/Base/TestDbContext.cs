@@ -54,12 +54,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
                     {
                         File.Copy(Environment.Is64BitProcess ? "sqlite3_x64.dll" : "sqlite3_x86.dll", "sqlite3.dll", true);
                         SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
+                        SQLitePCL.raw.FreezeProvider();
                     }
                     catch
                     {
                         // ignored
                     }
 
+                    var v = SQLitePCL.raw.sqlite3_libversion();
+                    Console.WriteLine($"Currently using Sqlite v{v}");
+                    
                     options.UseSqlite(connectionString);
                     break;
                 default:
