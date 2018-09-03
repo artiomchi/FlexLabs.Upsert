@@ -7,7 +7,7 @@
     <Company>Artiom Chilaru</Company>
     <Description>Adds basic support for "Upsert" operations to EF Core.
 
-Uses `INSERT … ON CONFLICT DO UPDATE` in PostgreSQL, `MERGE` in SqlServer and `INSERT INTO … ON DUPLICATE KEY UPDATE` in MySQL.
+Uses `INSERT … ON CONFLICT DO UPDATE` in PostgreSQL/Sqlite, `MERGE` in SqlServer and `INSERT INTO … ON DUPLICATE KEY UPDATE` in MySQL.
 
 Also supports injecting sql command generators to add support for other providers</Description>
     <Copyright>Artiom Chilaru © 2018</Copyright>
@@ -15,7 +15,7 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>1.0.4</VersionPrefix>
+    <VersionPrefix>1.0.5</VersionPrefix>
     <PackageReleaseNotes>! Patched the crash when using `.On()` with a single column</PackageReleaseNotes>
   </PropertyGroup>
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Microsoft.EntityFrameworkCore;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
@@ -22,7 +23,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DbSet<DashTable> DashTable { get; set; }
         public DbSet<SchemaTable> SchemaTable { get; set; }
 
-        public enum DbDriver { Postgres, MSSQL, MySQL, InMemory }
+        public enum DbDriver
+        {
+            Postgres,
+            MSSQL,
+            MySQL,
+            InMemory,
+            Sqlite,
+        }
+
         public static DbContextOptions<TestDbContext> Configure(string connectionString, DbDriver driver)
         {
             var options = new DbContextOptionsBuilder<TestDbContext>();
@@ -39,6 +48,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
                     break;
                 case DbDriver.InMemory:
                     options.UseInMemoryDatabase(connectionString);
+                    break;
+                case DbDriver.Sqlite:
+                    File.Copy(Environment.Is64BitProcess ? "sqlite3_x64.dll" : "sqlite3_x86.dll", "sqlite3.dll", true);
+                    SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
+                    options.UseSqlite(connectionString);
                     break;
                 default:
                     throw new InvalidOperationException("Invalid database driver: " + driver);

@@ -12,10 +12,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
     {
         public static TestDbContext.DbDriver[] DatabaseEngines = new[]
         {
-            TestDbContext.DbDriver.Postgres,
-            TestDbContext.DbDriver.MSSQL,
-            TestDbContext.DbDriver.MySQL,
-            TestDbContext.DbDriver.InMemory,
+            //TestDbContext.DbDriver.Postgres,
+            //TestDbContext.DbDriver.MSSQL,
+            //TestDbContext.DbDriver.MySQL,
+            //TestDbContext.DbDriver.InMemory,
+            TestDbContext.DbDriver.Sqlite,
         };
         public static IEnumerable<object[]> GetDatabaseEngines() => DatabaseEngines.Select(e => new object[] { e });
 
@@ -31,6 +32,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             private const string MySql_Port = "23306";
             private static readonly string MySql_Connection = $"Server=localhost;Port={MySql_Port};Database={Username};Uid=root;Pwd={Password}";
             private static readonly string InMemory_Connection = "Upsert_TestDbContext_Tests";
+
+            private static readonly string Sqlite_Connection = $"Data Source={Username}.db";
 
             private const string Username = "testuser";
             private const string Password = "Password12!";
@@ -55,6 +58,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     WaitForConnection(TestDbContext.DbDriver.MSSQL, AppVeyor_SqlServer_Connection);
                     WaitForConnection(TestDbContext.DbDriver.MySQL, AppVeyor_MySql_Connection);
                     WaitForConnection(TestDbContext.DbDriver.InMemory, InMemory_Connection);
+                    WaitForConnection(TestDbContext.DbDriver.Sqlite, Sqlite_Connection);
                 }
                 else
                 {
@@ -72,6 +76,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     WaitForConnection(TestDbContext.DbDriver.MSSQL, SqlServer_Connection);
                     WaitForConnection(TestDbContext.DbDriver.MySQL, MySql_Connection);
                     WaitForConnection(TestDbContext.DbDriver.InMemory, InMemory_Connection);
+                    WaitForConnection(TestDbContext.DbDriver.Sqlite, Sqlite_Connection);
                 }
             }
 
