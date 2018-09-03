@@ -17,6 +17,7 @@
                 new MySqlUpsertCommandRunner(),
                 new PostgreSqlUpsertCommandRunner(),
                 new SqlServerUpsertCommandRunner(),
+                new SqliteUpsertCommandRunner(),
             });
     }
 }

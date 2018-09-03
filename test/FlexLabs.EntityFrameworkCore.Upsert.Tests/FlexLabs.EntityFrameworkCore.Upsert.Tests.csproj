@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net462</TargetFramework>
@@ -7,10 +7,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="2.1.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="2.1.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.1.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.8.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="2.1.1.1" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="2.1.1" />
+    <PackageReference Include="SQLitePCLRaw.provider.sqlite3.netstandard11" Version="1.1.11" />
     <PackageReference Include="xunit" Version="2.4.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
     <DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
@@ -21,6 +23,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="sqlite3_x64.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="sqlite3_x86.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="xunit.runner.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
