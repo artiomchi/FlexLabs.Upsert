@@ -52,7 +52,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
                 case DbDriver.Sqlite:
                     try
                     {
-                        File.Copy(Environment.Is64BitProcess ? "sqlite3_x64.dll" : "sqlite3_x86.dll", "sqlite3.dll", true);
+                        if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+                        {
+                            File.Copy(Environment.Is64BitProcess ? "sqlite3_x64.dll" : "sqlite3_x86.dll", "sqlite3.dll", true);
+                        }
                         SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
                         SQLitePCL.raw.FreezeProvider();
                     }
