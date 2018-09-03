@@ -18,10 +18,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             ICollection<string> updateColumns, List<(string ColumnName, KnownExpressions Value)> updateExpressions)
         {
             var result = new StringBuilder();
-            var schema = entityType.Relational().Schema;
-            if (schema != null)
-                schema = $"\"{schema}\".";
-            result.Append($"INSERT INTO {schema}\"{entityType.Relational().TableName}\" AS \"T\" (");
+            //var schema = entityType.Relational().Schema;
+            //if (schema != null)
+            //    schema = $"\"{schema}\".";
+            //result.Append($"INSERT INTO {schema}\"{entityType.Relational().TableName}\" AS \"T\" (");
+            result.Append($"INSERT INTO \"{entityType.Relational().TableName}\" AS \"T\" (");
             result.Append(string.Join(", ", insertColumns.Select(c => $"\"{c}\"")));
             result.Append(") VALUES (");
             foreach (var entity in Enumerable.Range(0, entityCount))
