@@ -199,7 +199,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     Updated = _now,
                 };
 
-                dbContext.Upsert(newCountry)
+                dbContext.Countries.Upsert(newCountry)
                     .On(c => c.ISO)
                     .Run();
 
@@ -226,7 +226,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     Updated = _now,
                 };
 
-                dbContext.Upsert(newCountry)
+                dbContext.Countries.Upsert(newCountry)
                     .On(c => c.ISO)
                     .UpdateColumns(c => new Country
                     {
@@ -259,7 +259,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     Updated = _now,
                 };
 
-                dbContext.Upsert(newCountry)
+                dbContext.Countries.Upsert(newCountry)
                     .On(c => c.ISO)
                     .UpdateColumns(c => new Country
                     {
@@ -292,7 +292,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     LastVisit = _now,
                 };
 
-                dbContext.Upsert(newVisit)
+                dbContext.PageVisits.Upsert(newVisit)
                     .On(pv => new { pv.UserID, pv.Date })
                     .Run();
 
@@ -320,7 +320,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     LastVisit = _now,
                 };
 
-                dbContext.Upsert(newVisit)
+                dbContext.PageVisits.Upsert(newVisit)
                     .On(pv => new { pv.UserID, pv.Date })
                     .UpdateColumns(pv => new PageVisit
                     {
@@ -363,7 +363,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     LastVisit = _now,
                 };
 
-                dbContext.UpsertRange(newVisit1, newVisit2)
+                dbContext.PageVisits.UpsertRange(newVisit1, newVisit2)
                     .On(pv => new { pv.UserID, pv.Date })
                     .UpdateColumns(pv => new PageVisit
                     {
@@ -396,7 +396,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
             {
-                dbContext.Upsert(new DashTable
+                dbContext.DashTable.Upsert(new DashTable
                     {
                         DataSet = "test",
                         Updated = _now,
@@ -416,7 +416,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
             {
-                dbContext.Upsert(new SchemaTable
+                dbContext.SchemaTable.Upsert(new SchemaTable
                     {
                         Name = 1,
                         Updated = _now,
