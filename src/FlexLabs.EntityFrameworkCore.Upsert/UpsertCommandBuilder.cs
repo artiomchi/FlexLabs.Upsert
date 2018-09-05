@@ -17,11 +17,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
     {
         private readonly DbContext _dbContext;
         private readonly IEntityType _entityType;
-        private readonly IEnumerable<TEntity> _entities;
+        private readonly ICollection<TEntity> _entities;
         private Expression<Func<TEntity, object>> _matchExpression = null;
         private Expression<Func<TEntity, TEntity>> _updateExpression = null;
 
-        internal UpsertCommandBuilder(DbContext dbContext, IEnumerable<TEntity> entities)
+        internal UpsertCommandBuilder(DbContext dbContext, ICollection<TEntity> entities)
         {
             _dbContext = dbContext;
             _entities = entities ?? throw new ArgumentNullException(nameof(entities));

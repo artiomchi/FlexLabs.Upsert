@@ -1,5 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Internal;
@@ -47,7 +47,12 @@ namespace Microsoft.EntityFrameworkCore
         public static UpsertCommandBuilder<TEntity> UpsertRange<TEntity>(this DbContext dbContext, IEnumerable<TEntity> entities)
             where TEntity : class
         {
-            return new UpsertCommandBuilder<TEntity>(dbContext, entities);
+            ICollection<TEntity> collection;
+            if (entities is ICollection<TEntity> entityCollection)
+                collection = entityCollection;
+            else
+                collection = entities.ToArray();
+            return new UpsertCommandBuilder<TEntity>(dbContext, collection);
         }
 
         /// <summary>

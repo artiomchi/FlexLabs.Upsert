@@ -15,8 +15,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             ICollection<string> joinColumns, ICollection<string> updateColumns,
             List<(string ColumnName, KnownExpressions Value)> updateExpressions);
 
-        private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, IReadOnlyList<TEntity> entities,
-            Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity>> updater) where TEntity : class
+        private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
+            Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity>> updater)
         {
             var joinColumns = ProcessMatchExpression(entityType, match);
 
@@ -29,14 +29,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
                 updateExpressions = new List<(IProperty, KnownExpressions)>();
                 updateValues = new List<(IProperty, object)>();
-                foreach (var memberBinding in entityUpdater.Bindings)
+                foreach (MemberAssignment binding in entityUpdater.Bindings)
                 {
-                    var binding = (MemberAssignment) memberBinding;
                     var property = entityType.FindProperty(binding.Member.Name);
                     if (property == null)
                         throw new InvalidOperationException("Unknown property " + binding.Member.Name);
                     var value = binding.Expression.GetValue();
-                    if (value is KnownExpressions knownExp && typeof(TEntity) == knownExp.SourceType && knownExp.SourceProperty == binding.Member.Name)
+                    if (value is KnownExpressions knownExp && typeof(TEntity).Equals(knownExp.SourceType) && knownExp.SourceProperty == binding.Member.Name)
                         updateExpressions.Add((property, knownExp));
                     else
                         updateValues.Add((property, value));
@@ -98,18 +97,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             return (GenerateCommand(entityType, entities.Count, allColumns, joinColumnNames, updColumns, updExpressions), allArguments);
         }
 
-        public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, IEnumerable<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
+        public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity>> updateExpression)
         {
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities.ToList(), matchExpression, updateExpression);
+            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression);
             dbContext.Database.ExecuteSqlCommand(sqlCommand, arguments);
         }
 
-        public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, IEnumerable<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
+        public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken)
         {
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities.ToList(), matchExpression, updateExpression);
-            return dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, arguments, cancellationToken);
+            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression);
+            return dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, arguments);
         }
     }
 }
