@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
@@ -15,10 +16,26 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     public abstract class UpsertCommandRunnerBase : IUpsertCommandRunner
     {
         public abstract bool Supports(string name);
-        public abstract void Run<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+        public virtual void Run<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+            Expression<Func<TEntity, TEntity>> updateExpression) where TEntity : class
+        {
+            this.Run(dbContext, entityType, (IEnumerable<TEntity>)entities, matchExpression, updateExpression);
+        }
+
+        public virtual Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+            Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken) where TEntity : class
+        {
+            return this.RunAsync(dbContext, entityType, (IEnumerable<TEntity>)entities, matchExpression, updateExpression, cancellationToken);
+        }
+
+        public abstract void Run<TEntity>(DbContext dbContext, IEntityType entityType, IEnumerable<TEntity> entities,
+            Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity>> updateExpression) where TEntity : class;
-        public abstract Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken) where TEntity : class;
+
+        public abstract Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType,
+            IEnumerable<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
+            Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken)
+            where TEntity : class;
 
         /// <summary>
         /// Extract property metadata from the match expression
@@ -36,24 +53,36 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 foreach (MemberExpression arg in newExpression.Arguments)
                 {
                     if (arg == null || !(arg.Member is PropertyInfo propertyInfo) || !typeof(TEntity).Equals(arg.Expression.Type))
+                    {
                         throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
+                    }
+
                     var property = entityType.FindProperty(arg.Member.Name);
                     if (property == null)
+                    {
                         throw new InvalidOperationException("Unknown property " + arg.Member.Name);
+                    }
+
                     joinColumns.Add(new ModelProperty(propertyInfo, property));
                 }
             }
             else if (matchExpression.Body is UnaryExpression unaryExpression)
             {
                 if (!(unaryExpression.Operand is MemberExpression memberExp) || !(memberExp.Member is PropertyInfo propertyInfo) || !typeof(TEntity).Equals(memberExp.Expression.Type))
+                {
                     throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
+                }
+
                 var property = entityType.FindProperty(memberExp.Member.Name);
                 joinColumns = new List<ModelProperty> { new ModelProperty(propertyInfo, property) };
             }
             else if (matchExpression.Body is MemberExpression memberExpression)
             {
                 if (!typeof(TEntity).Equals(memberExpression.Expression.Type) || !(memberExpression.Member is PropertyInfo propertyInfo))
+                {
                     throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
+                }
+
                 var property = entityType.FindProperty(memberExpression.Member.Name);
                 joinColumns = new List<ModelProperty> { new ModelProperty(propertyInfo, property) };
             }
@@ -64,5 +93,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
             return joinColumns;
         }
+
     }
 }

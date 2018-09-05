@@ -1,4 +1,6 @@
-﻿using FlexLabs.EntityFrameworkCore.Upsert;
+﻿using System.Collections;
+using System.Collections.Generic;
+using FlexLabs.EntityFrameworkCore.Upsert;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Internal;
 
@@ -30,6 +32,19 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="entities">The entities that are being upserted</param>
         /// <returns>The upsert command builder that is used to configure and run the upsert operation</returns>
         public static UpsertCommandBuilder<TEntity> UpsertRange<TEntity>(this DbContext dbContext, params TEntity[] entities)
+            where TEntity : class
+        {
+            return new UpsertCommandBuilder<TEntity>(dbContext, entities);
+        }
+
+        /// <summary>
+        /// Attempt to insert an array of entities to the database, or update them if they already exist
+        /// </summary>
+        /// <typeparam name="TEntity">The type of the entity being upserted</typeparam>
+        /// <param name="dbContext">The data context used to connect to the database</param>
+        /// <param name="entities">The entities that are being upserted</param>
+        /// <returns>The upsert command builder that is used to configure and run the upsert operation</returns>
+        public static UpsertCommandBuilder<TEntity> UpsertRange<TEntity>(this DbContext dbContext, IEnumerable<TEntity> entities)
             where TEntity : class
         {
             return new UpsertCommandBuilder<TEntity>(dbContext, entities);
