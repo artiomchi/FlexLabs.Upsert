@@ -15,8 +15,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             ICollection<string> joinColumns, ICollection<string> updateColumns,
             List<(string ColumnName, KnownExpressions Value)> updateExpressions);
 
-        private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, TEntity[] entities,
-            Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity>> updater) where TEntity : class
+        private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
+            Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity>> updater)
         {
             var joinColumns = ProcessMatchExpression(entityType, match);
 
@@ -94,17 +94,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
 
             var allArguments = arguments.Concat(updArguments).Concat(updExpressions.Select(e => e.Value.Value)).ToList();
-            return (GenerateCommand(entityType, entities.Length, allColumns, joinColumnNames, updColumns, updExpressions), allArguments);
+            return (GenerateCommand(entityType, entities.Count, allColumns, joinColumnNames, updColumns, updExpressions), allArguments);
         }
 
-        public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+        public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity>> updateExpression)
         {
             var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression);
             dbContext.Database.ExecuteSqlCommand(sqlCommand, arguments);
         }
 
-        public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+        public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken)
         {
             var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression);

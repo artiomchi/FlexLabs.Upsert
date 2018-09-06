@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,7 +29,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="entities">Array of entities to be upserted</param>
         /// <param name="matchExpression">Expression that represents which properties will be used as a match clause for the upsert command</param>
         /// <param name="updateExpression">Expression that represents which properties will be updated, and what values will be set</param>
-        void Run<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+        void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity>> updateExpression) where TEntity : class;
 
         /// <summary>
@@ -42,7 +43,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="updateExpression">Expression that represents which properties will be updated, and what values will be set</param>
         /// <param name="cancellationToken">The CancellationToken to observe while waiting for the task to complete.</param>
         /// <returns>The task that represents the asynchronous upsert operation</returns>
-        Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+        Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken) where TEntity : class;
     }
 }

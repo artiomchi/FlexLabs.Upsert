@@ -15,9 +15,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     public abstract class UpsertCommandRunnerBase : IUpsertCommandRunner
     {
         public abstract bool Supports(string name);
-        public abstract void Run<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+        public abstract void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity>> updateExpression) where TEntity : class;
-        public abstract Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+        public abstract Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken) where TEntity : class;
 
         /// <summary>

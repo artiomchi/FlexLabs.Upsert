@@ -1,4 +1,6 @@
-﻿using FlexLabs.EntityFrameworkCore.Upsert;
+﻿using System.Collections.Generic;
+using System.Linq;
+using FlexLabs.EntityFrameworkCore.Upsert;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Internal;
 
@@ -36,6 +38,24 @@ namespace Microsoft.EntityFrameworkCore
         }
 
         /// <summary>
+        /// Attempt to insert an array of entities to the database, or update them if they already exist
+        /// </summary>
+        /// <typeparam name="TEntity">The type of the entity being upserted</typeparam>
+        /// <param name="dbContext">The data context used to connect to the database</param>
+        /// <param name="entities">The entities that are being upserted</param>
+        /// <returns>The upsert command builder that is used to configure and run the upsert operation</returns>
+        public static UpsertCommandBuilder<TEntity> UpsertRange<TEntity>(this DbContext dbContext, IEnumerable<TEntity> entities)
+            where TEntity : class
+        {
+            ICollection<TEntity> collection;
+            if (entities is ICollection<TEntity> entityCollection)
+                collection = entityCollection;
+            else
+                collection = entities.ToArray();
+            return new UpsertCommandBuilder<TEntity>(dbContext, collection);
+        }
+
+        /// <summary>
         /// Attempt to insert an entity to the database, or update it if one already exists
         /// </summary>
         /// <typeparam name="TEntity">The type of the entity being upserted</typeparam>
@@ -57,6 +77,20 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="entities">The entities that are being upserted</param>
         /// <returns>The upsert command builder that is used to configure and run the upsert operation</returns>
         public static UpsertCommandBuilder<TEntity> UpsertRange<TEntity>(this DbSet<TEntity> dbSet, params TEntity[] entities)
+            where TEntity : class
+        {
+            var dbContext = dbSet.GetService<ICurrentDbContext>().Context;
+            return UpsertRange(dbContext, entities);
+        }
+
+        /// <summary>
+        /// Attempt to insert an array of entities to the database, or update them if they already exist
+        /// </summary>
+        /// <typeparam name="TEntity">The type of the entity being upserted</typeparam>
+        /// <param name="dbSet">The db set where the items will be upserted</param>
+        /// <param name="entities">The entities that are being upserted</param>
+        /// <returns>The upsert command builder that is used to configure and run the upsert operation</returns>
+        public static UpsertCommandBuilder<TEntity> UpsertRange<TEntity>(this DbSet<TEntity> dbSet, IEnumerable<TEntity> entities)
             where TEntity : class
         {
             var dbContext = dbSet.GetService<ICurrentDbContext>().Context;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -16,7 +17,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     {
         public override bool Supports(string providerName) => providerName == "Microsoft.EntityFrameworkCore.InMemory";
 
-        public void RunCore<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+        public void RunCore<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity>> updateExpression) where TEntity : class
         {
             // Find matching entities in the dbContext
@@ -70,14 +71,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
         }
 
-        public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+        public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity>> updateExpression)
         {
             RunCore(dbContext, entityType, entities, matchExpression, updateExpression);
             dbContext.SaveChanges();
         }
 
-        public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities, Expression<Func<TEntity, object>> matchExpression,
+        public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken)
         {
             RunCore(dbContext, entityType, entities, matchExpression, updateExpression);
