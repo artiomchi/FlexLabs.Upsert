@@ -13,13 +13,24 @@ Also supports injecting sql command generators to add support for other provider
 
 ### Usage:
 
+Assuming the following objects used in these samples:
+```csharp
+var newCountry = new Country
+{
+    Name = "Australia",
+    ISO = "AU",
+};
+var newVisit = new DailyVisit
+{
+    UserID = userID,
+    Date = DateTime.UtcNow.Date,
+    Visits = 1,
+};
+```
+
 In it's simplest form, it can be used as follows:
 ```csharp
-DataContext.Upsert(new Country
-    {
-        Name = "Australia",
-        ISO = "AU",
-    })
+DataContext.Countries.Upsert(newCountry)
     .On(c => c.ISO)
     .RunAsync();
 ```
@@ -27,16 +38,12 @@ DataContext.Upsert(new Country
 The first parameter will be used to insert new entries to the table, the second one is used to identify the columns used to find matching rows.  
 If the entry already exists, the command will update the remaining columns to match the entity passed in the first argument.
 
-In some cases, you don't want ALL the entities to be changed. An example field that you wouldn't want updated is the `Created` field. You can use a third parameter to select which columns and values to set in case the entity already exists:
+In some cases, you don't want ALL the entities to be changed. An example field that you wouldn't want updated is the `Created` field.
+You can use a third parameter to select which columns and values to set in case the entity already exists:
 ```csharp
-DataContext.Upsert(new Country
-    {
-        Name = "Australia",
-        ISO = "AU",
-        Created = DateTime.UtcNow,
-    })
+DataContext.Countries.Upsert(newCountry)
     .On(c => c.ISO)
-    .UpdateColumns(c => new Country
+    .WhenMatched(c => new Country
     {
         Name = "Australia"
         Updated = DateTime.UtcNow,
@@ -44,19 +51,24 @@ DataContext.Upsert(new Country
     .RunAsync();
 ```
 
-Finally, sometimes you might want to update a column based on the current value in the table. For example, if you want to increment a column. You can use the following syntax (basic support for incrementing and decrementing values is currently implemented):  
+Finally, sometimes you might want to update a column based on the current value in the table. For example, if you want to increment a column.
+You can use the following syntax (basic support for incrementing and decrementing values is currently implemented):  
 You can also see how to implement the multi column record matching:
 ```csharp
-DataContext.Upsert(new DailyVisits
-    {
-        UserID = userID,
-        Date = DateTime.UtcNow.Date,
-        Visits = 1,
-    })
+DataContext.DailyVisits.Upsert(newVisit)
     .On(v => new { v.UserID, v.Date })
-    .UpdateColumns(v => new DailyVisits
+    .WhenMatched(v => new DailyVisit
     {
         Visits = v.Visits + 1,
     })
     .RunAsync();
 ```
+
+In the same way, you can insert multiple entities in one call. Keep in mind that each database engine has a limit of how many parameters a query can be passed.
+Since each property will use up a variable, this should only be used with smaller datasets. For larger datasets an alternative approach may be needed.
+```csharp
+DataContext.Countries.UpsertRange(newCountries)
+    .On(c => c.ISO)
+    .RunAsync();
+```
+

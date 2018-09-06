@@ -40,10 +40,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             return this;
         }
 
-        public UpsertCommandBuilder<TEntity> UpdateColumns(Expression<Func<TEntity, TEntity>> updater)
+        public UpsertCommandBuilder<TEntity> WhenMatched(Expression<Func<TEntity, TEntity>> updater)
         {
             if (_updateExpression != null)
-                throw new InvalidOperationException($"Can't call {nameof(UpdateColumns)} twice!");
+                throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} twice!");
             if (updater == null)
                 throw new ArgumentNullException(nameof(updater));
 

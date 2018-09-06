@@ -233,7 +233,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
                 dbContext.Countries.Upsert(newCountry)
                     .On(c => c.ISO)
-                    .UpdateColumns(c => new Country
+                    .WhenMatched(c => new Country
                     {
                         Name = newCountry.Name,
                         Updated = newCountry.Updated,
@@ -266,7 +266,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
                 dbContext.Countries.Upsert(newCountry)
                     .On(c => c.ISO)
-                    .UpdateColumns(c => new Country
+                    .WhenMatched(c => new Country
                     {
                         Name = newCountry.Name,
                         Updated = newCountry.Updated,
@@ -327,7 +327,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
                 dbContext.PageVisits.Upsert(newVisit)
                     .On(pv => new { pv.UserID, pv.Date })
-                    .UpdateColumns(pv => new PageVisit
+                    .WhenMatched(pv => new PageVisit
                     {
                         Visits = pv.Visits + 1,
                         LastVisit = _now,
@@ -370,7 +370,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
                 dbContext.PageVisits.UpsertRange(newVisit1, newVisit2)
                     .On(pv => new { pv.UserID, pv.Date })
-                    .UpdateColumns(pv => new PageVisit
+                    .WhenMatched(pv => new PageVisit
                     {
                         Visits = pv.Visits + 1,
                         LastVisit = _now,
