@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -15,8 +15,8 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>1.0.4</VersionPrefix>
-    <PackageReleaseNotes>! Patched the crash when using `.On()` with a single column</PackageReleaseNotes>
+    <VersionPrefix>1.1.0</VersionPrefix>
+    <PackageReleaseNotes>* Preparing for v2 release, marking older methods as obsolete</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
