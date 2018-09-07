@@ -15,37 +15,65 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// <returns></returns>
         public static object GetValue(this Expression expression)
         {
-            switch (expression)
+            switch (expression.NodeType)
             {
-                case ConstantExpression exp:
-                    return exp.Value;
-
-                case MemberExpression exp:
-                    switch (exp.Member)
+                case ExpressionType.Constant:
                     {
-                        case FieldInfo fInfo:
-                            return fInfo.GetValue(exp.Expression.GetValue());
-
-                        case PropertyInfo pInfo:
-                            return pInfo.GetValue(exp.Expression.GetValue());
-
-                        default: throw new Exception("can't handle this type of member expression: " + exp.GetType() + ", " + exp.Member.GetType());
+                        return ((ConstantExpression)expression).Value;
                     }
 
-                case BinaryExpression exp:
-                    if (exp.Method == null && exp.Right is ConstantExpression constExp && exp.Left is MemberExpression memberExp && memberExp.Expression is ParameterExpression paramExp && memberExp.Member is PropertyInfo)
-                        return new KnownExpressions(paramExp.Type, memberExp.Member.Name, exp.NodeType, constExp.Value);
-                    if (exp.Method != null)
-                        return exp.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null, new[] { exp.Left.GetValue(), exp.Right.GetValue() }, CultureInfo.InvariantCulture);
+                case ExpressionType.MemberAccess:
+                    {
+                        var memberExp = (MemberExpression)expression;
+                        switch (memberExp.Member)
+                        {
+                            case FieldInfo fInfo:
+                                return fInfo.GetValue(memberExp.Expression.GetValue());
 
-                    return exp;
+                            case PropertyInfo pInfo:
+                                return pInfo.GetValue(memberExp.Expression.GetValue());
 
-                case MethodCallExpression exp:
-                    return exp.Method.Invoke(exp.Object.GetValue(), BindingFlags.Public, null, exp.Arguments.Select(a => a.GetValue()).ToArray(), CultureInfo.InvariantCulture);
+                            default: throw new Exception("can't handle this type of member expression: " + memberExp.GetType() + ", " + memberExp.Member.GetType());
+                        }
+                    }
 
-                default:
-                    return expression;
+                case ExpressionType.NewArrayInit:
+                    {
+                        var arrayExp = (NewArrayExpression)expression;
+                        var result = Array.CreateInstance(arrayExp.Type.GetElementType(), arrayExp.Expressions.Count);
+                        for (int i = 0; i < arrayExp.Expressions.Count; i++)
+                            result.SetValue(arrayExp.Expressions[i].GetValue(), i);
+                        return result;
+                    }
+
+                case ExpressionType.Call:
+                    {
+                        var methodExp = (MethodCallExpression)expression;
+                        var context = methodExp.Object?.GetValue();
+                        var arguments = methodExp.Arguments.Select(a => a.GetValue()).ToArray();
+                        return methodExp.Method.Invoke(context, arguments);
+                    }
+
+                case ExpressionType.Add:
+                case ExpressionType.Subtract:
+                case ExpressionType.Multiply:
+                case ExpressionType.Divide:
+                    {
+                        var exp = (BinaryExpression)expression;
+                        if (exp.Method == null && exp.Right is ConstantExpression constExp && exp.Left is MemberExpression memberExp && memberExp.Expression is ParameterExpression paramExp && memberExp.Member is PropertyInfo)
+                            return new KnownExpressions(paramExp.Type, memberExp.Member.Name, exp.NodeType, constExp.Value);
+                        if (exp.Method != null)
+                            return exp.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null, new[] { exp.Left.GetValue(), exp.Right.GetValue() }, CultureInfo.InvariantCulture);
+
+                        return null;
+                    }
             }
+
+            // If we can't translate it to a known expression, just get the value
+            //return Expression.Lambda<Func<object>>(
+            //    Expression.Convert(expression, typeof(object)))
+            //        .Compile()();
+            throw new NotImplementedException();
         }
     }
 }
