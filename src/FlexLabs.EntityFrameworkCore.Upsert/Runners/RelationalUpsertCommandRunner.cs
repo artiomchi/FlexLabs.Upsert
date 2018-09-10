@@ -12,9 +12,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
     public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     {
-        public abstract string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns,
+        protected abstract string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns,
             ICollection<string> joinColumns, ICollection<string> updateColumns,
             List<(string ColumnName, KnownExpression Value)> updateExpressions);
+        protected abstract string Column(string name);
+        protected abstract string Parameter(int index);
+        protected abstract string SourcePrefix { get; }
+        protected abstract string TargetPrefix { get; }
 
         private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
             Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity>> updater)
@@ -96,6 +100,22 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
             var allArguments = arguments.Concat(updArguments).Concat(updExpressions.Select(e => e.Value.Value2)).ToList();
             return (GenerateCommand(entityType, entities.Count, allColumns, joinColumnNames, updColumns, updExpressions), allArguments);
+        }
+
+        protected virtual string ExpandExpression(int argumentIndex, string columnName, KnownExpression expression)
+        {
+            switch (expression.ExpressionType)
+            {
+                case ExpressionType.Add:
+                    return $"{Column(columnName)} = {TargetPrefix}{Column(columnName)} + {Parameter(argumentIndex)}";
+                case ExpressionType.Divide:
+                    return $"{Column(columnName)} = {TargetPrefix}{Column(columnName)} / {Parameter(argumentIndex)}";
+                case ExpressionType.Multiply:
+                    return $"{Column(columnName)} = {TargetPrefix}{Column(columnName)} * {Parameter(argumentIndex)}";
+                case ExpressionType.Subtract:
+                    return $"{Column(columnName)} = {TargetPrefix}{Column(columnName)} - {Parameter(argumentIndex)}";
+                default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
+            }
         }
 
         public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,

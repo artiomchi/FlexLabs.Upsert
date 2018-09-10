@@ -14,24 +14,28 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     public class SqliteUpsertCommandRunner : RelationalUpsertCommandRunner
     {
         public override bool Supports(string name) => name == "Microsoft.EntityFrameworkCore.Sqlite";
+        protected override string Column(string name) => "\"" + name + "\"";
+        protected override string Parameter(int index) => "@p" + index;
+        protected override string SourcePrefix => "\"S\".";
+        protected override string TargetPrefix => "\"T\".";
 
-        public override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns,
+        protected override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns,
             ICollection<string> updateColumns, List<(string ColumnName, KnownExpression Value)> updateExpressions)
         {
             var result = new StringBuilder();
             result.Append($"INSERT INTO \"{entityType.Relational().TableName}\" AS \"T\" (");
-            result.Append(string.Join(", ", insertColumns.Select(c => $"\"{c}\"")));
+            result.Append(string.Join(", ", insertColumns.Select(c => Column(c))));
             result.Append(") VALUES (");
             foreach (var entity in Enumerable.Range(0, entityCount))
             {
-                result.Append(string.Join(", ", insertColumns.Select((v, i) => $"@p{i + insertColumns.Count * entity}")));
+                result.Append(string.Join(", ", insertColumns.Select((v, i) => Parameter(i + insertColumns.Count * entity))));
                 if (entity < entityCount - 1 && entityCount > 1)
                     result.Append("), (");
             }
             result.Append(") ON CONFLICT (");
-            result.Append(string.Join(", ", joinColumns.Select(c => $"\"{c}\"")));
+            result.Append(string.Join(", ", joinColumns.Select(c => Column(c))));
             result.Append(") DO UPDATE SET ");
-            result.Append(string.Join(", ", updateColumns.Select((c, i) => $"\"{c}\" = @p{i + insertColumns.Count * entityCount}")));
+            result.Append(string.Join(", ", updateColumns.Select((c, i) => $"{Column(c)} = {Parameter(i + insertColumns.Count * entityCount)}")));
             if (updateExpressions.Count > 0)
             {
                 if (updateColumns.Count > 0)
@@ -40,18 +44,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 result.Append(string.Join(", ", updateExpressions.Select((e, i) => ExpandExpression(i + argumentOffset, e.ColumnName, e.Value))));
             }
             return result.ToString();
-        }
-
-        private string ExpandExpression(int argumentIndex, string columnName, KnownExpression expression)
-        {
-            switch (expression.ExpressionType)
-            {
-                case System.Linq.Expressions.ExpressionType.Add:
-                    return $"\"{columnName}\" = \"T\".\"{columnName}\" + @p{argumentIndex}";
-                case System.Linq.Expressions.ExpressionType.Subtract:
-                    return $"\"{columnName}\" = \"T\".\"{columnName}\" - @p{argumentIndex}";
-                default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
-            }
         }
     }
 }

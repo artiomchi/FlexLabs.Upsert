@@ -14,8 +14,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     public class MySqlUpsertCommandRunner : RelationalUpsertCommandRunner
     {
         public override bool Supports(string name) => name == "MySql.Data.EntityFrameworkCore" || name == "Pomelo.EntityFrameworkCore.MySql";
+        protected override string Column(string name) => "`" + name + "`";
+        protected override string Parameter(int index) => "@p" + index;
+        protected override string SourcePrefix => null;
+        protected override string TargetPrefix => null;
 
-        public override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns,
+        protected override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns,
             ICollection<string> updateColumns, List<(string ColumnName, KnownExpression Value)> updateExpressions)
         {
             var result = new StringBuilder();
@@ -23,16 +27,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (schema != null)
                 schema = $"`{schema}`.";
             result.Append($"INSERT INTO {schema}`{entityType.Relational().TableName}` (");
-            result.Append(string.Join(", ", insertColumns.Select(c => $"`{c}`")));
+            result.Append(string.Join(", ", insertColumns.Select(c => Column(c))));
             result.Append(") VALUES (");
             foreach (var entity in Enumerable.Range(0, entityCount))
             {
-                result.Append(string.Join(", ", insertColumns.Select((v, i) => $"@p{i + insertColumns.Count * entity}")));
+                result.Append(string.Join(", ", insertColumns.Select((v, i) => Parameter(i + insertColumns.Count * entity))));
                 if (entity < entityCount - 1 && entityCount > 1)
                     result.Append("), (");
             }
             result.Append(") ON DUPLICATE KEY UPDATE ");
-            result.Append(string.Join(", ", updateColumns.Select((c, i) => $"`{c}` = @p{i + insertColumns.Count * entityCount}")));
+            result.Append(string.Join(", ", updateColumns.Select((c, i) => $"{Column(c)} = {Parameter(i + insertColumns.Count * entityCount)}")));
             if (updateExpressions.Count > 0)
             {
                 if (updateColumns.Count > 0)
@@ -41,18 +45,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 result.Append(string.Join(", ", updateExpressions.Select((e, i) => ExpandExpression(i + argumentOffset, e.ColumnName, e.Value))));
             }
             return result.ToString();
-        }
-
-        private string ExpandExpression(int argumentIndex, string columnName, KnownExpression expression)
-        {
-            switch (expression.ExpressionType)
-            {
-                case System.Linq.Expressions.ExpressionType.Add:
-                    return $"`{columnName}` = `{columnName}` + @p{argumentIndex}";
-                case System.Linq.Expressions.ExpressionType.Subtract:
-                    return $"`{columnName}` = `{columnName}` - @p{argumentIndex}";
-                default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
-            }
         }
     }
 }
