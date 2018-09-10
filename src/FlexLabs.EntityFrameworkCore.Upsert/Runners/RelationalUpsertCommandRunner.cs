@@ -34,8 +34,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     var property = entityType.FindProperty(binding.Member.Name);
                     if (property == null)
                         throw new InvalidOperationException("Unknown property " + binding.Member.Name);
-                    var value = binding.Expression.GetValue();
-                    if (value is KnownExpressions knownExp && typeof(TEntity).Equals(knownExp.SourceType) && knownExp.SourceProperty == binding.Member.Name)
+                    var value = binding.Expression.GetValue<TEntity>();
+                    if (value is KnownExpressions knownExp)
                         updateExpressions.Add((property, knownExp));
                     else
                         updateValues.Add((property, value));

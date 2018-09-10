@@ -18,7 +18,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue();
+            var expValue = memberAssig.GetValue<TestEntity>();
 
             Assert.Equal(1, expValue);
         }
@@ -33,7 +33,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue();
+            var expValue = memberAssig.GetValue<TestEntity>();
 
             Assert.Equal(value, expValue);
         }
@@ -48,7 +48,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue();
+            var expValue = memberAssig.GetValue<TestEntity>();
 
             Assert.Equal(value.Num1, expValue);
         }
@@ -63,7 +63,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue();
+            var expValue = memberAssig.GetValue<TestEntity>();
 
             Assert.Equal(value.Trim(), expValue);
         }
@@ -79,7 +79,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue();
+            var expValue = memberAssig.GetValue<TestEntity>();
 
             Assert.Equal(value1 + ", " + value2, expValue);
         }
@@ -93,12 +93,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue();
+            var expValue = memberAssig.GetValue<TestEntity>();
 
             var knownValue = Assert.IsType<KnownExpressions>(expValue);
             Assert.Equal(ExpressionType.Add, knownValue.ExpressionType);
-            Assert.Equal("Num1", knownValue.SourceProperty);
-            Assert.Equal(typeof(TestEntity), knownValue.SourceType);
+            //Assert.Equal("Num1", knownValue.SourceProperty);
+            //Assert.Equal(typeof(TestEntity), knownValue.SourceType);
             Assert.Equal(1, knownValue.Value);
         }
 
@@ -111,12 +111,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue();
+            var expValue = memberAssig.GetValue<TestEntity>();
 
             var knownValue = Assert.IsType<KnownExpressions>(expValue);
             Assert.Equal(ExpressionType.Subtract, knownValue.ExpressionType);
-            Assert.Equal("Num1", knownValue.SourceProperty);
-            Assert.Equal(typeof(TestEntity), knownValue.SourceType);
+            //Assert.Equal("Num1", knownValue.SourceProperty);
+            //Assert.Equal(typeof(TestEntity), knownValue.SourceType);
             Assert.Equal(2, knownValue.Value);
         }
 
@@ -129,12 +129,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue();
+            var expValue = memberAssig.GetValue<TestEntity>();
 
             var knownValue = Assert.IsType<KnownExpressions>(expValue);
             Assert.Equal(ExpressionType.Multiply, knownValue.ExpressionType);
-            Assert.Equal("Num1", knownValue.SourceProperty);
-            Assert.Equal(typeof(TestEntity), knownValue.SourceType);
+            //Assert.Equal("Num1", knownValue.SourceProperty);
+            //Assert.Equal(typeof(TestEntity), knownValue.SourceType);
             Assert.Equal(3, knownValue.Value);
         }
 
@@ -147,13 +147,31 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue();
+            var expValue = memberAssig.GetValue<TestEntity>();
 
             var knownValue = Assert.IsType<KnownExpressions>(expValue);
             Assert.Equal(ExpressionType.Divide, knownValue.ExpressionType);
-            Assert.Equal("Num1", knownValue.SourceProperty);
-            Assert.Equal(typeof(TestEntity), knownValue.SourceType);
+            //Assert.Equal("Num1", knownValue.SourceProperty);
+            //Assert.Equal(typeof(TestEntity), knownValue.SourceType);
             Assert.Equal(4, knownValue.Value);
+        }
+
+        [Fact]
+        public void ExpressionHelpersTests_OtherProp()
+        {
+            Expression<Func<TestEntity, TestEntity>> exp = e => new TestEntity
+            {
+                Num1 = e.Num1,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>();
+
+            var knownValue = Assert.IsType<KnownExpressions>(expValue);
+            Assert.Equal(ExpressionType.MemberAccess, knownValue.ExpressionType);
+            //Assert.Equal("Num1", knownValue.SourceProperty);
+            //Assert.Equal(typeof(TestEntity), knownValue.SourceType);
+            Assert.Equal("Num1", knownValue.Value);
         }
     }
 }
