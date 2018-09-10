@@ -98,7 +98,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 }
             }
 
-            var allArguments = arguments.Concat(updArguments).Concat(updExpressions.Select(e => e.Value.Value2)).ToList();
+            var updParams = updExpressions.SelectMany(e => new[]
+             {
+                e.Value.Value1 is ExpressionParameterProperty ? null : e.Value.Value1,
+                e.Value.Value2 is ExpressionParameterProperty ? null : e.Value.Value2,
+            })
+            .Where(x => x != null);
+            var allArguments = arguments.Concat(updArguments).Concat(updParams).ToList();
             return (GenerateCommand(entityType, entities.Count, allColumns, joinColumnNames, updColumns, updExpressions), allArguments);
         }
 
@@ -107,14 +113,35 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             switch (expression.ExpressionType)
             {
                 case ExpressionType.Add:
-                    return $"{Column(columnName)} = {TargetPrefix}{Column(columnName)} + {Parameter(argumentIndex)}";
                 case ExpressionType.Divide:
-                    return $"{Column(columnName)} = {TargetPrefix}{Column(columnName)} / {Parameter(argumentIndex)}";
                 case ExpressionType.Multiply:
-                    return $"{Column(columnName)} = {TargetPrefix}{Column(columnName)} * {Parameter(argumentIndex)}";
                 case ExpressionType.Subtract:
-                    return $"{Column(columnName)} = {TargetPrefix}{Column(columnName)} - {Parameter(argumentIndex)}";
+                    string expandArgument(object value)
+                    {
+                        if (!(value is ExpressionParameterProperty prop))
+                            return Parameter(argumentIndex);
+
+                        var prefix = prop.IsLeftParameter ? TargetPrefix : SourcePrefix;
+                        return prefix + Column(prop.PropertyName);
+                    }
+
+                    var left = expandArgument(expression.Value1);
+                    var right = expandArgument(expression.Value2);
+                    var op = GetSimpleOperator(expression.ExpressionType);
+                    return $"{left} {op} {right}";
                 default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
+            }
+        }
+
+        protected virtual string GetSimpleOperator(ExpressionType expressionType)
+        {
+            switch (expressionType)
+            {
+                case ExpressionType.Add: return "+";
+                case ExpressionType.Divide: return "/";
+                case ExpressionType.Multiply: return "*";
+                case ExpressionType.Subtract: return "-";
+                default: throw new InvalidOperationException($"{expressionType} is not a simple arithmetic operation");
             }
         }
 

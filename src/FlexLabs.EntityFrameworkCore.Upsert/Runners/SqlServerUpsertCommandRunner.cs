@@ -48,7 +48,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 if (updateColumns.Count > 0)
                     result.Append(", ");
                 var argumentOffset = insertColumns.Count * entityCount + updateColumns.Count;
-                result.Append(string.Join(", ", updateExpressions.Select((e, i) => ExpandExpression(i + argumentOffset, e.ColumnName, e.Value))));
+                result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{Column(e.ColumnName)} = {ExpandExpression(i + argumentOffset, e.ColumnName, e.Value)}")));
             }
             result.Append(";");
             return result.ToString();

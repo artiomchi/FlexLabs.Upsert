@@ -160,7 +160,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         {
             UserID = 1,
             Date = DateTime.Today,
-            Visits = 5,
+            Visits = 12,
             FirstVisit = new DateTime(1970, 1, 1),
             LastVisit = new DateTime(1970, 1, 1),
         };
@@ -201,7 +201,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
         [Theory]
         [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_Country_Update_NoColumns(TestDbContext.DbDriver driver)
+        public void Upsert_Country_Update_On(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
@@ -228,7 +228,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
         [Theory]
         [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_Country_Update_SelectedColumns(TestDbContext.DbDriver driver)
+        public void Upsert_Country_Update_On_WhenMatched_Values(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
@@ -261,7 +261,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
         [Theory]
         [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_Country_Insert(TestDbContext.DbDriver driver)
+        public void Upsert_Country_Insert_On_WhenMatched(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
@@ -293,7 +293,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
         [Theory]
         [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_NoColumns(TestDbContext.DbDriver driver)
+        public void Upsert_PageVisit_Update_On(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
@@ -321,7 +321,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
         [Theory]
         [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_SelectedColumns(TestDbContext.DbDriver driver)
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueAdd(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
@@ -356,7 +356,147 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
         [Theory]
         [MemberData(nameof(GetDatabaseEngines))]
-        public void UpsertRange_PageVisit_Update_SelectedColumns(TestDbContext.DbDriver driver)
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueAdd_Reversed(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newVisit = new PageVisit
+                {
+                    UserID = 1,
+                    Date = DateTime.Today,
+                    Visits = 1,
+                    FirstVisit = _now,
+                    LastVisit = _now,
+                };
+
+                dbContext.PageVisits.Upsert(newVisit)
+                    .On(pv => new { pv.UserID, pv.Date })
+                    .WhenMatched(pv => new PageVisit
+                    {
+                        Visits = 1 + pv.Visits,
+                        LastVisit = _now,
+                    })
+                    .Run();
+
+                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
+                Assert.NotNull(visit);
+                Assert.NotEqual(newVisit.Visits, visit.Visits);
+                Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
+                Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueSubtract(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newVisit = new PageVisit
+                {
+                    UserID = 1,
+                    Date = DateTime.Today,
+                    Visits = 1,
+                    FirstVisit = _now,
+                    LastVisit = _now,
+                };
+
+                dbContext.PageVisits.Upsert(newVisit)
+                    .On(pv => new { pv.UserID, pv.Date })
+                    .WhenMatched(pv => new PageVisit
+                    {
+                        Visits = pv.Visits - 2,
+                        LastVisit = _now,
+                    })
+                    .Run();
+
+                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
+                Assert.NotNull(visit);
+                Assert.NotEqual(newVisit.Visits, visit.Visits);
+                Assert.Equal(_dbVisit.Visits - 2, visit.Visits);
+                Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueMultiply(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newVisit = new PageVisit
+                {
+                    UserID = 1,
+                    Date = DateTime.Today,
+                    Visits = 1,
+                    FirstVisit = _now,
+                    LastVisit = _now,
+                };
+
+                dbContext.PageVisits.Upsert(newVisit)
+                    .On(pv => new { pv.UserID, pv.Date })
+                    .WhenMatched(pv => new PageVisit
+                    {
+                        Visits = pv.Visits * 3,
+                        LastVisit = _now,
+                    })
+                    .Run();
+
+                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
+                Assert.NotNull(visit);
+                Assert.NotEqual(newVisit.Visits, visit.Visits);
+                Assert.Equal(_dbVisit.Visits * 3, visit.Visits);
+                Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueDivide(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newVisit = new PageVisit
+                {
+                    UserID = 1,
+                    Date = DateTime.Today,
+                    Visits = 1,
+                    FirstVisit = _now,
+                    LastVisit = _now,
+                };
+
+                dbContext.PageVisits.Upsert(newVisit)
+                    .On(pv => new { pv.UserID, pv.Date })
+                    .WhenMatched(pv => new PageVisit
+                    {
+                        Visits = pv.Visits / 4,
+                        LastVisit = _now,
+                    })
+                    .Run();
+
+                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
+                Assert.NotNull(visit);
+                Assert.NotEqual(newVisit.Visits, visit.Visits);
+                Assert.Equal(_dbVisit.Visits / 4, visit.Visits);
+                Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void UpsertRange_PageVisit_Update_On_WhenMatched(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
