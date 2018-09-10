@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
@@ -31,7 +31,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                                 return fInfo.GetValue(memberExp.Expression.GetValue<TSource>(true));
 
                             case PropertyInfo pInfo:
-                                if (!nested && typeof(TSource).Equals(memberExp.Expression.Type))
+                                if (!nested && typeof(TSource).Equals(memberExp.Expression.Type) && memberExp.Expression is ParameterExpression)
                                     return new KnownExpressions(expression.NodeType, pInfo.Name);
                                 return pInfo.GetValue(memberExp.Expression.GetValue<TSource>(true));
 
@@ -79,7 +79,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         }
 
         private static bool IsTypeProperty<T>(this MemberExpression expression)
-            => typeof(T).Equals(expression.Expression.Type) &&
+            => expression.Expression is ParameterExpression &&
+                typeof(T).Equals(expression.Expression.Type) &&
                 expression.Member is PropertyInfo;
     }
 }
