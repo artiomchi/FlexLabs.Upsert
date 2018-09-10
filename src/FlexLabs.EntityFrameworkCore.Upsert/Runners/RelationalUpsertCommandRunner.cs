@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -13,29 +14,29 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     {
         public abstract string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns,
             ICollection<string> joinColumns, ICollection<string> updateColumns,
-            List<(string ColumnName, KnownExpressions Value)> updateExpressions);
+            List<(string ColumnName, KnownExpression Value)> updateExpressions);
 
         private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
             Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity>> updater)
         {
             var joinColumns = ProcessMatchExpression(entityType, match);
 
-            List<(IProperty, KnownExpressions)> updateExpressions = null;
+            List<(IProperty, KnownExpression)> updateExpressions = null;
             List<(IProperty, object)> updateValues = null;
             if (updater != null)
             {
                 if (!(updater.Body is MemberInitExpression entityUpdater))
                     throw new ArgumentException("updater must be an Initialiser of the TEntity type", nameof(updater));
 
-                updateExpressions = new List<(IProperty, KnownExpressions)>();
+                updateExpressions = new List<(IProperty, KnownExpression)>();
                 updateValues = new List<(IProperty, object)>();
                 foreach (MemberAssignment binding in entityUpdater.Bindings)
                 {
                     var property = entityType.FindProperty(binding.Member.Name);
                     if (property == null)
                         throw new InvalidOperationException("Unknown property " + binding.Member.Name);
-                    var value = binding.Expression.GetValue<TEntity>();
-                    if (value is KnownExpressions knownExp)
+                    var value = binding.Expression.GetValue<TEntity>(updater);
+                    if (value is KnownExpression knownExp)
                         updateExpressions.Add((property, knownExp));
                     else
                         updateValues.Add((property, value));
@@ -84,7 +85,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 }
             }
 
-            var updExpressions = new List<(string ColumnName, KnownExpressions Value)>();
+            var updExpressions = new List<(string ColumnName, KnownExpression Value)>();
             if (updateExpressions != null)
             {
                 foreach (var (Property, Value) in updateExpressions)
@@ -93,7 +94,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 }
             }
 
-            var allArguments = arguments.Concat(updArguments).Concat(updExpressions.Select(e => e.Value.Value)).ToList();
+            var allArguments = arguments.Concat(updArguments).Concat(updExpressions.Select(e => e.Value.Value2)).ToList();
             return (GenerateCommand(entityType, entities.Count, allColumns, joinColumnNames, updColumns, updExpressions), allArguments);
         }
 

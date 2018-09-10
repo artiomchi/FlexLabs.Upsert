@@ -10,14 +10,26 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 {
     public class BasicTest : IClassFixture<BasicTest.Contexts>
     {
-        public static TestDbContext.DbDriver[] DatabaseEngines = new[]
+        private static bool IsAppVeyor => Environment.GetEnvironmentVariable("APPVEYOR") != null;
+        private static bool RunLocalDockerTests = false;
+
+        static BasicTest()
         {
-            TestDbContext.DbDriver.Postgres,
-            TestDbContext.DbDriver.MSSQL,
-            TestDbContext.DbDriver.MySQL,
-            TestDbContext.DbDriver.InMemory,
-            TestDbContext.DbDriver.Sqlite,
-        };
+            DatabaseEngines = new List<TestDbContext.DbDriver>
+            {
+                TestDbContext.DbDriver.InMemory,
+                TestDbContext.DbDriver.Sqlite,
+            };
+            if (IsAppVeyor || RunLocalDockerTests)
+                DatabaseEngines.AddRange(new[]
+                {
+                    TestDbContext.DbDriver.Postgres,
+                    TestDbContext.DbDriver.MSSQL,
+                    TestDbContext.DbDriver.MySQL,
+                });
+        }
+
+        public static readonly List<TestDbContext.DbDriver> DatabaseEngines;
         public static IEnumerable<object[]> GetDatabaseEngines() => DatabaseEngines.Select(e => new object[] { e });
 
         public class Contexts : IDisposable
@@ -41,8 +53,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             private static readonly string AppVeyor_Postgres_Connection = $"Server=localhost;Port=5432;Database={Username};Username=postgres;Password={Password}";
             private static readonly string AppVeyor_SqlServer_Connection = $"Server=(local)\\SQL2017;Database={Username};User Id=sa;Password={Password}";
             private static readonly string AppVeyor_MySql_Connection = $"Server=localhost;Port=3306;Database={Username};Uid=root;Pwd={Password}";
-
-            private bool IsAppVeyor => Environment.GetEnvironmentVariable("APPVEYOR") != null;
 
             private IDictionary<TestDbContext.DbDriver, Process> _processes;
             public IDictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>> _dataContexts;

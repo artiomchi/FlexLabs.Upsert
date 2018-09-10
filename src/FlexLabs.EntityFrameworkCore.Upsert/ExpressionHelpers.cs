@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert
 {
@@ -13,7 +14,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// </summary>
         /// <param name="expression"></param>
         /// <returns></returns>
-        public static object GetValue<TSource>(this Expression expression, bool nested = false)
+        public static object GetValue<TSource>(this Expression expression, LambdaExpression container) => GetValue<TSource>(expression, container, false);
+
+        private static object GetValue<TSource>(this Expression expression, LambdaExpression container, bool nested)
         {
             switch (expression.NodeType)
             {
@@ -28,12 +31,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                         switch (memberExp.Member)
                         {
                             case FieldInfo fInfo:
-                                return fInfo.GetValue(memberExp.Expression.GetValue<TSource>(true));
+                                return fInfo.GetValue(memberExp.Expression.GetValue<TSource>(container, true));
 
                             case PropertyInfo pInfo:
-                                if (!nested && typeof(TSource).Equals(memberExp.Expression.Type) && memberExp.Expression is ParameterExpression)
-                                    return new KnownExpressions(expression.NodeType, pInfo.Name);
-                                return pInfo.GetValue(memberExp.Expression.GetValue<TSource>(true));
+                                if (!nested && typeof(TSource).Equals(memberExp.Expression.Type) && memberExp.Expression is ParameterExpression paramExp)
+                                {
+                                    var isLeftParam = paramExp.Equals(container.Parameters[0]);
+                                    if (isLeftParam || paramExp.Equals(container.Parameters[1]))
+                                        return new KnownExpression(expression.NodeType, new ExpressionParameterProperty(pInfo.Name, isLeftParam));
+                                }
+                                return pInfo.GetValue(memberExp.Expression.GetValue<TSource>(container, true));
 
                             default: throw new Exception("can't handle this type of member expression: " + memberExp.GetType() + ", " + memberExp.Member.GetType());
                         }
@@ -44,15 +51,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                         var arrayExp = (NewArrayExpression)expression;
                         var result = Array.CreateInstance(arrayExp.Type.GetElementType(), arrayExp.Expressions.Count);
                         for (int i = 0; i < arrayExp.Expressions.Count; i++)
-                            result.SetValue(arrayExp.Expressions[i].GetValue<TSource>(), i);
+                            result.SetValue(arrayExp.Expressions[i].GetValue<TSource>(container, true), i);
                         return result;
                     }
 
                 case ExpressionType.Call:
                     {
                         var methodExp = (MethodCallExpression)expression;
-                        var context = methodExp.Object?.GetValue<TSource>();
-                        var arguments = methodExp.Arguments.Select(a => a.GetValue<TSource>()).ToArray();
+                        var context = methodExp.Object?.GetValue<TSource>(container, true);
+                        var arguments = methodExp.Arguments.Select(a => a.GetValue<TSource>(container, true)).ToArray();
                         return methodExp.Method.Invoke(context, arguments);
                     }
 
@@ -62,12 +69,31 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 case ExpressionType.Divide:
                     {
                         var exp = (BinaryExpression)expression;
-                        if (!nested && exp.Method == null && exp.Right is ConstantExpression constExp && exp.Left is MemberExpression memberExp && memberExp.IsTypeProperty<TSource>())
-                            return new KnownExpressions(exp.NodeType, constExp.Value);
-                        if (exp.Method != null)
-                            return exp.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null, new[] { exp.Left.GetValue<TSource>(), exp.Right.GetValue<TSource>() }, CultureInfo.InvariantCulture);
+                        if (!nested && exp.Method == null)
+                        {
+                            object getValue(Expression e)
+                            {
+                                if (e is ConstantExpression constExp)
+                                    return constExp.Value;
+                                if (e is MemberExpression memberExp && memberExp.Expression is ParameterExpression paramExp && memberExp.Member is PropertyInfo)
+                                {
+                                    var isLeftParam = paramExp.Equals(container.Parameters[0]);
+                                    if (isLeftParam || paramExp.Equals(container.Parameters[1]))
+                                        return new ExpressionParameterProperty(memberExp.Member.Name, isLeftParam);
+                                }
+                                return null;
+                            };
 
-                        return null;
+                            var leftArg = getValue(exp.Left);
+                            var rightArg = getValue(exp.Right);
+                            if (leftArg != null && rightArg != null)
+                                return new KnownExpression(exp.NodeType, leftArg, rightArg);
+                        }
+                        if (exp.Method != null)
+                            return exp.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null, new[] { exp.Left.GetValue<TSource>(container, true), exp.Right.GetValue<TSource>(container, true) }, CultureInfo.InvariantCulture);
+
+                        throw new NotImplementedException();
+                        //return null;
                     }
             }
 
@@ -77,10 +103,5 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             //        .Compile()();
             throw new NotImplementedException();
         }
-
-        private static bool IsTypeProperty<T>(this MemberExpression expression)
-            => expression.Expression is ParameterExpression &&
-                typeof(T).Equals(expression.Expression.Type) &&
-                expression.Member is PropertyInfo;
     }
 }

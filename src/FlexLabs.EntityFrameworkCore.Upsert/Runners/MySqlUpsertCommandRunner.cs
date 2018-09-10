@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -15,7 +16,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public override bool Supports(string name) => name == "MySql.Data.EntityFrameworkCore" || name == "Pomelo.EntityFrameworkCore.MySql";
 
         public override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns,
-            ICollection<string> updateColumns, List<(string ColumnName, KnownExpressions Value)> updateExpressions)
+            ICollection<string> updateColumns, List<(string ColumnName, KnownExpression Value)> updateExpressions)
         {
             var result = new StringBuilder();
             var schema = entityType.Relational().Schema;
@@ -42,7 +43,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             return result.ToString();
         }
 
-        private string ExpandExpression(int argumentIndex, string columnName, KnownExpressions expression)
+        private string ExpandExpression(int argumentIndex, string columnName, KnownExpression expression)
         {
             switch (expression.ExpressionType)
             {
