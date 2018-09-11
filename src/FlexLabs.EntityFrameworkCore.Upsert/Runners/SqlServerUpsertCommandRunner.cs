@@ -34,8 +34,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append(string.Join(", ", entities.First().Select(e => Column(e.ColumnName))));
             result.Append(") VALUES (");
             result.Append(string.Join(", ", entities.First().Select(e => Column(e.ColumnName))));
-            result.Append(") WHEN MATCHED THEN UPDATE SET ");
-            result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{Column(e.ColumnName)} = {ExpandExpression(e.Value)}")));
+            result.Append(")");
+            if (updateExpressions != null)
+            {
+                result.Append(" WHEN MATCHED THEN UPDATE SET ");
+                result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{Column(e.ColumnName)} = {ExpandExpression(e.Value)}")));
+            }
             result.Append(";");
             return result.ToString();
         }

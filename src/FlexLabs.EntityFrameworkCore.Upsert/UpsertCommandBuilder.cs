@@ -24,6 +24,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         private readonly ICollection<TEntity> _entities;
         private Expression<Func<TEntity, object>> _matchExpression = null;
         private Expression<Func<TEntity, TEntity, TEntity>> _updateExpression = null;
+        private bool _noUpdate = false;
 
         /// <summary>
         /// Initialise an instance of the UpsertCommandBuilder
@@ -47,10 +48,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         {
             if (_matchExpression != null)
                 throw new InvalidOperationException($"Can't call {nameof(On)} twice!");
-            if (match == null)
-                throw new ArgumentNullException(nameof(match));
 
-            _matchExpression = match;
+            _matchExpression = match ?? throw new ArgumentNullException(nameof(match));
             return this;
         }
 
@@ -63,6 +62,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         {
             if (_updateExpression != null)
                 throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} twice!");
+            if (_noUpdate)
+                throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} when {nameof(NoUpdate)} has been called, as they are mutually exclusive");
             if (updater == null)
                 throw new ArgumentNullException(nameof(updater));
 
@@ -84,10 +85,23 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         {
             if (_updateExpression != null)
                 throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} twice!");
-            if (updater == null)
-                throw new ArgumentNullException(nameof(updater));
+            if (_noUpdate)
+                throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} when {nameof(NoUpdate)} has been called, as they are mutually exclusive");
 
-            _updateExpression = updater;
+            _updateExpression = updater ?? throw new ArgumentNullException(nameof(updater));
+            return this;
+        }
+
+        /// <summary>
+        /// Specifies that if a match is found, no action will be taken on the entity
+        /// </summary>
+        /// <returns></returns>
+        public UpsertCommandBuilder<TEntity> NoUpdate()
+        {
+            if (_updateExpression != null)
+                throw new InvalidOperationException($"Can't call {nameof(NoUpdate)} when {nameof(WhenMatched)} has been called, as they are mutually exclusive");
+
+            _noUpdate = true;
             return this;
         }
 
@@ -109,7 +123,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public void Run()
         {
             var commandRunner = GetCommandRunner();
-            commandRunner.Run(_dbContext, _entityType, _entities, _matchExpression, _updateExpression);
+            commandRunner.Run(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _noUpdate);
         }
 
         /// <summary>
@@ -120,7 +134,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public Task RunAsync(CancellationToken token = default)
         {
             var commandRunner = GetCommandRunner();
-            return commandRunner.RunAsync(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, token);
+            return commandRunner.RunAsync(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _noUpdate, token);
         }
     }
 }

@@ -29,8 +29,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="entities">Array of entities to be upserted</param>
         /// <param name="matchExpression">Expression that represents which properties will be used as a match clause for the upsert command</param>
         /// <param name="updateExpression">Expression that represents which properties will be updated, and what values will be set</param>
+        /// <param name="noUpdate">Specifies that if a match is found, no action will be taken on the entity</param>
         void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression) where TEntity : class;
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate) where TEntity : class;
 
         /// <summary>
         /// Run the upsert command for the entities passed
@@ -41,9 +42,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="entities">Array of entities to be upserted</param>
         /// <param name="matchExpression">Expression that represents which properties will be used as a match clause for the upsert command</param>
         /// <param name="updateExpression">Expression that represents which properties will be updated, and what values will be set</param>
+        /// <param name="noUpdate">Specifies that if a match is found, no action will be taken on the entity</param>
         /// <param name="cancellationToken">The CancellationToken to observe while waiting for the task to complete.</param>
         /// <returns>The task that represents the asynchronous upsert operation</returns>
         Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, CancellationToken cancellationToken) where TEntity : class;
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, CancellationToken cancellationToken) where TEntity : class;
     }
 }

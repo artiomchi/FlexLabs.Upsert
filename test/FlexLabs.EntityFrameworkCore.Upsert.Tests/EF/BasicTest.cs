@@ -247,6 +247,37 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
         [Theory]
         [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_Country_Update_On_NoUpdate(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newCountry = new Country
+                {
+                    Name = "Australia",
+                    ISO = "AU",
+                    Created = _now,
+                    Updated = _now,
+                };
+
+                dbContext.Countries.Upsert(newCountry)
+                    .On(c => c.ISO)
+                    .NoUpdate()
+                    .Run();
+
+                var country = dbContext.Countries.Single(c => c.ISO == newCountry.ISO);
+                Assert.NotNull(country);
+                Assert.NotEqual(newCountry.Name, country.Name);
+                Assert.NotEqual(newCountry.Created, country.Created);
+                Assert.NotEqual(newCountry.Updated, country.Updated);
+                Assert.Equal(_dbCountry.Name, country.Name);
+                Assert.Equal(_dbCountry.Created, country.Created);
+                Assert.Equal(_dbCountry.Updated, country.Updated);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_Country_Update_On_WhenMatched_Values(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);

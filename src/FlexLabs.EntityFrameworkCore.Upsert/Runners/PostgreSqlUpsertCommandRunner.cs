@@ -30,8 +30,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => Parameter(e.Value.ArgumentIndex))))));
             result.Append(") ON CONFLICT (");
             result.Append(string.Join(", ", joinColumns.Select(c => Column(c))));
-            result.Append(") DO UPDATE SET ");
-            result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{Column(e.ColumnName)} = {ExpandExpression(e.Value)}")));
+            result.Append(") DO ");
+            if (updateExpressions != null)
+            {
+                result.Append("UPDATE SET ");
+                result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{Column(e.ColumnName)} = {ExpandExpression(e.Value)}")));
+            }
+            else
+            {
+                result.Append("NOTHING");
+            }
             return result.ToString();
         }
     }

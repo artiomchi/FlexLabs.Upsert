@@ -22,7 +22,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected virtual string TargetSuffix => null;
 
         private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
-            Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity, TEntity>> updater)
+            Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity, TEntity>> updater, bool noUpdate)
         {
             var joinColumns = ProcessMatchExpression(entityType, match);
             var joinColumnNames = joinColumns.Select(c => c.PropertyMetadata.Relational().ColumnName).ToArray();
@@ -34,12 +34,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .ToList();
             var allColumns = properties.Select(x => x.MetaProperty.Relational().ColumnName).ToList();
 
-            var updateExpressions = new List<(IProperty Property, KnownExpression Value)>();;
+            List<(IProperty Property, KnownExpression Value)> updateExpressions = null;
             if (updater != null)
             {
                 if (!(updater.Body is MemberInitExpression entityUpdater))
                     throw new ArgumentException("updater must be an Initialiser of the TEntity type", nameof(updater));
 
+                updateExpressions = new List<(IProperty Property, KnownExpression Value)>();
                 foreach (MemberAssignment binding in entityUpdater.Bindings)
                 {
                     var property = entityType.FindProperty(binding.Member.Name);
@@ -57,8 +58,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     updateExpressions.Add((property, knownExp));
                 }
             }
-            else
+            else if (!noUpdate)
             {
+                updateExpressions = new List<(IProperty Property, KnownExpression Value)>();
                 foreach (var (MetaProperty, PropertyInfo) in properties)
                 {
                     if (joinColumnNames.Contains(MetaProperty.Relational().ColumnName))
@@ -82,12 +84,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .ToList();
 
             var arguments = newEntities.SelectMany(e => e.Select(p => p.Value)).ToList();
-            arguments.AddRange(updateExpressions.SelectMany(e => new[] { e.Value.Value1, e.Value.Value2 }).OfType<ConstantValue>());
+            if (updateExpressions != null)
+                arguments.AddRange(updateExpressions.SelectMany(e => new[] { e.Value.Value1, e.Value.Value2 }).OfType<ConstantValue>());
             int i = 0;
             foreach (var arg in arguments)
                 arg.ArgumentIndex = i++;
 
-            var columnUpdateExpressions = updateExpressions.Select(x => (x.Property.Relational().ColumnName, x.Value)).ToList();
+            var columnUpdateExpressions = updateExpressions?.Select(x => (x.Property.Relational().ColumnName, x.Value)).ToList();
             var sqlCommand = GenerateCommand(entityType, newEntities, joinColumnNames, columnUpdateExpressions);
             return (sqlCommand, arguments.Select(a => a.Value));
         }
@@ -143,16 +146,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression)
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate)
         {
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression);
+            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate);
             dbContext.Database.ExecuteSqlCommand(sqlCommand, arguments);
         }
 
         public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, CancellationToken cancellationToken)
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, CancellationToken cancellationToken)
         {
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression);
+            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate);
             return dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, arguments);
         }
     }

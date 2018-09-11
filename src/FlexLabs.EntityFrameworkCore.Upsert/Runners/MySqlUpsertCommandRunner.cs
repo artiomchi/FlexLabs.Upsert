@@ -21,16 +21,23 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override string GenerateCommand(IEntityType entityType, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
             List<(string ColumnName, KnownExpression Value)> updateExpressions)
         {
-            var result = new StringBuilder();
             var schema = entityType.Relational().Schema;
             if (schema != null)
                 schema = $"`{schema}`.";
-            result.Append($"INSERT INTO {schema}`{entityType.Relational().TableName}` (");
+
+            var result = new StringBuilder("INSERT ");
+            if (updateExpressions == null)
+                result.Append("IGNORE ");
+            result.Append($"INTO {schema}`{entityType.Relational().TableName}` (");
             result.Append(string.Join(", ", entities.First().Select(e => Column(e.ColumnName))));
             result.Append(") VALUES (");
             result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => Parameter(e.Value.ArgumentIndex))))));
-            result.Append(") ON DUPLICATE KEY UPDATE ");
-            result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{Column(e.ColumnName)} = {ExpandExpression(e.Value)}")));
+            result.Append(")");
+            if (updateExpressions != null)
+            {
+                result.Append(" ON DUPLICATE KEY UPDATE ");
+                result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{Column(e.ColumnName)} = {ExpandExpression(e.Value)}")));
+            }
             return result.ToString();
         }
     }
