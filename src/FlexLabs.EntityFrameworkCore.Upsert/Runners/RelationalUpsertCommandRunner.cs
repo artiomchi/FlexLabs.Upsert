@@ -12,8 +12,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
     public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     {
-        public abstract string GenerateCommand(IEntityType entityType, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
-            ICollection<string> joinColumns, List<(string ColumnName, KnownExpression Value)> updateExpressions);
+        public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
+            ICollection<string> joinColumns, ICollection<(string ColumnName, KnownExpression Value)> updateExpressions);
         protected abstract string EscapeName(string name);
         protected virtual string Parameter(int index) => "@p" + index;
         protected virtual string GetSchema(IEntityType entityType)
@@ -23,6 +23,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 ? EscapeName(schema) + "."
                 : null;
         }
+        protected virtual string GetTableName(IEntityType entityType) => GetSchema(entityType) + EscapeName(entityType.Relational().TableName);
         protected abstract string SourcePrefix { get; }
         protected virtual string SourceSuffix => null;
         protected abstract string TargetPrefix { get; }
@@ -36,10 +37,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
             var properties = entityType.GetProperties()
                 .Where(p => p.ValueGenerated == ValueGenerated.Never)
-                .Select(p => (MetaProperty: p, PropertyInfo: typeof(TEntity).GetProperty(p.Name)))
-                .Where(x => x.PropertyInfo != null)
-                .ToList();
-            var allColumns = properties.Select(x => x.MetaProperty.Relational().ColumnName).ToList();
+                .ToArray();
 
             List<(IProperty Property, KnownExpression Value)> updateExpressions = null;
             if (updater != null)
@@ -68,14 +66,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             else if (!noUpdate)
             {
                 updateExpressions = new List<(IProperty Property, KnownExpression Value)>();
-                foreach (var (MetaProperty, PropertyInfo) in properties)
+                foreach (var property in properties)
                 {
-                    if (joinColumnNames.Contains(MetaProperty.Relational().ColumnName))
+                    if (joinColumnNames.Contains(property.Relational().ColumnName))
                         continue;
 
-                    var propertyAccess = new ParameterProperty(MetaProperty.Name, false) { Property = MetaProperty };
+                    var propertyAccess = new ParameterProperty(property.Name, false) { Property = property };
                     var updateExpression = new KnownExpression(ExpressionType.MemberAccess, propertyAccess);
-                    updateExpressions.Add((MetaProperty, updateExpression));
+                    updateExpressions.Add((property, updateExpression));
                 }
             }
 
@@ -83,12 +81,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .Select(e => properties
                     .Select(p =>
                     {
-                        var columnName = p.MetaProperty.Relational().ColumnName;
+                        var columnName = p.Relational().ColumnName;
                         var value = new ConstantValue(p.PropertyInfo.GetValue(e));
                         return (columnName, value);
                     })
-                    .ToList() as ICollection<(string ColumnName, ConstantValue Value)>)
-                .ToList();
+                    .ToArray() as ICollection<(string ColumnName, ConstantValue Value)>)
+                .ToArray();
 
             var arguments = newEntities.SelectMany(e => e.Select(p => p.Value)).ToList();
             if (updateExpressions != null)
@@ -97,8 +95,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             foreach (var arg in arguments)
                 arg.ArgumentIndex = i++;
 
-            var columnUpdateExpressions = updateExpressions?.Select(x => (x.Property.Relational().ColumnName, x.Value)).ToList();
-            var sqlCommand = GenerateCommand(entityType, newEntities, joinColumnNames, columnUpdateExpressions);
+            var columnUpdateExpressions = updateExpressions?.Select(x => (x.Property.Relational().ColumnName, x.Value)).ToArray();
+            var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities, joinColumnNames, columnUpdateExpressions);
             return (sqlCommand, arguments.Select(a => a.Value));
         }
 

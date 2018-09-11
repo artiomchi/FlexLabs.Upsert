@@ -2,8 +2,6 @@
 using System.Linq;
 using System.Text;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
@@ -17,11 +15,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override string SourcePrefix => "EXCLUDED.";
         protected override string TargetPrefix => "\"T\".";
 
-        public override string GenerateCommand(IEntityType entityType, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
-            List<(string ColumnName, KnownExpression Value)> updateExpressions)
+        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
+            ICollection<(string ColumnName, KnownExpression Value)> updateExpressions)
         {
             var result = new StringBuilder();
-            result.Append($"INSERT INTO {GetSchema(entityType)}\"{entityType.Relational().TableName}\" AS \"T\" (");
+            result.Append($"INSERT INTO {tableName} AS \"T\" (");
             result.Append(string.Join(", ", entities.First().Select(e => EscapeName(e.ColumnName))));
             result.Append(") VALUES (");
             result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => Parameter(e.Value.ArgumentIndex))))));

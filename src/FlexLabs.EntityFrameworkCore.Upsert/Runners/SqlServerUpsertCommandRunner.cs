@@ -2,8 +2,6 @@
 using System.Linq;
 using System.Text;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
@@ -17,11 +15,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override string SourcePrefix => "[S].";
         protected override string TargetPrefix => "[T].";
 
-        public override string GenerateCommand(IEntityType entityType, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
-            List<(string ColumnName, KnownExpression Value)> updateExpressions)
+        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
+            ICollection<(string ColumnName, KnownExpression Value)> updateExpressions)
         {
             var result = new StringBuilder();
-            result.Append($"MERGE INTO {GetSchema(entityType)}[{entityType.Relational().TableName}] WITH (HOLDLOCK) AS [T] USING ( VALUES (");
+            result.Append($"MERGE INTO {tableName} WITH (HOLDLOCK) AS [T] USING ( VALUES (");
             result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => Parameter(e.Value.ArgumentIndex))))));
             result.Append($") ) AS [S] (");
             result.Append(string.Join(", ", entities.First().Select(e => EscapeName(e.ColumnName))));
