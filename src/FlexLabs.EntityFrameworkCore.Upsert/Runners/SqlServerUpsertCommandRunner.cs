@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
@@ -20,7 +19,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override string TargetPrefix => "[T].";
 
         protected override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns,
-            ICollection<string> updateColumns, List<(string ColumnName, KnownExpression Value)> updateExpressions)
+            List<(string ColumnName, KnownExpression Value)> updateExpressions)
         {
             var result = new StringBuilder();
             var schema = entityType.Relational().Schema;
@@ -42,14 +41,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append(") VALUES (");
             result.Append(string.Join(", ", insertColumns.Select(c => Column(c))));
             result.Append(") WHEN MATCHED THEN UPDATE SET ");
-            result.Append(string.Join(", ", updateColumns.Select((c, i) => $"{Column(c)} = {Parameter(i + insertColumns.Count * entityCount)}")));
-            if (updateExpressions.Count > 0)
-            {
-                if (updateColumns.Count > 0)
-                    result.Append(", ");
-                var argumentOffset = insertColumns.Count * entityCount + updateColumns.Count;
-                result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{Column(e.ColumnName)} = {ExpandExpression(i + argumentOffset, e.ColumnName, e.Value)}")));
-            }
+            result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{Column(e.ColumnName)} = {ExpandExpression(e.Value)}")));
             result.Append(";");
             return result.ToString();
         }

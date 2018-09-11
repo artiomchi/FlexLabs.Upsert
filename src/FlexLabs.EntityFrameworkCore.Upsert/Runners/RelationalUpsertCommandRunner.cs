@@ -13,8 +13,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     {
         protected abstract string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns,
-            ICollection<string> joinColumns, ICollection<string> updateColumns,
-            List<(string ColumnName, KnownExpression Value)> updateExpressions);
+            ICollection<string> joinColumns, List<(string ColumnName, KnownExpression Value)> updateExpressions);
         protected abstract string Column(string name);
         protected abstract string Parameter(int index);
         protected abstract string SourcePrefix { get; }
@@ -24,98 +23,79 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity>> updater)
         {
             var joinColumns = ProcessMatchExpression(entityType, match);
+            var joinColumnNames = joinColumns.Select(c => c.PropertyMetadata.Relational().ColumnName).ToArray();
 
-            List<(IProperty, KnownExpression)> updateExpressions = null;
-            List<(IProperty, object)> updateValues = null;
+            var properties = entityType.GetProperties()
+                .Where(p => p.ValueGenerated == ValueGenerated.Never)
+                .Select(p => (MetaProperty: p, PropertyInfo: typeof(TEntity).GetProperty(p.Name)))
+                .Where(x => x.PropertyInfo != null)
+                .ToList();
+            var allColumns = properties.Select(x => x.MetaProperty.Relational().ColumnName).ToList();
+
+            var updateExpressions = new List<(IProperty Property, KnownExpression Value)>();;
             if (updater != null)
             {
                 if (!(updater.Body is MemberInitExpression entityUpdater))
                     throw new ArgumentException("updater must be an Initialiser of the TEntity type", nameof(updater));
 
-                updateExpressions = new List<(IProperty, KnownExpression)>();
-                updateValues = new List<(IProperty, object)>();
                 foreach (MemberAssignment binding in entityUpdater.Bindings)
                 {
                     var property = entityType.FindProperty(binding.Member.Name);
                     if (property == null)
                         throw new InvalidOperationException("Unknown property " + binding.Member.Name);
+
                     var value = binding.Expression.GetValue<TEntity>(updater);
-                    if (value is KnownExpression knownExp)
-                    {
-                        if (knownExp.Value1 is ExpressionParameterProperty epp1)
-                            epp1.Property = entityType.FindProperty(epp1.PropertyName);
-                        if (knownExp.Value2 is ExpressionParameterProperty epp2)
-                            epp2.Property = entityType.FindProperty(epp2.PropertyName);
-                        updateExpressions.Add((property, knownExp));
-                    }
-                    else
-                        updateValues.Add((property, value));
-                }
-            }
+                    if (!(value is KnownExpression knownExp))
+                        knownExp = new KnownExpression(ExpressionType.Constant, new ConstantValue(value));
 
-            var arguments = new List<object>();
-            var allColumns = new List<string>();
-            var columnsDone = false;
-            foreach (var entity in entities)
-            {
-                foreach (var prop in entityType.GetProperties())
-                {
-                    if (prop.ValueGenerated != ValueGenerated.Never)
-                        continue;
-                    var classProp = typeof(TEntity).GetProperty(prop.Name);
-                    if (classProp == null)
-                        continue;
-                    if (!columnsDone)
-                        allColumns.Add(prop.Relational().ColumnName);
-                    arguments.Add(classProp.GetValue(entity));
-                }
-                columnsDone = true;
-            }
-
-            var joinColumnNames = joinColumns.Select(c => c.PropertyMetadata.Relational().ColumnName).ToArray();
-
-            var updArguments = new List<object>();
-            var updColumns = new List<string>();
-            if (updateValues != null)
-            {
-                foreach (var (Property, Value) in updateValues)
-                {
-                    updColumns.Add(Property.Relational().ColumnName);
-                    updArguments.Add(Value);
+                    if (knownExp.Value1 is ExpressionParameterProperty epp1)
+                        epp1.Property = entityType.FindProperty(epp1.PropertyName);
+                    if (knownExp.Value2 is ExpressionParameterProperty epp2)
+                        epp2.Property = entityType.FindProperty(epp2.PropertyName);
+                    updateExpressions.Add((property, knownExp));
                 }
             }
             else
             {
-                for (int i = 0; i < allColumns.Count; i++)
+                foreach (var property in properties)
                 {
-                    if (joinColumnNames.Contains(allColumns[i]))
+                    if (joinColumnNames.Contains(property.MetaProperty.Relational().ColumnName))
                         continue;
-                    updArguments.Add(arguments[i]);
-                    updColumns.Add(allColumns[i]);
+
+                    var propertyAccess = new ExpressionParameterProperty(property.MetaProperty.Name, false) { Property = property.MetaProperty };
+                    var updateExpression = new KnownExpression(ExpressionType.MemberAccess, propertyAccess);
+                    updateExpressions.Add((property.MetaProperty, updateExpression));
                 }
             }
 
-            var updExpressions = new List<(string ColumnName, KnownExpression Value)>();
-            if (updateExpressions != null)
-            {
-                foreach (var (Property, Value) in updateExpressions)
-                {
-                    updExpressions.Add((Property.Relational().ColumnName, Value));
-                }
-            }
+            var arguments = entities.SelectMany(e => properties.Select(p => new ConstantValue(p.PropertyInfo.GetValue(e)))).ToList();
+            arguments.AddRange(updateExpressions.SelectMany(e => new[] { e.Value.Value1, e.Value.Value2 }).OfType<ConstantValue>());
+            int i = 0;
+            foreach (var arg in arguments)
+                arg.ParameterIndex = i++;
 
-            var sqlCommand = GenerateCommand(entityType, entities.Count, allColumns, joinColumnNames, updColumns, updExpressions);
-            var updParams = updExpressions.SelectMany(e => new[]
-             {
-                e.Value.Value1 is ConstantValue constExp1 ? constExp1.Value : null,
-                e.Value.Value2 is ConstantValue constExp2 ? constExp2.Value : null,
-            })
-            .Where(x => x != null);
-            var allArguments = arguments.Concat(updArguments).Concat(updParams).ToList();
-            return (sqlCommand, allArguments);
+            var columnUpdateExpressions = updateExpressions.Select(x => (x.Property.Relational().ColumnName, x.Value)).ToList();
+            var sqlCommand = GenerateCommand(entityType, entities.Count, allColumns, joinColumnNames, columnUpdateExpressions);
+            return (sqlCommand, arguments.Select(a => a.Value));
         }
 
-        protected virtual string ExpandExpression(int argumentIndex, string columnName, KnownExpression expression)
+        private string ExpandValue(IKnownValue value)
+        {
+            switch (value)
+            {
+                case ExpressionParameterProperty prop:
+                    var prefix = prop.IsLeftParameter ? TargetPrefix : SourcePrefix;
+                    return prefix + Column(prop.Property.Relational().ColumnName);
+
+                case ConstantValue constVal:
+                    return Parameter(constVal.ParameterIndex);
+
+                default:
+                    throw new InvalidOperationException();
+            }
+        }
+
+        protected virtual string ExpandExpression(KnownExpression expression)
         {
             switch (expression.ExpressionType)
             {
@@ -123,19 +103,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 case ExpressionType.Divide:
                 case ExpressionType.Multiply:
                 case ExpressionType.Subtract:
-                    string expandArgument(object value)
-                    {
-                        if (!(value is ExpressionParameterProperty prop))
-                            return Parameter(argumentIndex);
-
-                        var prefix = prop.IsLeftParameter ? TargetPrefix : SourcePrefix;
-                        return prefix + Column(prop.Property.Relational().ColumnName);
-                    }
-
-                    var left = expandArgument(expression.Value1);
-                    var right = expandArgument(expression.Value2);
+                    var left = ExpandValue(expression.Value1);
+                    var right = ExpandValue(expression.Value2);
                     var op = GetSimpleOperator(expression.ExpressionType);
                     return $"{left} {op} {right}";
+
+                case ExpressionType.MemberAccess:
+                case ExpressionType.Constant:
+                    return ExpandValue(expression.Value1);
+
                 default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
             }
         }
