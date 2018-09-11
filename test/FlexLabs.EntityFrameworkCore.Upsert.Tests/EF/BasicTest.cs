@@ -203,6 +203,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             }
         }
 
+        private void AssertEqual(PageVisit expected, PageVisit actual)
+        {
+            Assert.Equal(expected.UserID, actual.UserID);
+            Assert.Equal(expected.Date, actual.Date);
+            Assert.Equal(expected.Visits, actual.Visits);
+            Assert.Equal(expected.FirstVisit, actual.FirstVisit);
+            Assert.Equal(expected.LastVisit, actual.LastVisit);
+        }
+
         [Theory]
         [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_InitialDbState(TestDbContext.DbDriver driver)
@@ -212,8 +221,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             {
                 Assert.Empty(dbContext.SchemaTable);
                 Assert.Empty(dbContext.DashTable);
-                Assert.Collection(dbContext.Countries, c => Assert.Equal("AU", c.ISO));
-                Assert.Collection(dbContext.PageVisits.OrderBy(pv => pv.Date),
+                Assert.Collection(dbContext.Countries.OrderBy(c => c.ID), c => Assert.Equal("AU", c.ISO));
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
                     pv =>
                     {
                         Assert.Equal(_dbVisitOld.UserID, pv.UserID);
@@ -246,11 +255,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     .On(c => c.ISO)
                     .Run();
 
-                var country = dbContext.Countries.Single(c => c.ISO == newCountry.ISO);
-                Assert.NotNull(country);
-                Assert.Equal(newCountry.Name, country.Name);
-                Assert.Equal(newCountry.Created, country.Created);
-                Assert.Equal(newCountry.Updated, country.Updated);
+                Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
+                    country =>
+                    {
+                        Assert.Equal(newCountry.ISO, country.ISO);
+                        Assert.Equal(newCountry.Name, country.Name);
+                        Assert.Equal(newCountry.Created, country.Created);
+                        Assert.Equal(newCountry.Updated, country.Updated);
+                    });
             }
         }
 
@@ -274,14 +286,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     .NoUpdate()
                     .Run();
 
-                var country = dbContext.Countries.Single(c => c.ISO == newCountry.ISO);
-                Assert.NotNull(country);
-                Assert.NotEqual(newCountry.Name, country.Name);
-                Assert.NotEqual(newCountry.Created, country.Created);
-                Assert.NotEqual(newCountry.Updated, country.Updated);
-                Assert.Equal(_dbCountry.Name, country.Name);
-                Assert.Equal(_dbCountry.Created, country.Created);
-                Assert.Equal(_dbCountry.Updated, country.Updated);
+                Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
+                    country =>
+                    {
+                        Assert.Equal(newCountry.ISO, country.ISO);
+                        Assert.NotEqual(newCountry.Name, country.Name);
+                        Assert.NotEqual(newCountry.Created, country.Created);
+                        Assert.NotEqual(newCountry.Updated, country.Updated);
+                        Assert.Equal(_dbCountry.Name, country.Name);
+                        Assert.Equal(_dbCountry.Created, country.Created);
+                        Assert.Equal(_dbCountry.Updated, country.Updated);
+                    });
             }
         }
 
@@ -309,12 +324,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     })
                     .Run();
 
-                var country = dbContext.Countries.Single(c => c.ISO == newCountry.ISO);
-                Assert.NotNull(country);
-                Assert.Equal(newCountry.Name, country.Name);
-                Assert.NotEqual(newCountry.Created, country.Created);
-                Assert.Equal(_dbCountry.Created, country.Created);
-                Assert.Equal(newCountry.Updated, country.Updated);
+                Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
+                    country =>
+                    {
+                        Assert.Equal(newCountry.ISO, country.ISO);
+                        Assert.Equal(newCountry.Name, country.Name);
+                        Assert.NotEqual(newCountry.Created, country.Created);
+                        Assert.Equal(_dbCountry.Created, country.Created);
+                        Assert.Equal(newCountry.Updated, country.Updated);
+                    });
             }
         }
 
@@ -342,11 +360,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     })
                     .Run();
 
-                var country = dbContext.Countries.Single(c => c.ISO == newCountry.ISO);
-                Assert.NotNull(country);
-                Assert.Equal(newCountry.Name, country.Name);
-                Assert.Equal(newCountry.Created, country.Created);
-                Assert.Equal(newCountry.Updated, country.Updated);
+                Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
+                    country =>
+                    {
+                        Assert.Equal(_dbCountry.ISO, country.ISO);
+                        Assert.Equal(_dbCountry.Name, country.Name);
+                        Assert.Equal(_dbCountry.Created, country.Created);
+                        Assert.Equal(_dbCountry.Updated, country.Updated);
+                    },
+                    country =>
+                    {
+                        Assert.Equal(newCountry.ISO, country.ISO);
+                        Assert.Equal(newCountry.Name, country.Name);
+                        Assert.Equal(newCountry.Created, country.Created);
+                        Assert.Equal(newCountry.Updated, country.Updated);
+                    });
             }
         }
 
@@ -370,11 +398,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     .On(pv => new { pv.UserID, pv.Date })
                     .Run();
 
-                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
-                Assert.NotNull(visit);
-                Assert.Equal(newVisit.Visits, visit.Visits);
-                Assert.Equal(newVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit => AssertEqual(_dbVisitOld, visit),
+                    visit => AssertEqual(newVisit, visit));
             }
         }
 
@@ -403,13 +429,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     })
                     .Run();
 
-                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
-                Assert.NotNull(visit);
-                Assert.NotEqual(newVisit.Visits, visit.Visits);
-                Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
-                Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit => AssertEqual(_dbVisitOld, visit),
+                    visit =>
+                    {
+                        Assert.Equal(newVisit.UserID, visit.UserID);
+                        Assert.Equal(newVisit.Date, visit.Date);
+                        Assert.NotEqual(newVisit.Visits, visit.Visits);
+                        Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
+                        Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                    });
             }
         }
 
@@ -438,13 +469,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     })
                     .Run();
 
-                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
-                Assert.NotNull(visit);
-                Assert.NotEqual(newVisit.Visits, visit.Visits);
-                Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
-                Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit => AssertEqual(_dbVisitOld, visit),
+                    visit =>
+                    {
+                        Assert.Equal(newVisit.UserID, visit.UserID);
+                        Assert.Equal(newVisit.Date, visit.Date);
+                        Assert.NotEqual(newVisit.Visits, visit.Visits);
+                        Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
+                        Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                    });
             }
         }
 
@@ -473,13 +509,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     })
                     .Run();
 
-                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
-                Assert.NotNull(visit);
-                Assert.NotEqual(newVisit.Visits, visit.Visits);
-                Assert.Equal(_dbVisit.Visits + newVisit.Visits, visit.Visits);
-                Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit => AssertEqual(_dbVisitOld, visit),
+                    visit =>
+                    {
+                        Assert.NotEqual(newVisit.Visits, visit.Visits);
+                        Assert.Equal(_dbVisit.Visits + newVisit.Visits, visit.Visits);
+                        Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                    });
             }
         }
 
@@ -508,13 +547,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     })
                     .Run();
 
-                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
-                Assert.NotNull(visit);
-                Assert.NotEqual(newVisit.Visits, visit.Visits);
-                Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
-                Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit => AssertEqual(_dbVisitOld, visit),
+                    visit =>
+                    {
+                        Assert.Equal(newVisit.UserID, visit.UserID);
+                        Assert.Equal(newVisit.Date, visit.Date);
+                        Assert.NotEqual(newVisit.Visits, visit.Visits);
+                        Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
+                        Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                    });
             }
         }
 
@@ -543,13 +587,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     })
                     .Run();
 
-                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
-                Assert.NotNull(visit);
-                Assert.NotEqual(newVisit.Visits, visit.Visits);
-                Assert.Equal(_dbVisit.Visits - 2, visit.Visits);
-                Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit => AssertEqual(_dbVisitOld, visit),
+                    visit =>
+                    {
+                        Assert.Equal(newVisit.UserID, visit.UserID);
+                        Assert.Equal(newVisit.Date, visit.Date);
+                        Assert.NotEqual(newVisit.Visits, visit.Visits);
+                        Assert.Equal(_dbVisit.Visits - 2, visit.Visits);
+                        Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                    });
             }
         }
 
@@ -578,13 +627,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     })
                     .Run();
 
-                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
-                Assert.NotNull(visit);
-                Assert.NotEqual(newVisit.Visits, visit.Visits);
-                Assert.Equal(_dbVisit.Visits * 3, visit.Visits);
-                Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit => AssertEqual(_dbVisitOld, visit),
+                    visit =>
+                    {
+                        Assert.Equal(newVisit.UserID, visit.UserID);
+                        Assert.Equal(newVisit.Date, visit.Date);
+                        Assert.NotEqual(newVisit.Visits, visit.Visits);
+                        Assert.Equal(_dbVisit.Visits * 3, visit.Visits);
+                        Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                    });
             }
         }
 
@@ -613,13 +667,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     })
                     .Run();
 
-                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit.UserID && pv.Date == newVisit.Date);
-                Assert.NotNull(visit);
-                Assert.NotEqual(newVisit.Visits, visit.Visits);
-                Assert.Equal(_dbVisit.Visits / 4, visit.Visits);
-                Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit => AssertEqual(_dbVisitOld, visit),
+                    visit =>
+                    {
+                        Assert.Equal(_dbVisit.Visits / 4, visit.Visits);
+                        Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                    });
             }
         }
 
@@ -656,19 +712,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     })
                     .Run();
 
-                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit1.UserID && pv.Date == newVisit1.Date);
-                Assert.NotNull(visit);
-                Assert.NotEqual(newVisit1.Visits, visit.Visits);
-                Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
-                Assert.NotEqual(newVisit1.FirstVisit, visit.FirstVisit);
-                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit1.LastVisit, visit.LastVisit);
-
-                visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit2.UserID && pv.Date == newVisit2.Date);
-                Assert.NotNull(visit);
-                Assert.Equal(newVisit2.Visits, visit.Visits);
-                Assert.Equal(newVisit2.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit2.LastVisit, visit.LastVisit);
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit => AssertEqual(_dbVisitOld, visit),
+                    visit =>
+                    {
+                        Assert.Equal(newVisit1.UserID, visit.UserID);
+                        Assert.Equal(newVisit1.Date, visit.Date);
+                        Assert.NotEqual(newVisit1.Visits, visit.Visits);
+                        Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
+                        Assert.NotEqual(newVisit1.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit1.LastVisit, visit.LastVisit);
+                    },
+                    visit => AssertEqual(newVisit2, visit));
             }
         }
 
@@ -705,17 +761,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     })
                     .Run();
 
-                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit1.UserID && pv.Date == newVisit1.Date);
-                Assert.NotNull(visit);
-                Assert.Equal(newVisit1.Visits, visit.Visits);
-                Assert.Equal(newVisit1.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit1.LastVisit, visit.LastVisit);
-
-                visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit2.UserID && pv.Date == newVisit2.Date);
-                Assert.NotNull(visit);
-                Assert.Equal(newVisit2.Visits, visit.Visits);
-                Assert.Equal(newVisit2.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit2.LastVisit, visit.LastVisit);
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit => AssertEqual(_dbVisitOld, visit),
+                    visit => AssertEqual(_dbVisit, visit),
+                    visit => AssertEqual(newVisit1, visit),
+                    visit => AssertEqual(newVisit2, visit));
             }
         }
 
@@ -752,21 +802,27 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     })
                     .Run();
 
-                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit1.UserID && pv.Date == newVisit1.Date);
-                Assert.NotNull(visit);
-                Assert.NotEqual(newVisit1.Visits, visit.Visits);
-                Assert.Equal(_dbVisitOld.Visits + 1, visit.Visits);
-                Assert.NotEqual(newVisit1.FirstVisit, visit.FirstVisit);
-                Assert.Equal(_dbVisitOld.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit1.LastVisit, visit.LastVisit);
-
-                visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit2.UserID && pv.Date == newVisit2.Date);
-                Assert.NotNull(visit);
-                Assert.NotEqual(newVisit2.Visits, visit.Visits);
-                Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
-                Assert.NotEqual(newVisit2.FirstVisit, visit.FirstVisit);
-                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit2.LastVisit, visit.LastVisit);
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit =>
+                    {
+                        Assert.Equal(newVisit1.UserID, visit.UserID);
+                        Assert.Equal(newVisit1.Date, visit.Date);
+                        Assert.NotEqual(newVisit1.Visits, visit.Visits);
+                        Assert.Equal(_dbVisitOld.Visits + 1, visit.Visits);
+                        Assert.NotEqual(newVisit1.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisitOld.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit1.LastVisit, visit.LastVisit);
+                    },
+                    visit =>
+                    {
+                        Assert.Equal(newVisit2.UserID, visit.UserID);
+                        Assert.Equal(newVisit2.Date, visit.Date);
+                        Assert.NotEqual(newVisit2.Visits, visit.Visits);
+                        Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
+                        Assert.NotEqual(newVisit2.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit2.LastVisit, visit.LastVisit);
+                    });
             }
         }
 
@@ -803,21 +859,27 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     })
                     .Run();
 
-                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit1.UserID && pv.Date == newVisit1.Date);
-                Assert.NotNull(visit);
-                Assert.NotEqual(newVisit1.Visits, visit.Visits);
-                Assert.Equal(_dbVisitOld.Visits + 1, visit.Visits);
-                Assert.NotEqual(newVisit1.FirstVisit, visit.FirstVisit);
-                Assert.Equal(_dbVisitOld.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit1.LastVisit, visit.LastVisit);
-
-                visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit2.UserID && pv.Date == newVisit2.Date);
-                Assert.NotNull(visit);
-                Assert.NotEqual(newVisit2.Visits, visit.Visits);
-                Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
-                Assert.NotEqual(newVisit2.FirstVisit, visit.FirstVisit);
-                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                Assert.Equal(newVisit2.LastVisit, visit.LastVisit);
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit =>
+                    {
+                        Assert.Equal(newVisit1.UserID, visit.UserID);
+                        Assert.Equal(newVisit1.Date, visit.Date);
+                        Assert.NotEqual(newVisit1.Visits, visit.Visits);
+                        Assert.Equal(_dbVisitOld.Visits + 1, visit.Visits);
+                        Assert.NotEqual(newVisit1.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisitOld.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit1.LastVisit, visit.LastVisit);
+                    },
+                    visit =>
+                    {
+                        Assert.Equal(newVisit2.UserID, visit.UserID);
+                        Assert.Equal(newVisit2.Date, visit.Date);
+                        Assert.NotEqual(newVisit2.Visits, visit.Visits);
+                        Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
+                        Assert.NotEqual(newVisit2.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit2.LastVisit, visit.LastVisit);
+                    });
             }
         }
 
@@ -837,10 +899,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
                 dbContext.Statuses.Upsert(newStatus).Run();
 
-                var status = dbContext.Statuses.Single(s => s.ID == newStatus.ID);
-                Assert.NotNull(status);
-                Assert.Equal(newStatus.Name, status.Name);
-                Assert.Equal(newStatus.LastChecked, status.LastChecked);
+                Assert.Collection(dbContext.Statuses.OrderBy(s => s.ID),
+                    status =>
+                    {
+                        Assert.Equal(_dbStatus.ID, status.ID);
+                        Assert.Equal(_dbStatus.Name, status.Name);
+                        Assert.Equal(_dbStatus.LastChecked, status.LastChecked);
+                    },
+                    status =>
+                    {
+                        Assert.Equal(newStatus.ID, status.ID);
+                        Assert.Equal(newStatus.Name, status.Name);
+                        Assert.Equal(newStatus.LastChecked, status.LastChecked);
+                    });
             }
         }
 
@@ -884,8 +955,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     .On(x => x.DataSet)
                     .Run();
 
-                var entry = dbContext.DashTable.Single(x => x.DataSet == "test");
-                Assert.NotNull(entry);
+                Assert.Collection(dbContext.DashTable.OrderBy(t => t.ID),
+                    dt => Assert.Equal("test", dt.DataSet));
             }
         }
 
@@ -904,8 +975,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     .On(x => x.Name)
                     .Run();
 
-                var entry = dbContext.SchemaTable.Single(x => x.Name == 1);
-                Assert.NotNull(entry);
+                Assert.Collection(dbContext.SchemaTable.OrderBy(t => t.ID),
+                    st => Assert.Equal(1, st.Name));
             }
         }
     }
