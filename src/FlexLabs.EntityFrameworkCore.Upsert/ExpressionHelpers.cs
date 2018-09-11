@@ -71,10 +71,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                         var exp = (BinaryExpression)expression;
                         if (!nested && exp.Method == null)
                         {
-                            object getValue(Expression e)
+                            IKnownValue getValue(Expression e)
                             {
                                 if (e is ConstantExpression constExp)
-                                    return constExp.Value;
+                                    return new ConstantValue(constExp.Value);
                                 if (e is MemberExpression memberExp && memberExp.Expression is ParameterExpression paramExp && memberExp.Member is PropertyInfo)
                                 {
                                     var isLeftParam = paramExp.Equals(container.Parameters[0]);

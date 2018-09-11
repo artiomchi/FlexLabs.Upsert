@@ -41,7 +41,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         throw new InvalidOperationException("Unknown property " + binding.Member.Name);
                     var value = binding.Expression.GetValue<TEntity>(updater);
                     if (value is KnownExpression knownExp)
+                    {
+                        if (knownExp.Value1 is ExpressionParameterProperty epp1)
+                            epp1.Property = entityType.FindProperty(epp1.PropertyName);
+                        if (knownExp.Value2 is ExpressionParameterProperty epp2)
+                            epp2.Property = entityType.FindProperty(epp2.PropertyName);
                         updateExpressions.Add((property, knownExp));
+                    }
                     else
                         updateValues.Add((property, value));
                 }
@@ -98,14 +104,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 }
             }
 
+            var sqlCommand = GenerateCommand(entityType, entities.Count, allColumns, joinColumnNames, updColumns, updExpressions);
             var updParams = updExpressions.SelectMany(e => new[]
              {
-                e.Value.Value1 is ExpressionParameterProperty ? null : e.Value.Value1,
-                e.Value.Value2 is ExpressionParameterProperty ? null : e.Value.Value2,
+                e.Value.Value1 is ConstantValue constExp1 ? constExp1.Value : null,
+                e.Value.Value2 is ConstantValue constExp2 ? constExp2.Value : null,
             })
             .Where(x => x != null);
             var allArguments = arguments.Concat(updArguments).Concat(updParams).ToList();
-            return (GenerateCommand(entityType, entities.Count, allColumns, joinColumnNames, updColumns, updExpressions), allArguments);
+            return (sqlCommand, allArguments);
         }
 
         protected virtual string ExpandExpression(int argumentIndex, string columnName, KnownExpression expression)
@@ -122,7 +129,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                             return Parameter(argumentIndex);
 
                         var prefix = prop.IsLeftParameter ? TargetPrefix : SourcePrefix;
-                        return prefix + Column(prop.PropertyName);
+                        return prefix + Column(prop.Property.Relational().ColumnName);
                     }
 
                     var left = expandArgument(expression.Value1);

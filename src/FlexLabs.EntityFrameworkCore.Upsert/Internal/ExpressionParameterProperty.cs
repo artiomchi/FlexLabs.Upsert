@@ -1,6 +1,8 @@
-﻿namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
+﻿using Microsoft.EntityFrameworkCore.Metadata;
+
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {
-    public class ExpressionParameterProperty
+    public class ExpressionParameterProperty : IKnownValue
     {
         public ExpressionParameterProperty(string propertyName, bool isLeftParameter)
         {
@@ -10,5 +12,6 @@
 
         public string PropertyName { get; }
         public bool IsLeftParameter { get; }
+        public IProperty Property { get; set; }
     }
 }

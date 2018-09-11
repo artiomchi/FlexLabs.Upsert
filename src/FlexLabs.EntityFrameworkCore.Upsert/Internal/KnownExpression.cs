@@ -14,7 +14,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <param name="sourceProperty">The name of the property that is read</param>
         /// <param name="expressionType">The type of the operation being executed</param>
         /// <param name="value">The value used in the expression</param>
-        public KnownExpression(ExpressionType expressionType, object value)
+        public KnownExpression(ExpressionType expressionType, IKnownValue value)
         {
             ExpressionType = expressionType;
             Value1 = value;
@@ -28,7 +28,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <param name="expressionType">The type of the operation being executed</param>
         /// <param name="value1">The value used in the expression</param>
         /// <param name="value2">The value used in the expression</param>
-        public KnownExpression(ExpressionType expressionType, object value1, object value2)
+        public KnownExpression(ExpressionType expressionType, IKnownValue value1, IKnownValue value2)
         {
             ExpressionType = expressionType;
             Value1 = value1;
@@ -43,11 +43,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <summary>
         /// The value used in the expression
         /// </summary>
-        public object Value1 { get; }
+        public IKnownValue Value1 { get; }
 
         /// <summary>
         /// The value used in the expression
         /// </summary>
-        public object Value2 { get; }
+        public IKnownValue Value2 { get; }
     }
 }

@@ -98,10 +98,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
 
             var knownValue = Assert.IsType<KnownExpression>(expValue);
             Assert.Equal(ExpressionType.Add, knownValue.ExpressionType);
-            var property = Assert.IsType<ExpressionParameterProperty>(knownValue.Value1);
-            Assert.Equal("Num1", property.PropertyName);
-            Assert.True(property.IsLeftParameter);
-            Assert.Equal(1, knownValue.Value2);
+            var value1 = Assert.IsType<ExpressionParameterProperty>(knownValue.Value1);
+            Assert.Equal("Num1", value1.PropertyName);
+            Assert.True(value1.IsLeftParameter);
+            var value2 = Assert.IsType<ConstantValue>(knownValue.Value2);
+            Assert.Equal(1, value2.Value);
         }
 
         [Fact]
@@ -117,10 +118,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
 
             var knownValue = Assert.IsType<KnownExpression>(expValue);
             Assert.Equal(ExpressionType.Add, knownValue.ExpressionType);
-            Assert.Equal(1, knownValue.Value1);
-            var property = Assert.IsType<ExpressionParameterProperty>(knownValue.Value2);
-            Assert.Equal("Num1", property.PropertyName);
-            Assert.True(property.IsLeftParameter);
+            var value1 = Assert.IsType<ConstantValue>(knownValue.Value1);
+            Assert.Equal(1, value1.Value);
+            var value2 = Assert.IsType<ExpressionParameterProperty>(knownValue.Value2);
+            Assert.Equal("Num1", value2.PropertyName);
+            Assert.True(value2.IsLeftParameter);
         }
 
         [Fact]
@@ -136,10 +138,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
 
             var knownValue = Assert.IsType<KnownExpression>(expValue);
             Assert.Equal(ExpressionType.Subtract, knownValue.ExpressionType);
-            var property = Assert.IsType<ExpressionParameterProperty>(knownValue.Value1);
-            Assert.Equal("Num1", property.PropertyName);
-            Assert.True(property.IsLeftParameter);
-            Assert.Equal(2, knownValue.Value2);
+            var value1 = Assert.IsType<ExpressionParameterProperty>(knownValue.Value1);
+            Assert.Equal("Num1", value1.PropertyName);
+            Assert.True(value1.IsLeftParameter);
+            var value2 = Assert.IsType<ConstantValue>(knownValue.Value2);
+            Assert.Equal(2, value2.Value);
         }
 
         [Fact]
@@ -155,10 +158,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
 
             var knownValue = Assert.IsType<KnownExpression>(expValue);
             Assert.Equal(ExpressionType.Multiply, knownValue.ExpressionType);
-            var property = Assert.IsType<ExpressionParameterProperty>(knownValue.Value1);
-            Assert.Equal("Num1", property.PropertyName);
-            Assert.True(property.IsLeftParameter);
-            Assert.Equal(3, knownValue.Value2);
+            var value1 = Assert.IsType<ExpressionParameterProperty>(knownValue.Value1);
+            Assert.Equal("Num1", value1.PropertyName);
+            Assert.True(value1.IsLeftParameter);
+            var value2 = Assert.IsType<ConstantValue>(knownValue.Value2);
+            Assert.Equal(3, value2.Value);
         }
 
         [Fact]
@@ -174,10 +178,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
 
             var knownValue = Assert.IsType<KnownExpression>(expValue);
             Assert.Equal(ExpressionType.Divide, knownValue.ExpressionType);
-            var property = Assert.IsType<ExpressionParameterProperty>(knownValue.Value1);
-            Assert.Equal("Num1", property.PropertyName);
-            Assert.True(property.IsLeftParameter);
-            Assert.Equal(4, knownValue.Value2);
+            var value1 = Assert.IsType<ExpressionParameterProperty>(knownValue.Value1);
+            Assert.Equal("Num1", value1.PropertyName);
+            Assert.True(value1.IsLeftParameter);
+            var value2 = Assert.IsType<ConstantValue>(knownValue.Value2);
+            Assert.Equal(4, value2.Value);
         }
 
         [Fact]
