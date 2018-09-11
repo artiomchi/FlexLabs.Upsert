@@ -38,7 +38,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                                 {
                                     var isLeftParam = paramExp.Equals(container.Parameters[0]);
                                     if (isLeftParam || paramExp.Equals(container.Parameters[1]))
-                                        return new KnownExpression(expression.NodeType, new ExpressionParameterProperty(pInfo.Name, isLeftParam));
+                                        return new KnownExpression(expression.NodeType, new ParameterProperty(pInfo.Name, isLeftParam));
                                 }
                                 return pInfo.GetValue(memberExp.Expression.GetValue<TSource>(container, true));
 
@@ -79,7 +79,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                                 {
                                     var isLeftParam = paramExp.Equals(container.Parameters[0]);
                                     if (isLeftParam || paramExp.Equals(container.Parameters[1]))
-                                        return new ExpressionParameterProperty(memberExp.Member.Name, isLeftParam);
+                                        return new ParameterProperty(memberExp.Member.Name, isLeftParam);
                                 }
                                 return null;
                             };

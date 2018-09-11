@@ -50,23 +50,23 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     if (!(value is KnownExpression knownExp))
                         knownExp = new KnownExpression(ExpressionType.Constant, new ConstantValue(value));
 
-                    if (knownExp.Value1 is ExpressionParameterProperty epp1)
+                    if (knownExp.Value1 is ParameterProperty epp1)
                         epp1.Property = entityType.FindProperty(epp1.PropertyName);
-                    if (knownExp.Value2 is ExpressionParameterProperty epp2)
+                    if (knownExp.Value2 is ParameterProperty epp2)
                         epp2.Property = entityType.FindProperty(epp2.PropertyName);
                     updateExpressions.Add((property, knownExp));
                 }
             }
             else
             {
-                foreach (var property in properties)
+                foreach (var (MetaProperty, PropertyInfo) in properties)
                 {
-                    if (joinColumnNames.Contains(property.MetaProperty.Relational().ColumnName))
+                    if (joinColumnNames.Contains(MetaProperty.Relational().ColumnName))
                         continue;
 
-                    var propertyAccess = new ExpressionParameterProperty(property.MetaProperty.Name, false) { Property = property.MetaProperty };
+                    var propertyAccess = new ParameterProperty(MetaProperty.Name, false) { Property = MetaProperty };
                     var updateExpression = new KnownExpression(ExpressionType.MemberAccess, propertyAccess);
-                    updateExpressions.Add((property.MetaProperty, updateExpression));
+                    updateExpressions.Add((MetaProperty, updateExpression));
                 }
             }
 
@@ -74,7 +74,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             arguments.AddRange(updateExpressions.SelectMany(e => new[] { e.Value.Value1, e.Value.Value2 }).OfType<ConstantValue>());
             int i = 0;
             foreach (var arg in arguments)
-                arg.ParameterIndex = i++;
+                arg.ArgumentIndex = i++;
 
             var columnUpdateExpressions = updateExpressions.Select(x => (x.Property.Relational().ColumnName, x.Value)).ToList();
             var sqlCommand = GenerateCommand(entityType, entities.Count, allColumns, joinColumnNames, columnUpdateExpressions);
@@ -85,13 +85,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         {
             switch (value)
             {
-                case ExpressionParameterProperty prop:
+                case ParameterProperty prop:
                     var prefix = prop.IsLeftParameter ? TargetPrefix : SourcePrefix;
                     var suffix = prop.IsLeftParameter ? TargetSuffix : SourceSuffix;
                     return prefix + Column(prop.Property.Relational().ColumnName) + suffix;
 
                 case ConstantValue constVal:
-                    return Parameter(constVal.ParameterIndex);
+                    return Parameter(constVal.ArgumentIndex);
 
                 default:
                     throw new InvalidOperationException();

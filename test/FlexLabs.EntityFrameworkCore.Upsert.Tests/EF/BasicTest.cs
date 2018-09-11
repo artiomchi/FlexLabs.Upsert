@@ -156,6 +156,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Created = new DateTime(1970, 1, 1),
             Updated = new DateTime(1970, 1, 1),
         };
+        PageVisit _dbVisitOld = new PageVisit
+        {
+            UserID = 1,
+            Date = DateTime.Today.AddDays(-1),
+            Visits = 10,
+            FirstVisit = new DateTime(1970, 1, 1),
+            LastVisit = new DateTime(1970, 1, 1),
+        };
         PageVisit _dbVisit = new PageVisit
         {
             UserID = 1,
@@ -180,6 +188,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 dbContext.PageVisits.RemoveRange(dbContext.PageVisits);
 
                 dbContext.Countries.Add(_dbCountry);
+                dbContext.PageVisits.Add(_dbVisitOld);
                 dbContext.PageVisits.Add(_dbVisit);
                 dbContext.SaveChanges();
             }
@@ -195,7 +204,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Assert.Empty(dbContext.SchemaTable);
                 Assert.Empty(dbContext.DashTable);
                 Assert.Collection(dbContext.Countries, c => Assert.Equal("AU", c.ISO));
-                Assert.Collection(dbContext.PageVisits, c => Assert.Equal(1, c.UserID));
+                Assert.Collection(dbContext.PageVisits.OrderBy(pv => pv.Date),
+                    pv =>
+                    {
+                        Assert.Equal(_dbVisitOld.UserID, pv.UserID);
+                        Assert.Equal(_dbVisitOld.Date, pv.Date);
+                    },
+                    pv =>
+                    {
+                        Assert.Equal(_dbVisit.UserID, pv.UserID);
+                        Assert.Equal(_dbVisit.Date, pv.Date);
+                    });
             }
         }
 
@@ -535,11 +554,108 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
                 Assert.Equal(newVisit1.LastVisit, visit.LastVisit);
 
+                visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit2.UserID && pv.Date == newVisit2.Date);
+                Assert.NotNull(visit);
+                Assert.Equal(newVisit2.Visits, visit.Visits);
+                Assert.Equal(newVisit2.FirstVisit, visit.FirstVisit);
+                Assert.Equal(newVisit2.LastVisit, visit.LastVisit);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void UpsertRange_PageVisit_Update_On_WhenMatched_MultipleInsert(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newVisit1 = new PageVisit
+                {
+                    UserID = _dbVisit.UserID,
+                    Date = _dbVisit.Date.AddDays(1),
+                    Visits = 5,
+                    FirstVisit = _now,
+                    LastVisit = _now,
+                };
+                var newVisit2 = new PageVisit
+                {
+                    UserID = _dbVisit.UserID,
+                    Date = newVisit1.Date.AddDays(2),
+                    Visits = newVisit1.Visits + 1,
+                    FirstVisit = newVisit1.FirstVisit.AddDays(1),
+                    LastVisit = newVisit1.LastVisit.AddDays(1),
+                };
+
+                dbContext.PageVisits.UpsertRange(newVisit1, newVisit2)
+                    .On(pv => new { pv.UserID, pv.Date })
+                    .WhenMatched(pv => new PageVisit
+                    {
+                        Visits = pv.Visits + 1,
+                        LastVisit = _now,
+                    })
+                    .Run();
+
+                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit1.UserID && pv.Date == newVisit1.Date);
+                Assert.NotNull(visit);
+                Assert.Equal(newVisit1.Visits, visit.Visits);
+                Assert.Equal(newVisit1.FirstVisit, visit.FirstVisit);
+                Assert.Equal(newVisit1.LastVisit, visit.LastVisit);
 
                 visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit2.UserID && pv.Date == newVisit2.Date);
                 Assert.NotNull(visit);
                 Assert.Equal(newVisit2.Visits, visit.Visits);
                 Assert.Equal(newVisit2.FirstVisit, visit.FirstVisit);
+                Assert.Equal(newVisit2.LastVisit, visit.LastVisit);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void UpsertRange_PageVisit_Update_On_WhenMatched_MultipleUpdate(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newVisit1 = new PageVisit
+                {
+                    UserID = _dbVisitOld.UserID,
+                    Date = _dbVisitOld.Date,
+                    Visits = 1,
+                    FirstVisit = _now,
+                    LastVisit = _now,
+                };
+                var newVisit2 = new PageVisit
+                {
+                    UserID = _dbVisit.UserID,
+                    Date = _dbVisit.Date,
+                    Visits = 1,
+                    FirstVisit = _now,
+                    LastVisit = _now,
+                };
+
+                dbContext.PageVisits.UpsertRange(newVisit1, newVisit2)
+                    .On(pv => new { pv.UserID, pv.Date })
+                    .WhenMatched(pv => new PageVisit
+                    {
+                        Visits = pv.Visits + 1,
+                        LastVisit = _now,
+                    })
+                    .Run();
+
+                var visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit1.UserID && pv.Date == newVisit1.Date);
+                Assert.NotNull(visit);
+                Assert.NotEqual(newVisit1.Visits, visit.Visits);
+                Assert.Equal(_dbVisitOld.Visits + 1, visit.Visits);
+                Assert.NotEqual(newVisit1.FirstVisit, visit.FirstVisit);
+                Assert.Equal(_dbVisitOld.FirstVisit, visit.FirstVisit);
+                Assert.Equal(newVisit1.LastVisit, visit.LastVisit);
+
+                visit = dbContext.PageVisits.Single(pv => pv.UserID == newVisit2.UserID && pv.Date == newVisit2.Date);
+                Assert.NotNull(visit);
+                Assert.NotEqual(newVisit2.Visits, visit.Visits);
+                Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
+                Assert.NotEqual(newVisit2.FirstVisit, visit.FirstVisit);
+                Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
                 Assert.Equal(newVisit2.LastVisit, visit.LastVisit);
             }
         }
