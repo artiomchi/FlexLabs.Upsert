@@ -14,7 +14,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     {
         public override bool Supports(string name) => name == "Npgsql.EntityFrameworkCore.PostgreSQL";
         protected override string Column(string name) => "\"" + name + "\"";
-        protected override string Parameter(int index) => "@p" + index;
         protected override string SourcePrefix => "EXCLUDED.";
         protected override string TargetPrefix => "\"T\".";
 

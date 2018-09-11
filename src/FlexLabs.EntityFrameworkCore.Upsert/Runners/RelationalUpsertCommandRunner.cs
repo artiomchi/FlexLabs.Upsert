@@ -15,8 +15,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected abstract string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns,
             ICollection<string> joinColumns, List<(string ColumnName, KnownExpression Value)> updateExpressions);
         protected abstract string Column(string name);
-        protected abstract string Parameter(int index);
+        protected virtual string Parameter(int index) => "@p" + index;
         protected abstract string SourcePrefix { get; }
+        protected virtual string SourceSuffix => null;
         protected abstract string TargetPrefix { get; }
 
         private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,

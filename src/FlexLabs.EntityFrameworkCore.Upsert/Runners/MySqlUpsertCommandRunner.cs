@@ -14,8 +14,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     {
         public override bool Supports(string name) => name == "MySql.Data.EntityFrameworkCore" || name == "Pomelo.EntityFrameworkCore.MySql";
         protected override string Column(string name) => "`" + name + "`";
-        protected override string Parameter(int index) => "@p" + index;
-        protected override string SourcePrefix => null;
+        protected override string SourcePrefix => "VALUES(";
+        protected override string SourceSuffix => ")";
         protected override string TargetPrefix => null;
 
         protected override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns,
