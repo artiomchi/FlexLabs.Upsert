@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
@@ -30,7 +31,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected List<ModelProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>> matchExpression)
         {
             List<ModelProperty> joinColumns;
-            if (matchExpression.Body is NewExpression newExpression)
+            if (matchExpression is null)
+            {
+                joinColumns = entityType.GetProperties()
+                    .Where(p => p.IsKey())
+                    .Select(p => new ModelProperty(p.PropertyInfo, p))
+                    .ToList();
+            }
+            else if (matchExpression.Body is NewExpression newExpression)
             {
                 joinColumns = new List<ModelProperty>();
                 foreach (MemberExpression arg in newExpression.Arguments)

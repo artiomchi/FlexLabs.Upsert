@@ -105,6 +105,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     try
                     {
                         context = new TestDbContext(options);
+                        context.Database.EnsureDeleted();
                         context.Database.EnsureCreated();
                         _dataContexts[driver] = options;
                         isSuccess = true;
@@ -172,6 +173,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             FirstVisit = new DateTime(1970, 1, 1),
             LastVisit = new DateTime(1970, 1, 1),
         };
+        Status _dbStatus = new Status
+        {
+            ID = 1,
+            Name = "Created",
+            LastChecked = new DateTime(1970, 1, 1),
+        };
         DateTime _now = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
         public BasicTest(Contexts contexts)
         {
@@ -184,12 +191,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             {
                 dbContext.Countries.RemoveRange(dbContext.Countries);
                 dbContext.DashTable.RemoveRange(dbContext.DashTable);
+                dbContext.Statuses.RemoveRange(dbContext.Statuses);
                 dbContext.SchemaTable.RemoveRange(dbContext.SchemaTable);
                 dbContext.PageVisits.RemoveRange(dbContext.PageVisits);
 
                 dbContext.Countries.Add(_dbCountry);
                 dbContext.PageVisits.Add(_dbVisitOld);
                 dbContext.PageVisits.Add(_dbVisit);
+                dbContext.Statuses.Add(_dbStatus);
                 dbContext.SaveChanges();
             }
         }
@@ -809,6 +818,54 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Assert.NotEqual(newVisit2.FirstVisit, visit.FirstVisit);
                 Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
                 Assert.Equal(newVisit2.LastVisit, visit.LastVisit);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_Status_Update_AutoMatched_New(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newStatus = new Status
+                {
+                    ID = 2,
+                    Name = "Updated",
+                    LastChecked = _now,
+                };
+
+                dbContext.Statuses.Upsert(newStatus).Run();
+
+                var status = dbContext.Statuses.Single(s => s.ID == newStatus.ID);
+                Assert.NotNull(status);
+                Assert.Equal(newStatus.Name, status.Name);
+                Assert.Equal(newStatus.LastChecked, status.LastChecked);
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_Status_Update_AutoMatched_Existing(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newStatus = new Status
+                {
+                    ID = _dbStatus.ID,
+                    Name = "Updated",
+                    LastChecked = _now,
+                };
+
+                dbContext.Statuses.Upsert(newStatus).Run();
+
+                Assert.Collection(dbContext.Statuses,
+                    status =>
+                    {
+                        Assert.Equal(newStatus.Name, status.Name);
+                        Assert.Equal(newStatus.LastChecked, status.LastChecked);
+                    });
             }
         }
 

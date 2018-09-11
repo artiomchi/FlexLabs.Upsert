@@ -20,6 +20,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
 
         public DbSet<Country> Countries { get; set; }
         public DbSet<PageVisit> PageVisits { get; set; }
+        public DbSet<Status> Statuses { get; set; }
         public DbSet<DashTable> DashTable { get; set; }
         public DbSet<SchemaTable> SchemaTable { get; set; }
 

@@ -21,10 +21,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate) where TEntity : class
         {
             // Find matching entities in the dbContext
-            var matches = entities.AsQueryable()
-                .GroupJoin(dbContext.Set<TEntity>(), matchExpression, matchExpression, (newEntity, dbEntity) => new { newEntity, dbEntity })
-                .SelectMany(x => x.dbEntity.DefaultIfEmpty(), (x, dbEntity) => new { dbEntity, x.newEntity })
-                .ToArray();
+            var matches = FindMatches(entityType, entities, dbContext, matchExpression);
 
             Action<TEntity, TEntity> updateAction = null;
             if (updateExpression != null)
@@ -59,16 +56,40 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 };
             }
 
-            foreach (var match in matches)
+            foreach (var (dbEntity, newEntity) in matches)
             {
-                if (match.dbEntity == null)
+                if (dbEntity == null)
                 {
-                    dbContext.Add(match.newEntity);
+                    dbContext.Add(newEntity);
                     continue;
                 }
 
-                updateAction?.Invoke(match.dbEntity, match.newEntity);
+                updateAction?.Invoke(dbEntity, newEntity);
             }
+        }
+
+        private ICollection<(TEntity dbEntity, TEntity newEntity)> FindMatches<TEntity>(IEntityType entityType, IEnumerable<TEntity> entities, DbContext dbContext,
+            Expression<Func<TEntity, object>> matchExpression) where TEntity : class
+        {
+            if (matchExpression != null)
+                return entities.AsQueryable()
+                    .GroupJoin(dbContext.Set<TEntity>(), matchExpression, matchExpression, (newEntity, dbEntity) => new { newEntity, dbEntity })
+                    .SelectMany(x => x.dbEntity.DefaultIfEmpty(), (x, dbEntity) => new { dbEntity, x.newEntity })
+                    .AsEnumerable()
+                    .Select(x => (x.dbEntity, x.newEntity))
+                    .ToArray();
+
+            // If we're resorting to matching on PKs, we'll have to load them manually
+            object[] getPKs(TEntity entity)
+            {
+                return entityType.FindPrimaryKey()
+                    .Properties
+                    .Select(p => p.PropertyInfo.GetValue(entity))
+                    .ToArray();
+            }
+            return entities
+                .Select(e => (dbContext.Find<TEntity>(getPKs(e)), e))
+                .ToArray();
         }
 
         public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,

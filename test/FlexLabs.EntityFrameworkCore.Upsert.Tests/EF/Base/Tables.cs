@@ -25,6 +25,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DateTime LastVisit { get; set; }
     }
 
+    public class Status
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int ID { get; set; }
+        public string Name { get; set; }
+        public DateTime LastChecked { get; set; }
+    }
+
     [Table("Dash-Table")]
     public class DashTable
     {
