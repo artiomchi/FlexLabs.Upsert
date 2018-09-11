@@ -12,10 +12,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
     public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     {
-        protected abstract string GenerateCommand(IEntityType entityType, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
+        public abstract string GenerateCommand(IEntityType entityType, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
             ICollection<string> joinColumns, List<(string ColumnName, KnownExpression Value)> updateExpressions);
-        protected abstract string Column(string name);
+        protected abstract string EscapeName(string name);
         protected virtual string Parameter(int index) => "@p" + index;
+        protected virtual string GetSchema(IEntityType entityType)
+        {
+            var schema = entityType.Relational().Schema;
+            return schema != null
+                ? EscapeName(schema) + "."
+                : null;
+        }
         protected abstract string SourcePrefix { get; }
         protected virtual string SourceSuffix => null;
         protected abstract string TargetPrefix { get; }
@@ -25,7 +32,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity, TEntity>> updater, bool noUpdate)
         {
             var joinColumns = ProcessMatchExpression(entityType, match);
-            var joinColumnNames = joinColumns.Select(c => c.PropertyMetadata.Relational().ColumnName).ToArray();
+            var joinColumnNames = joinColumns.Select(c => c.Relational().ColumnName).ToArray();
 
             var properties = entityType.GetProperties()
                 .Where(p => p.ValueGenerated == ValueGenerated.Never)
@@ -102,7 +109,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 case ParameterProperty prop:
                     var prefix = prop.IsLeftParameter ? TargetPrefix : SourcePrefix;
                     var suffix = prop.IsLeftParameter ? TargetSuffix : SourceSuffix;
-                    return prefix + Column(prop.Property.Relational().ColumnName) + suffix;
+                    return prefix + EscapeName(prop.Property.Relational().ColumnName) + suffix;
 
                 case ConstantValue constVal:
                     return Parameter(constVal.ArgumentIndex);

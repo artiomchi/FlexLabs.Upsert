@@ -28,42 +28,41 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="entityType">Metadata type of the entity being upserted</param>
         /// <param name="matchExpression">The match expression provided by the user</param>
         /// <returns>A list of model properties used to match entities</returns>
-        protected List<ModelProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>> matchExpression)
+        protected List<IProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>> matchExpression)
         {
-            List<ModelProperty> joinColumns;
+            List<IProperty> joinColumns;
             if (matchExpression is null)
             {
                 joinColumns = entityType.GetProperties()
                     .Where(p => p.IsKey())
-                    .Select(p => new ModelProperty(p.PropertyInfo, p))
                     .ToList();
             }
             else if (matchExpression.Body is NewExpression newExpression)
             {
-                joinColumns = new List<ModelProperty>();
+                joinColumns = new List<IProperty>();
                 foreach (MemberExpression arg in newExpression.Arguments)
                 {
-                    if (arg == null || !(arg.Member is PropertyInfo propertyInfo) || !typeof(TEntity).Equals(arg.Expression.Type))
+                    if (arg == null || !(arg.Member is PropertyInfo) || !typeof(TEntity).Equals(arg.Expression.Type))
                         throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
                     var property = entityType.FindProperty(arg.Member.Name);
                     if (property == null)
                         throw new InvalidOperationException("Unknown property " + arg.Member.Name);
-                    joinColumns.Add(new ModelProperty(propertyInfo, property));
+                    joinColumns.Add(property);
                 }
             }
             else if (matchExpression.Body is UnaryExpression unaryExpression)
             {
-                if (!(unaryExpression.Operand is MemberExpression memberExp) || !(memberExp.Member is PropertyInfo propertyInfo) || !typeof(TEntity).Equals(memberExp.Expression.Type))
+                if (!(unaryExpression.Operand is MemberExpression memberExp) || !(memberExp.Member is PropertyInfo) || !typeof(TEntity).Equals(memberExp.Expression.Type))
                     throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
                 var property = entityType.FindProperty(memberExp.Member.Name);
-                joinColumns = new List<ModelProperty> { new ModelProperty(propertyInfo, property) };
+                joinColumns = new List<IProperty> { property };
             }
             else if (matchExpression.Body is MemberExpression memberExpression)
             {
-                if (!typeof(TEntity).Equals(memberExpression.Expression.Type) || !(memberExpression.Member is PropertyInfo propertyInfo))
+                if (!typeof(TEntity).Equals(memberExpression.Expression.Type) || !(memberExpression.Member is PropertyInfo))
                     throw new InvalidOperationException("Match columns have to be properties of the TEntity class");
                 var property = entityType.FindProperty(memberExpression.Member.Name);
-                joinColumns = new List<ModelProperty> { new ModelProperty(propertyInfo, property) };
+                joinColumns = new List<IProperty> { property };
             }
             else
             {

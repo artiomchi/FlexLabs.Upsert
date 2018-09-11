@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using Xunit;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
+namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
 {
     public class ExpressionHelpersTests
     {
