@@ -22,7 +22,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected virtual string TargetSuffix => null;
 
         private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
-            Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity>> updater)
+            Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity, TEntity>> updater)
         {
             var joinColumns = ProcessMatchExpression(entityType, match);
             var joinColumnNames = joinColumns.Select(c => c.PropertyMetadata.Relational().ColumnName).ToArray();
@@ -143,14 +143,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity>> updateExpression)
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression)
         {
             var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression);
             dbContext.Database.ExecuteSqlCommand(sqlCommand, arguments);
         }
 
         public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken)
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, CancellationToken cancellationToken)
         {
             var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression);
             return dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, arguments);

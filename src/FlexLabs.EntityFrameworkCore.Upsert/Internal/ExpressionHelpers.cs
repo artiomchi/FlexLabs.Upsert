@@ -3,9 +3,8 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {
     public static class ExpressionHelpers
     {

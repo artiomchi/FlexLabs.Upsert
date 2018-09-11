@@ -16,9 +16,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     {
         public abstract bool Supports(string name);
         public abstract void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity>> updateExpression) where TEntity : class;
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression) where TEntity : class;
         public abstract Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken) where TEntity : class;
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, CancellationToken cancellationToken) where TEntity : class;
 
         /// <summary>
         /// Extract property metadata from the match expression

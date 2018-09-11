@@ -18,12 +18,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public override bool Supports(string providerName) => providerName == "Microsoft.EntityFrameworkCore.InMemory";
 
         public void RunCore<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity>> updateExpression) where TEntity : class
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression) where TEntity : class
         {
             // Find matching entities in the dbContext
             var matches = entities.AsQueryable()
-                .GroupJoin(dbContext.Set<TEntity>(), matchExpression, matchExpression, (e1, e2) => new { e1, e2 })
-                .SelectMany(x => x.e2.DefaultIfEmpty(), (x, e2) => new { x.e1, e2 })
+                .GroupJoin(dbContext.Set<TEntity>(), matchExpression, matchExpression, (newEntity, dbEntity) => new { newEntity, dbEntity })
+                .SelectMany(x => x.dbEntity.DefaultIfEmpty(), (x, dbEntity) => new { dbEntity, x.newEntity })
                 .ToArray();
 
             Action<TEntity, TEntity> updateAction = null;
@@ -35,11 +35,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
                 var properties = entityUpdater.Bindings.Select(b => b.Member).OfType<PropertyInfo>();
                 var updateFunc = updateExpression.Compile();
-                updateAction = (e1, e2) =>
+                updateAction = (dbEntity, newEntity) =>
                 {
-                    var tmp = updateFunc(e2);
+                    var tmp = updateFunc(dbEntity, newEntity);
                     foreach (var prop in properties)
-                        prop.SetValue(e2, prop.GetValue(tmp));
+                        prop.SetValue(dbEntity, prop.GetValue(tmp));
                 };
             }
             else
@@ -52,34 +52,34 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     .Select(p => typeof(TEntity).GetProperty(p.Name))
                     .Where(p => p != null)
                     .Except(joinColumns.Select(c => c.PropertyInfo));
-                updateAction = (e1, e2) =>
+                updateAction = (dbEntity, newEntity) =>
                 {
                     foreach (var prop in properties)
-                        prop.SetValue(e2, prop.GetValue(e1));
+                        prop.SetValue(dbEntity, prop.GetValue(newEntity));
                 };
             }
 
             foreach (var match in matches)
             {
-                if (match.e2 == null)
+                if (match.dbEntity == null)
                 {
-                    dbContext.Add(match.e1);
+                    dbContext.Add(match.newEntity);
                     continue;
                 }
 
-                updateAction?.Invoke(match.e1, match.e2);
+                updateAction?.Invoke(match.dbEntity, match.newEntity);
             }
         }
 
         public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity>> updateExpression)
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression)
         {
             RunCore(dbContext, entityType, entities, matchExpression, updateExpression);
             dbContext.SaveChanges();
         }
 
         public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity>> updateExpression, CancellationToken cancellationToken)
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, CancellationToken cancellationToken)
         {
             RunCore(dbContext, entityType, entities, matchExpression, updateExpression);
             return dbContext.SaveChangesAsync(cancellationToken);
