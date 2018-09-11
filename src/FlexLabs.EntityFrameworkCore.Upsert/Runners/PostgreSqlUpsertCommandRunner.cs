@@ -17,7 +17,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override string SourcePrefix => "EXCLUDED.";
         protected override string TargetPrefix => "\"T\".";
 
-        protected override string GenerateCommand(IEntityType entityType, ICollection<IEnumerable<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
+        protected override string GenerateCommand(IEntityType entityType, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
             List<(string ColumnName, KnownExpression Value)> updateExpressions)
         {
             var result = new StringBuilder();
@@ -27,14 +27,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append($"INSERT INTO {schema}\"{entityType.Relational().TableName}\" AS \"T\" (");
             result.Append(string.Join(", ", entities.First().Select(e => Column(e.ColumnName))));
             result.Append(") VALUES (");
-            var firstPassed = false;
-            foreach (var entity in entities)
-            {
-                if (firstPassed)
-                    result.Append("), (");
-                result.Append(string.Join(", ", entity.Select(e => Parameter(e.Value.ArgumentIndex))));
-                firstPassed = true;
-            }
+            result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => Parameter(e.Value.ArgumentIndex))))));
             result.Append(") ON CONFLICT (");
             result.Append(string.Join(", ", joinColumns.Select(c => Column(c))));
             result.Append(") DO UPDATE SET ");

@@ -17,7 +17,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override string SourcePrefix => "[S].";
         protected override string TargetPrefix => "[T].";
 
-        protected override string GenerateCommand(IEntityType entityType, ICollection<IEnumerable<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
+        protected override string GenerateCommand(IEntityType entityType, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
             List<(string ColumnName, KnownExpression Value)> updateExpressions)
         {
             var result = new StringBuilder();
@@ -25,14 +25,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (schema != null)
                 schema = $"[{schema}].";
             result.Append($"MERGE INTO {schema}[{entityType.Relational().TableName}] WITH (HOLDLOCK) AS [T] USING ( VALUES (");
-            var firstPassed = false;
-            foreach (var entity in entities)
-            {
-                if (firstPassed)
-                    result.Append("), (");
-                result.Append(string.Join(", ", entity.Select(e => Parameter(e.Value.ArgumentIndex))));
-                firstPassed = true;
-            }
+            result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => Parameter(e.Value.ArgumentIndex))))));
             result.Append($") ) AS [S] (");
             result.Append(string.Join(", ", entities.First().Select(e => Column(e.ColumnName))));
             result.Append(") ON ");

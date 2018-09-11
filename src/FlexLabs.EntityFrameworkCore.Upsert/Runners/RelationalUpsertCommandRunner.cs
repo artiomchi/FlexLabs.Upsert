@@ -12,7 +12,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
     public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     {
-        protected abstract string GenerateCommand(IEntityType entityType, ICollection<IEnumerable<(string ColumnName, ConstantValue Value)>> entities,
+        protected abstract string GenerateCommand(IEntityType entityType, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
             ICollection<string> joinColumns, List<(string ColumnName, KnownExpression Value)> updateExpressions);
         protected abstract string Column(string name);
         protected virtual string Parameter(int index) => "@p" + index;
@@ -70,12 +70,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 }
             }
 
-            var newEntities = entities.Select(e => properties.Select(p =>
-            {
-                var columnName = p.MetaProperty.Relational().ColumnName;
-                var value = new ConstantValue(p.PropertyInfo.GetValue(e));
-                return (ColumnName: columnName, Value: value);
-            })).ToList();
+            var newEntities = entities
+                .Select(e => properties
+                    .Select(p =>
+                    {
+                        var columnName = p.MetaProperty.Relational().ColumnName;
+                        var value = new ConstantValue(p.PropertyInfo.GetValue(e));
+                        return (columnName, value);
+                    })
+                    .ToList() as ICollection<(string ColumnName, ConstantValue Value)>)
+                .ToList();
 
             var arguments = newEntities.SelectMany(e => e.Select(p => p.Value)).ToList();
             arguments.AddRange(updateExpressions.SelectMany(e => new[] { e.Value.Value1, e.Value.Value2 }).OfType<ConstantValue>());

@@ -18,7 +18,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override string SourceSuffix => ")";
         protected override string TargetPrefix => null;
 
-        protected override string GenerateCommand(IEntityType entityType, ICollection<IEnumerable<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
+        protected override string GenerateCommand(IEntityType entityType, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
             List<(string ColumnName, KnownExpression Value)> updateExpressions)
         {
             var result = new StringBuilder();
@@ -28,14 +28,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append($"INSERT INTO {schema}`{entityType.Relational().TableName}` (");
             result.Append(string.Join(", ", entities.First().Select(e => Column(e.ColumnName))));
             result.Append(") VALUES (");
-            var firstPassed = false;
-            foreach (var entity in entities)
-            {
-                if (firstPassed)
-                    result.Append("), (");
-                result.Append(string.Join(", ", entity.Select(e => Parameter(e.Value.ArgumentIndex))));
-                firstPassed = true;
-            }
+            result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => Parameter(e.Value.ArgumentIndex))))));
             result.Append(") ON DUPLICATE KEY UPDATE ");
             result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{Column(e.ColumnName)} = {ExpandExpression(e.Value)}")));
             return result.ToString();
