@@ -19,6 +19,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected abstract string SourcePrefix { get; }
         protected virtual string SourceSuffix => null;
         protected abstract string TargetPrefix { get; }
+        protected virtual string TargetSuffix => null;
 
         private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
             Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity>> updater)
@@ -86,7 +87,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 case ExpressionParameterProperty prop:
                     var prefix = prop.IsLeftParameter ? TargetPrefix : SourcePrefix;
-                    return prefix + Column(prop.Property.Relational().ColumnName);
+                    var suffix = prop.IsLeftParameter ? TargetSuffix : SourceSuffix;
+                    return prefix + Column(prop.Property.Relational().ColumnName) + suffix;
 
                 case ConstantValue constVal:
                     return Parameter(constVal.ParameterIndex);
