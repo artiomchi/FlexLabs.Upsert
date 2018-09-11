@@ -17,7 +17,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override string SourcePrefix => "EXCLUDED.";
         protected override string TargetPrefix => "\"T\".";
 
-        protected override string GenerateCommand(IEntityType entityType, int entityCount, ICollection<string> insertColumns, ICollection<string> joinColumns,
+        protected override string GenerateCommand(IEntityType entityType, ICollection<IEnumerable<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
             List<(string ColumnName, KnownExpression Value)> updateExpressions)
         {
             var result = new StringBuilder();
@@ -25,13 +25,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (schema != null)
                 schema = $"\"{schema}\".";
             result.Append($"INSERT INTO {schema}\"{entityType.Relational().TableName}\" AS \"T\" (");
-            result.Append(string.Join(", ", insertColumns.Select(c => Column(c))));
+            result.Append(string.Join(", ", entities.First().Select(e => Column(e.ColumnName))));
             result.Append(") VALUES (");
-            foreach (var entity in Enumerable.Range(0, entityCount))
+            var firstPassed = false;
+            foreach (var entity in entities)
             {
-                result.Append(string.Join(", ", insertColumns.Select((v, i) => Parameter(i + insertColumns.Count * entity))));
-                if (entity < entityCount - 1 && entityCount > 1)
+                if (firstPassed)
                     result.Append("), (");
+                result.Append(string.Join(", ", entity.Select(e => Parameter(e.Value.ArgumentIndex))));
+                firstPassed = true;
             }
             result.Append(") ON CONFLICT (");
             result.Append(string.Join(", ", joinColumns.Select(c => Column(c))));
