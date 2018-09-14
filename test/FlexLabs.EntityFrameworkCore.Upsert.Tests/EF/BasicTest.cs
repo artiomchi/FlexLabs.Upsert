@@ -180,6 +180,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             LastChecked = new DateTime(1970, 1, 1),
         };
         DateTime _now = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
+        int _increment = 8;
         public BasicTest(Contexts contexts)
         {
             _dataContexts = contexts._dataContexts;
@@ -437,6 +438,87 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                         Assert.Equal(newVisit.Date, visit.Date);
                         Assert.NotEqual(newVisit.Visits, visit.Visits);
                         Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
+                        Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                    });
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueAdd_FromVar(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newVisit = new PageVisit
+                {
+                    UserID = 1,
+                    Date = DateTime.Today,
+                    Visits = 1,
+                    FirstVisit = _now,
+                    LastVisit = _now,
+                };
+                var increment = 7;
+
+                dbContext.PageVisits.Upsert(newVisit)
+                    .On(pv => new { pv.UserID, pv.Date })
+                    .WhenMatched(pv => new PageVisit
+                    {
+                        Visits = pv.Visits + increment,
+                        LastVisit = _now,
+                    })
+                    .Run();
+
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit => AssertEqual(_dbVisitOld, visit),
+                    visit =>
+                    {
+                        Assert.Equal(newVisit.UserID, visit.UserID);
+                        Assert.Equal(newVisit.Date, visit.Date);
+                        Assert.NotEqual(newVisit.Visits, visit.Visits);
+                        Assert.Equal(_dbVisit.Visits + increment, visit.Visits);
+                        Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                    });
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueAdd_FromField(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newVisit = new PageVisit
+                {
+                    UserID = 1,
+                    Date = DateTime.Today,
+                    Visits = 1,
+                    FirstVisit = _now,
+                    LastVisit = _now,
+                };
+
+                dbContext.PageVisits.Upsert(newVisit)
+                    .On(pv => new { pv.UserID, pv.Date })
+                    .WhenMatched(pv => new PageVisit
+                    {
+                        Visits = pv.Visits + _increment,
+                        LastVisit = _now,
+                    })
+                    .Run();
+
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit => AssertEqual(_dbVisitOld, visit),
+                    visit =>
+                    {
+                        Assert.Equal(newVisit.UserID, visit.UserID);
+                        Assert.Equal(newVisit.Date, visit.Date);
+                        Assert.NotEqual(newVisit.Visits, visit.Visits);
+                        Assert.Equal(_dbVisit.Visits + _increment, visit.Visits);
                         Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
                         Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
                         Assert.Equal(newVisit.LastVisit, visit.LastVisit);

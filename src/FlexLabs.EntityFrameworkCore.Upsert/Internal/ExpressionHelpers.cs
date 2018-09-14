@@ -67,18 +67,50 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                 case ExpressionType.Multiply:
                 case ExpressionType.Divide:
                     {
-                        var exp = (BinaryExpression)expression;
-                        if (!nested && exp.Method == null)
-                        {
+                    var exp = (BinaryExpression)expression;
+                    if (!nested && exp.Method == null)
+                    {
                             IKnownValue getValue(Expression e)
                             {
-                                if (e is ConstantExpression constExp)
-                                    return new ConstantValue(constExp.Value);
-                                if (e is MemberExpression memberExp && memberExp.Expression is ParameterExpression paramExp && memberExp.Member is PropertyInfo)
+                                switch (e.NodeType)
                                 {
-                                    var isLeftParam = paramExp.Equals(container.Parameters[0]);
-                                    if (isLeftParam || paramExp.Equals(container.Parameters[1]))
-                                        return new ParameterProperty(memberExp.Member.Name, isLeftParam);
+                                    case ExpressionType.Constant:
+                                        {
+                                            return new ConstantValue(((ConstantExpression)e).Value);
+                                        }
+
+                                    case ExpressionType.MemberAccess:
+                                        {
+                                            var memberExp = (MemberExpression)e;
+                                            switch (memberExp.Expression.NodeType)
+                                            {
+                                                case ExpressionType.Constant:
+                                                    {
+                                                        var constExp = (ConstantExpression)memberExp.Expression;
+                                                        switch (memberExp.Member)
+                                                        {
+                                                            case FieldInfo fInfo:
+                                                                return new ConstantValue(fInfo.GetValue(constExp.Value));
+
+                                                            case PropertyInfo pInfo:
+                                                                return new ConstantValue(pInfo.GetValue(constExp.Value));
+                                                        }
+                                                        break;
+                                                    }
+
+                                                case ExpressionType.Parameter:
+                                                    {
+                                                        if (memberExp.Member is PropertyInfo)
+                                                        {
+                                                            var isLeftParam = memberExp.Expression.Equals(container.Parameters[0]);
+                                                            if (isLeftParam || memberExp.Expression.Equals(container.Parameters[1]))
+                                                                return new ParameterProperty(memberExp.Member.Name, isLeftParam);
+                                                        }
+                                                        break;
+                                                    }
+                                            }
+                                            break;
+                                        }
                                 }
                                 return null;
                             };
