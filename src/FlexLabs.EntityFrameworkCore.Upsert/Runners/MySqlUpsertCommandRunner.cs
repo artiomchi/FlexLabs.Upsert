@@ -10,12 +10,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     /// </summary>
     public class MySqlUpsertCommandRunner : RelationalUpsertCommandRunner
     {
+        /// <inheritdoc/>
         public override bool Supports(string name) => name == "MySql.Data.EntityFrameworkCore" || name == "Pomelo.EntityFrameworkCore.MySql";
+        /// <inheritdoc/>
         protected override string EscapeName(string name) => "`" + name + "`";
+        /// <inheritdoc/>
         protected override string SourcePrefix => "VALUES(";
+        /// <inheritdoc/>
         protected override string SourceSuffix => ")";
+        /// <inheritdoc/>
         protected override string TargetPrefix => null;
 
+        /// <inheritdoc/>
         public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
             ICollection<(string ColumnName, KnownExpression Value)> updateExpressions)
         {

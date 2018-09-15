@@ -6,13 +6,17 @@ using System.Reflection;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {
+    /// <summary>
+    /// Expression helper classe that is used to deconstruct expression trees
+    /// </summary>
     public static class ExpressionHelpers
     {
         /// <summary>
         /// Attempt to get the value of the expression
         /// </summary>
-        /// <param name="expression"></param>
-        /// <returns></returns>
+        /// <param name="expression">The expression we're processing</param>
+        /// <param name="container">The original lambda expression/func that contained this expression</param>
+        /// <returns>An</returns>
         public static object GetValue<TSource>(this Expression expression, LambdaExpression container) => GetValue<TSource>(expression, container, false);
 
         private static object GetValue<TSource>(this Expression expression, LambdaExpression container, bool nested)

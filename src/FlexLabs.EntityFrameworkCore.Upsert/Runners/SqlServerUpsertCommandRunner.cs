@@ -10,11 +10,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     /// </summary>
     public class SqlServerUpsertCommandRunner : RelationalUpsertCommandRunner
     {
+        /// <inheritdoc/>
         public override bool Supports(string name) => name == "Microsoft.EntityFrameworkCore.SqlServer";
+        /// <inheritdoc/>
         protected override string EscapeName(string name) => "[" + name + "]";
+        /// <inheritdoc/>
         protected override string SourcePrefix => "[S].";
+        /// <inheritdoc/>
         protected override string TargetPrefix => "[T].";
 
+        /// <inheritdoc/>
         public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
             ICollection<(string ColumnName, KnownExpression Value)> updateExpressions)
         {

@@ -10,11 +10,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     /// </summary>
     public class PostgreSqlUpsertCommandRunner : RelationalUpsertCommandRunner
     {
+        /// <inheritdoc/>
         public override bool Supports(string name) => name == "Npgsql.EntityFrameworkCore.PostgreSQL";
+        /// <inheritdoc/>
         protected override string EscapeName(string name) => "\"" + name + "\"";
+        /// <inheritdoc/>
         protected override string SourcePrefix => "EXCLUDED.";
+        /// <inheritdoc/>
         protected override string TargetPrefix => "\"T\".";
 
+        /// <inheritdoc/>
         public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
             ICollection<(string ColumnName, KnownExpression Value)> updateExpressions)
         {

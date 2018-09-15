@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Microsoft.Extensions.DependencyInjection
 {
+    /// <summary>
+    /// Extension methods to replace the currently registered default runner
+    /// </summary>
     public static class UpsertServiceExtensions
     {
         /// <summary>

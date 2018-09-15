@@ -15,9 +15,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     /// </summary>
     public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
     {
+        /// <inheritdoc/>
         public override bool Supports(string providerName) => providerName == "Microsoft.EntityFrameworkCore.InMemory";
 
-        public void RunCore<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
+        private void RunCore<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate) where TEntity : class
         {
             // Find matching entities in the dbContext
@@ -92,6 +93,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .ToArray();
         }
 
+        /// <inheritdoc/>
         public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate)
         {
@@ -99,6 +101,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             dbContext.SaveChanges();
         }
 
+        /// <inheritdoc/>
         public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, CancellationToken cancellationToken)
         {

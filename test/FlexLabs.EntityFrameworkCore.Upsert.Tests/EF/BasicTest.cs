@@ -11,7 +11,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
     public class BasicTest : IClassFixture<BasicTest.Contexts>
     {
         private static bool IsAppVeyor => Environment.GetEnvironmentVariable("APPVEYOR") != null;
-        private static bool RunLocalDockerTests = false;
+        private const bool RunLocalDockerTests = false;
 
         static BasicTest()
         {
@@ -149,7 +149,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             }
         }
 
-        private IDictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>> _dataContexts;
+        private readonly IDictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>> _dataContexts;
         Country _dbCountry = new Country
         {
             Name = "...loading...",

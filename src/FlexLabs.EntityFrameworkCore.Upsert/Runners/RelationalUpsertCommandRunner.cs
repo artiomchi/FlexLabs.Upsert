@@ -10,12 +10,38 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
+    /// <summary>
+    /// Base class with common functionality for most relational database runners
+    /// </summary>
     public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     {
+        /// <summary>
+        /// Generate a full command for the opsert operation, given the inputs passed
+        /// </summary>
+        /// <param name="tableName">The name of the database table</param>
+        /// <param name="entities">A collection of entity data (column names and values) to be upserted</param>
+        /// <param name="joinColumns">The columns used to match existing items in the database</param>
+        /// <param name="updateExpressions">The expressions that represent update commands for matched entities</param>
+        /// <returns>A fully formed database query</returns>
         public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
             ICollection<string> joinColumns, ICollection<(string ColumnName, KnownExpression Value)> updateExpressions);
+        /// <summary>
+        /// Escape the name of the table/column/schema in a given database language
+        /// </summary>
+        /// <param name="name">The name of the entity</param>
+        /// <returns>The escaped name of the entity</returns>
         protected abstract string EscapeName(string name);
+        /// <summary>
+        /// Reference an indexed parameter passed to the query in a given database language
+        /// </summary>
+        /// <param name="index">The 0 based index of the parameter</param>
+        /// <returns>The reference to the parameter</returns>
         protected virtual string Parameter(int index) => "@p" + index;
+        /// <summary>
+        /// Get the escaped database table schema
+        /// </summary>
+        /// <param name="entityType">The entity type of the table</param>
+        /// <returns>The escaped schema name of the table, followed by a '.'. If the table has no schema - returns null</returns>
         protected virtual string GetSchema(IEntityType entityType)
         {
             var schema = entityType.Relational().Schema;
@@ -23,10 +49,27 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 ? EscapeName(schema) + "."
                 : null;
         }
+        /// <summary>
+        /// Get the fully qualified, escaped table name
+        /// </summary>
+        /// <param name="entityType">The entity type of the table</param>
+        /// <returns>The fully qualified and escaped table reference</returns>
         protected virtual string GetTableName(IEntityType entityType) => GetSchema(entityType) + EscapeName(entityType.Relational().TableName);
+        /// <summary>
+        /// Prefix used to reference source dataset columns
+        /// </summary>
         protected abstract string SourcePrefix { get; }
+        /// <summary>
+        /// Suffix used when referencing source dataset columns
+        /// </summary>
         protected virtual string SourceSuffix => null;
+        /// <summary>
+        /// Prefix used to reference target table columns
+        /// </summary>
         protected abstract string TargetPrefix { get; }
+        /// <summary>
+        /// Suffix used when referencing target table columns
+        /// </summary>
         protected virtual string TargetSuffix => null;
 
         private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
@@ -117,6 +160,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
         }
 
+        /// <summary>
+        /// Expand a known expression into database syntax
+        /// </summary>
+        /// <param name="expression">The KnownExpression that has to be converted to database language</param>
+        /// <returns>A string containing the expression converted to database language</returns>
         protected virtual string ExpandExpression(KnownExpression expression)
         {
             switch (expression.ExpressionType)
@@ -138,6 +186,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
         }
 
+        /// <summary>
+        /// Get the symbol used for basic expression operators in the database's syntax
+        /// </summary>
+        /// <param name="expressionType">Type of the basic expression</param>
+        /// <returns>A string containing the operator</returns>
         protected virtual string GetSimpleOperator(ExpressionType expressionType)
         {
             switch (expressionType)
@@ -150,6 +203,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
         }
 
+        /// <inheritdoc/>
         public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate)
         {
@@ -157,6 +211,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             dbContext.Database.ExecuteSqlCommand(sqlCommand, arguments);
         }
 
+        /// <inheritdoc/>
         public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, CancellationToken cancellationToken)
         {
