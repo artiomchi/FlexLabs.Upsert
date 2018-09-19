@@ -5,57 +5,22 @@ FlexLabs.Upsert
 [![FlexLabs.EntityFrameworkCore.Upsert on NuGet](https://img.shields.io/nuget/v/FlexLabs.EntityFrameworkCore.Upsert.svg)](https://www.nuget.org/packages/FlexLabs.EntityFrameworkCore.Upsert)  
 CI build: [![FlexLabs.EntityFrameworkCore.Upsert on MyGet](https://img.shields.io/myget/artiomchi/vpre/FlexLabs.EntityFrameworkCore.Upsert.svg)](https://github.com/artiomchi/FlexLabs.Upsert/wiki/CI-Builds)
 
-Adds basic support for "Upsert" operations to EF Core.
+This library adds basic support for "Upsert" operations to EF Core.
 
-Uses `INSERT … ON CONFLICT DO UPDATE` in PostgreSQL/Sqlite, `MERGE` in SqlServer and `INSERT INTO … ON DUPLICATE KEY UPDATE` in MySQL.
+Uses `INSERT â€¦ ON CONFLICT DO UPDATE` in PostgreSQL/Sqlite, `MERGE` in SqlServer and `INSERT INTO â€¦ ON DUPLICATE KEY UPDATE` in MySQL.
 
-Also supports injecting sql command generators to add support for other providers
+Also supports injecting sql command runners to add support for other providers
 
-### Usage:
+A typical upsert command could look something like this:
 
-Assuming the following objects used in these samples:
 ```csharp
-var newCountry = new Country
-{
-    Name = "Australia",
-    ISO = "AU",
-};
-var newVisit = new DailyVisit
-{
-    UserID = userID,
-    Date = DateTime.UtcNow.Date,
-    Visits = 1,
-};
-```
-
-In it's simplest form, it can be used as follows:
-```csharp
-DataContext.Countries.Upsert(newCountry)
-    .On(c => c.ISO)
-    .RunAsync();
-```
-
-The first parameter will be used to insert new entries to the table, the second one is used to identify the columns used to find matching rows.  
-If the entry already exists, the command will update the remaining columns to match the entity passed in the first argument.
-
-In some cases, you don't want ALL the entities to be changed. An example field that you wouldn't want updated is the `Created` field.
-You can use a third parameter to select which columns and values to set in case the entity already exists:
-```csharp
-DataContext.Countries.Upsert(newCountry)
-    .On(c => c.ISO)
-    .WhenMatched(c => new Country
+DataContext.DailyVisits
+    .Upsert(new DailyVisit
     {
-        Name = "Australia"
-        Updated = DateTime.UtcNow,
+        UserID = userID,
+        Date = DateTime.UtcNow.Date,
+        Visits = 1,
     })
-    .RunAsync();
-```
-
-Finally, sometimes you might want to update a column based on the current value in the table. For example, if you want to increment a column.
-You can use the following syntax (basic support for incrementing and decrementing values is currently implemented):  
-You can also see how to implement the multi column record matching:
-```csharp
-DataContext.DailyVisits.Upsert(newVisit)
     .On(v => new { v.UserID, v.Date })
     .WhenMatched(v => new DailyVisit
     {
@@ -64,11 +29,6 @@ DataContext.DailyVisits.Upsert(newVisit)
     .RunAsync();
 ```
 
-In the same way, you can insert multiple entities in one call. Keep in mind that each database engine has a limit of how many parameters a query can be passed.
-Since each property will use up a variable, this should only be used with smaller datasets. For larger datasets an alternative approach may be needed.
-```csharp
-DataContext.Countries.UpsertRange(newCountries)
-    .On(c => c.ISO)
-    .RunAsync();
-```
+In this case, the upsert command will ensure that a new `DailyVisit` will be added to the database. If a visit with the same `UserID` and `Date` already exists, it will be updated by incrementing it's `Visits` value by 1.
 
+Please read our [Usage](https://github.com/artiomchi/FlexLabs.Upsert/wiki/Usage) page for more examples
