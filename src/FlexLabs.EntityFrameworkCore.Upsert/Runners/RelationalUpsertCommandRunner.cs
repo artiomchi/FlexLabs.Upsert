@@ -72,8 +72,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// </summary>
         protected virtual string TargetSuffix => null;
 
-        private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
-            Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity, TEntity>> updater, bool noUpdate)
+        private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> match,
+            Expression<Func<TEntity, TEntity, TEntity>> updater, Expression<Func<TEntity, object>> excludeFromUpdateExpression, bool noUpdate)
         {
             var joinColumns = ProcessMatchExpression(entityType, match);
             var joinColumnNames = joinColumns.Select(c => c.Relational().ColumnName).ToArray();
@@ -138,7 +138,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             foreach (var arg in arguments)
                 arg.ArgumentIndex = i++;
 
-            var columnUpdateExpressions = updateExpressions?.Select(x => (x.Property.Relational().ColumnName, x.Value)).ToArray();
+            var excludeFromUpdateProperties = excludeFromUpdateExpression != null
+                ? ProcessMatchExpression(entityType, excludeFromUpdateExpression)
+                : new List<IProperty>();
+
+            var columnUpdateExpressions = updateExpressions
+                ?.Where(x => !excludeFromUpdateProperties.Contains(x.Property))
+                .Select(x => (x.Property.Relational().ColumnName, x.Value)).ToArray();
             var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities, joinColumnNames, columnUpdateExpressions);
             return (sqlCommand, arguments.Select(a => a.Value));
         }
@@ -205,17 +211,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         /// <inheritdoc/>
         public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate)
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, Expression<Func<TEntity, object>> excludeFromUpdateExpression, bool noUpdate)
         {
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate);
+            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, excludeFromUpdateExpression, noUpdate);
             dbContext.Database.ExecuteSqlCommand(sqlCommand, arguments);
         }
 
         /// <inheritdoc/>
-        public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, CancellationToken cancellationToken)
+        public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType,
+            ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression,
+            Expression<Func<TEntity, object>> excludeFromUpdateExpression, bool noUpdate,
+            CancellationToken cancellationToken)
         {
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate);
+            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression,
+                excludeFromUpdateExpression, noUpdate);
             return dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, arguments);
         }
     }

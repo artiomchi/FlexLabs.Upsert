@@ -24,6 +24,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         private readonly ICollection<TEntity> _entities;
         private Expression<Func<TEntity, object>> _matchExpression = null;
         private Expression<Func<TEntity, TEntity, TEntity>> _updateExpression = null;
+        private Expression<Func<TEntity, object>> _excludeFromUpdateExpression = null;
         private bool _noUpdate = false;
 
         /// <summary>
@@ -62,6 +63,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         {
             if (_updateExpression != null)
                 throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} twice!");
+            if (_excludeFromUpdateExpression != null)
+                throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} when {nameof(WhenMatchedExclude)} has been called, as they are mutually exclusive");
             if (_noUpdate)
                 throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} when {nameof(NoUpdate)} has been called, as they are mutually exclusive");
             if (updater == null)
@@ -85,10 +88,27 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         {
             if (_updateExpression != null)
                 throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} twice!");
+            if (_excludeFromUpdateExpression != null)
+                throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} when {nameof(WhenMatchedExclude)} has been called, as they are mutually exclusive");
             if (_noUpdate)
                 throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} when {nameof(NoUpdate)} has been called, as they are mutually exclusive");
 
             _updateExpression = updater ?? throw new ArgumentNullException(nameof(updater));
+            return this;
+        }
+
+        /// <summary>
+        /// </summary>
+        public UpsertCommandBuilder<TEntity> WhenMatchedExclude(Expression<Func<TEntity, object>> exclude)
+        {
+            if (_excludeFromUpdateExpression != null)
+                throw new InvalidOperationException($"Can't call {nameof(WhenMatchedExclude)} twice!");
+            if (_updateExpression != null)
+                throw new InvalidOperationException($"Can't call {nameof(WhenMatchedExclude)} when {nameof(WhenMatched)} has been called, as they are mutually exclusive");
+            if (_noUpdate)
+                throw new InvalidOperationException($"Can't call {nameof(WhenMatchedExclude)} when {nameof(NoUpdate)} has been called, as they are mutually exclusive");
+
+            _excludeFromUpdateExpression = exclude ?? throw new ArgumentNullException(nameof(exclude));
             return this;
         }
 
@@ -123,7 +143,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public void Run()
         {
             var commandRunner = GetCommandRunner();
-            commandRunner.Run(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _noUpdate);
+            commandRunner.Run(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _excludeFromUpdateExpression, _noUpdate);
         }
 
         /// <summary>
@@ -134,7 +154,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public Task RunAsync(CancellationToken token = default)
         {
             var commandRunner = GetCommandRunner();
-            return commandRunner.RunAsync(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _noUpdate, token);
+            return commandRunner.RunAsync(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _excludeFromUpdateExpression, _noUpdate, token);
         }
     }
 }
