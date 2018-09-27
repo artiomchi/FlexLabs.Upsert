@@ -1146,7 +1146,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 var newCountry2 = new Country
                 {
                     Name = "France",
-                    ISO = "FRA",
+                    ISO = "FR",
                     Created = _now,
                     Updated = _now,
                 };
