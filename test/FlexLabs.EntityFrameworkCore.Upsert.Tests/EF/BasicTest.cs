@@ -1061,5 +1061,188 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     st => Assert.Equal(1, st.Name));
             }
         }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_Country_Insert_On_WhenMatchedExclude(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newCountry = new Country
+                {
+                    Name = "United Kingdon",
+                    ISO = "GB",
+                    Created = _now,
+                    Updated = _now,
+                };
+                dbContext.Countries.Upsert(newCountry)
+                    .On(c => c.ISO)
+                    .WhenMatchedExclude(c => c.Created)
+                    .Run();
+
+                Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
+                    country =>
+                    {
+                        Assert.Equal(_dbCountry.ISO, country.ISO);
+                        Assert.Equal(_dbCountry.Name, country.Name);
+                        Assert.Equal(_dbCountry.Created, country.Created);
+                        Assert.Equal(_dbCountry.Updated, country.Updated);
+                    },
+                    country =>
+                    {
+                        Assert.Equal(newCountry.ISO, country.ISO);
+                        Assert.Equal(newCountry.Name, country.Name);
+                        Assert.Equal(newCountry.Created, country.Created);
+                        Assert.Equal(newCountry.Updated, country.Updated);
+                    });
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_Country_Update_On_WhenMatchedExclude(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newCountry = new Country
+                {
+                    Name = "Australia",
+                    ISO = "AU",
+                    Created = _now,
+                    Updated = _now,
+                };
+                dbContext.Countries.Upsert(newCountry)
+                    .On(c => c.ISO)
+                    .WhenMatchedExclude(c => c.Created)
+                    .Run();
+
+                Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
+                    country =>
+                    {
+                        Assert.Equal(_dbCountry.ISO, country.ISO);
+                        Assert.Equal(newCountry.Name, country.Name);
+                        Assert.Equal(_dbCountry.Created, country.Created);
+                        Assert.Equal(newCountry.Updated, country.Updated);
+                    });
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_Country_MultipleInsert_On_WhenMatchedExclude(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newCountry1 = new Country
+                {
+                    Name = "United Kingdon",
+                    ISO = "GB",
+                    Created = _now,
+                    Updated = _now,
+                };
+                var newCountry2 = new Country
+                {
+                    Name = "France",
+                    ISO = "FRA",
+                    Created = _now,
+                    Updated = _now,
+                };
+
+                dbContext.Countries.UpsertRange(newCountry1, newCountry2)
+                    .On(c => c.ISO)
+                    .WhenMatchedExclude(c => c.Created)
+                    .Run();
+
+                Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
+                    country =>
+                    {
+                        Assert.Equal(_dbCountry.ISO, country.ISO);
+                        Assert.Equal(_dbCountry.Name, country.Name);
+                        Assert.Equal(_dbCountry.Created, country.Created);
+                        Assert.Equal(_dbCountry.Updated, country.Updated);
+                    },
+                    country =>
+                    {
+
+                        Assert.Equal(newCountry1.ISO, country.ISO);
+                        Assert.Equal(newCountry1.Name, country.Name);
+                        Assert.Equal(newCountry1.Created, country.Created);
+                        Assert.Equal(newCountry1.Updated, country.Updated);
+                    },
+                    country =>
+                    {
+
+                        Assert.Equal(newCountry2.ISO, country.ISO);
+                        Assert.Equal(newCountry2.Name, country.Name);
+                        Assert.Equal(newCountry2.Created, country.Created);
+                        Assert.Equal(newCountry2.Updated, country.Updated);
+                    });
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_Country_MultipleUpdate_On_WhenMatchedExclude(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+
+            var otherDbCountry = new Country
+            {
+                Name = "...loading...",
+                ISO = "GB",
+                Created = new DateTime(1970, 1, 1),
+                Updated = new DateTime(1970, 1, 1),
+            };
+
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                dbContext.Countries.Add(otherDbCountry);
+                dbContext.SaveChanges();
+            }
+
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newCountry1 = new Country
+                {
+                    Name = "Australia",
+                    ISO = "AU",
+                    Created = _now,
+                    Updated = _now,
+                };
+
+                var newCountry2 = new Country
+                {
+                    Name = "United Kingdon",
+                    ISO = "GB",
+                    Created = _now,
+                    Updated = _now,
+                };
+
+                dbContext.Countries.UpsertRange(newCountry1, newCountry2)
+                    .On(c => c.ISO)
+                    .WhenMatchedExclude(c => c.Created)
+                    .Run();
+
+                Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
+                    country =>
+                    {
+                        Assert.Equal(_dbCountry.ISO, country.ISO);
+                        Assert.Equal(newCountry1.Name, country.Name);
+                        Assert.Equal(_dbCountry.Created, country.Created);
+                        Assert.Equal(newCountry1.Updated, country.Updated);
+                    },
+                    country =>
+                    {
+
+                        Assert.Equal(otherDbCountry.ISO, country.ISO);
+                        Assert.Equal(newCountry2.Name, country.Name);
+                        Assert.Equal(otherDbCountry.Created, country.Created);
+                        Assert.Equal(newCountry2.Updated, country.Updated);
+                    });
+            }
+        }
     }
 }
