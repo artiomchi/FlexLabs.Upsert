@@ -214,9 +214,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
             using (var dbCommand = dbContext.Database.GetDbConnection().CreateCommand())
             {
-                object PrepareCommandArgument(ConstantValue a) => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a);
                 var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate);
-                dbContext.Database.ExecuteSqlCommand(sqlCommand, arguments.Select(PrepareCommandArgument));
+                var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
+                dbContext.Database.ExecuteSqlCommand(sqlCommand, dbArguments);
             }
         }
 
@@ -227,9 +227,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
             using (var dbCommand = dbContext.Database.GetDbConnection().CreateCommand())
             {
-                object PrepareCommandArgument(ConstantValue a) => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a);
                 var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate);
-                return dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, arguments.Select(PrepareCommandArgument));
+                var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
+                return dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, dbArguments);
             }
         }
 

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
@@ -220,6 +221,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Assert.Equal(expected.Visits, actual.Visits);
             Assert.Equal(expected.FirstVisit, actual.FirstVisit);
             Assert.Equal(expected.LastVisit, actual.LastVisit);
+        }
+
+        private static void AssertEqual(Book expected, Book actual)
+        {
+            Assert.Equal(expected.Name, actual.Name);
+            Assert.Equal(expected.Genres.Length, actual.Genres.Length);
+            for (var i = 0; i < expected.Genres.Length; i++)
+            {
+                Assert.Equal(expected.Genres[i], actual.Genres[i]);
+            }
         }
 
         [Theory]
@@ -1080,11 +1091,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             {
                 var newBook = new Book
                 {
-                    Name = "The Fellowship of the Ring",
+                    Name = _dbBook.Name,
                     Genres = new[] {"Fantasy", "Adventure"},
                 };
-                dbContext.Books.Upsert(newBook).On(b => b.Name).Run();
-                Assert.Collection(dbContext.Books, b => AssertBooksEquals(newBook, b));
+
+                dbContext.Books.Upsert(newBook)
+                    .On(b => b.Name)
+                    .Run();
+
+                Assert.Collection(dbContext.Books,
+                    b => AssertEqual(newBook, b));
             }
         }
 
@@ -1100,22 +1116,34 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     Name = "The Two Towers",
                     Genres = new[] { "Fantasy", "Adventure" },
                 };
-                dbContext.Books.Upsert(newBook).On(p => p.Name).Run();
 
+                dbContext.Books.Upsert(newBook)
+                    .On(p => p.Name)
+                    .Run();
 
                 Assert.Collection(dbContext.Books.OrderBy(b => b.ID),
-                    b => AssertBooksEquals(_dbBook, b),
-                    b => AssertBooksEquals(newBook, b));
+                    b => AssertEqual(_dbBook, b),
+                    b => AssertEqual(newBook, b));
             }
         }
 
-        private static void AssertBooksEquals(Book expected, Book actual)
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_JsonData(TestDbContext.DbDriver driver)
         {
-            Assert.Equal(expected.Name, actual.Name);
-            Assert.Equal(expected.Genres.Length, actual.Genres.Length);
-            for (var i = 0; i < expected.Genres.Length; i++)
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
             {
-                Assert.Equal(expected.Genres[i], actual.Genres[i]);
+                var newJson = new JsonData
+                {
+                    Data = JsonConvert.SerializeObject(new { hello = "world" }),
+                };
+
+                dbContext.JsonDatas.Upsert(newJson)
+                    .Run();
+
+                Assert.Collection(dbContext.JsonDatas.OrderBy(j => j.ID),
+                    j => Assert.Equal(newJson.Data, j.Data));
             }
         }
     }

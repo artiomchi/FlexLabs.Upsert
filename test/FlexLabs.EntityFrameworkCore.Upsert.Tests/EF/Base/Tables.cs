@@ -4,6 +4,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
 {
+    public class Book
+    {
+        public int ID { get; set; }
+        public string Name { get; set; }
+        public string[] Genres { get; set; }
+    }
+
     public class Country
     {
         public int ID { get; set; }
@@ -13,6 +20,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public string ISO { get; set; }
         public DateTime Created { get; set; }
         public DateTime Updated { get; set; }
+    }
+
+    [Table("Dash-Table")]
+    public class DashTable
+    {
+        public int ID { get; set; }
+        [Column("Data-Set")]
+        public string DataSet { get; set; }
+        public DateTime Updated { get; set; }
+    }
+
+    public class JsonData
+    {
+        public int ID { get; set; }
+        public string Data { get; set; }
     }
 
     public class PageVisit
@@ -25,23 +47,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DateTime LastVisit { get; set; }
     }
 
-    public class Status
-    {
-        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
-        public int ID { get; set; }
-        public string Name { get; set; }
-        public DateTime LastChecked { get; set; }
-    }
-
-    [Table("Dash-Table")]
-    public class DashTable
-    {
-        public int ID { get; set; }
-        [Column("Data-Set")]
-        public string DataSet { get; set; }
-        public DateTime Updated { get; set; }
-    }
-
     [Table("SchemaTable", Schema = "testsch")]
     public class SchemaTable
     {
@@ -50,10 +55,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DateTime Updated { get; set; }
     }
 
-    public class Book
+    public class Status
     {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
         public int ID { get; set; }
         public string Name { get; set; }
-        public string[] Genres { get; set; }
+        public DateTime LastChecked { get; set; }
     }
 }
