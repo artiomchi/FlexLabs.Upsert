@@ -1,9 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
@@ -12,6 +14,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
     {
         private static bool IsAppVeyor => Environment.GetEnvironmentVariable("APPVEYOR") != null;
         private const bool RunLocalDockerTests = false;
+        private const bool DockerLCOW = true;
 
         static BasicTest()
         {
@@ -72,15 +75,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 }
                 else
                 {
+                    var lcow = DockerLCOW ? "--platform linux" : null;
                     if (DatabaseEngines.Contains(TestDbContext.DbDriver.Postgres))
                         _processes[TestDbContext.DbDriver.Postgres] = Process.Start("docker",
-                            $"run --name {Postgres_ImageName} --platform linux -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
+                            $"run --name {Postgres_ImageName} {lcow} -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
                     if (DatabaseEngines.Contains(TestDbContext.DbDriver.MSSQL))
                         _processes[TestDbContext.DbDriver.MSSQL] = Process.Start("docker",
-                            $"run --name {SqlServer_ImageName} --platform linux -e ACCEPT_EULA=Y -e MSSQL_PID=Express -e SA_PASSWORD={Password} -p {SqlServer_Port}:1433 microsoft/mssql-server-linux");
+                            $"run --name {SqlServer_ImageName} {lcow} -e ACCEPT_EULA=Y -e MSSQL_PID=Express -e SA_PASSWORD={Password} -p {SqlServer_Port}:1433 microsoft/mssql-server-linux");
                     if (DatabaseEngines.Contains(TestDbContext.DbDriver.MySQL))
                         _processes[TestDbContext.DbDriver.MySQL] = Process.Start("docker",
-                            $"run --name {MySql_ImageName} --platform linux -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
+                            $"run --name {MySql_ImageName} {lcow} -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
 
                     WaitForConnection(TestDbContext.DbDriver.Postgres, Postgres_Connection);
                     WaitForConnection(TestDbContext.DbDriver.MSSQL, SqlServer_Connection);
@@ -179,6 +183,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Name = "Created",
             LastChecked = new DateTime(1970, 1, 1),
         };
+
+        Book _dbBook = new Book
+        {
+            Name = "The Fellowship of the Ring",
+            Genres = new[] { "Fantasy" },
+        };
+
         DateTime _now = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
         int _increment = 8;
         public BasicTest(Contexts contexts)
@@ -195,11 +206,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 dbContext.Statuses.RemoveRange(dbContext.Statuses);
                 dbContext.SchemaTable.RemoveRange(dbContext.SchemaTable);
                 dbContext.PageVisits.RemoveRange(dbContext.PageVisits);
+                dbContext.Books.RemoveRange(dbContext.Books);
 
                 dbContext.Countries.Add(_dbCountry);
                 dbContext.PageVisits.Add(_dbVisitOld);
                 dbContext.PageVisits.Add(_dbVisit);
                 dbContext.Statuses.Add(_dbStatus);
+                dbContext.Books.Add(_dbBook);
                 dbContext.SaveChanges();
             }
         }
@@ -211,6 +224,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Assert.Equal(expected.Visits, actual.Visits);
             Assert.Equal(expected.FirstVisit, actual.FirstVisit);
             Assert.Equal(expected.LastVisit, actual.LastVisit);
+        }
+
+        private static void AssertEqual(Book expected, Book actual)
+        {
+            Assert.Equal(expected.Name, actual.Name);
+            Assert.Equal(expected.Genres.Length, actual.Genres.Length);
+            for (var i = 0; i < expected.Genres.Length; i++)
+            {
+                Assert.Equal(expected.Genres[i], actual.Genres[i]);
+            }
         }
 
         [Theory]
@@ -1059,6 +1082,71 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
                 Assert.Collection(dbContext.SchemaTable.OrderBy(t => t.ID),
                     st => Assert.Equal(1, st.Name));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_Book_On_Update(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newBook = new Book
+                {
+                    Name = _dbBook.Name,
+                    Genres = new[] {"Fantasy", "Adventure"},
+                };
+
+                dbContext.Books.Upsert(newBook)
+                    .On(b => b.Name)
+                    .Run();
+
+                Assert.Collection(dbContext.Books,
+                    b => AssertEqual(newBook, b));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_Book_On_Insert(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newBook = new Book
+                {
+                    Name = "The Two Towers",
+                    Genres = new[] { "Fantasy", "Adventure" },
+                };
+
+                dbContext.Books.Upsert(newBook)
+                    .On(p => p.Name)
+                    .Run();
+
+                Assert.Collection(dbContext.Books.OrderBy(b => b.ID),
+                    b => AssertEqual(_dbBook, b),
+                    b => AssertEqual(newBook, b));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_JsonData(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newJson = new JsonData
+                {
+                    Data = JsonConvert.SerializeObject(new { hello = "world" }),
+                };
+
+                dbContext.JsonDatas.Upsert(newJson)
+                    .Run();
+
+                Assert.Collection(dbContext.JsonDatas.OrderBy(j => j.ID),
+                    j => Assert.True(JToken.DeepEquals(JObject.Parse(newJson.Data), JObject.Parse(j.Data))));
             }
         }
     }

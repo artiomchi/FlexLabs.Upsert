@@ -94,10 +94,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                                                         switch (memberExp.Member)
                                                         {
                                                             case FieldInfo fInfo:
-                                                                return new ConstantValue(fInfo.GetValue(constExp.Value));
+                                                                return new ConstantValue(fInfo.GetValue(constExp.Value), property: null, memberInfo: fInfo);
 
                                                             case PropertyInfo pInfo:
-                                                                return new ConstantValue(pInfo.GetValue(constExp.Value));
+                                                                return new ConstantValue(pInfo.GetValue(constExp.Value), property: null, memberInfo: pInfo);
                                                         }
                                                         break;
                                                     }

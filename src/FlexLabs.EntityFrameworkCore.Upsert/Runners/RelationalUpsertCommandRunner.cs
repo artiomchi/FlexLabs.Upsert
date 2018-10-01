@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.Common;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
@@ -72,7 +76,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// </summary>
         protected virtual string TargetSuffix => null;
 
-        private (string SqlCommand, IEnumerable<object> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
+        private (string SqlCommand, IEnumerable<ConstantValue> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
             Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity, TEntity>> updater, bool noUpdate)
         {
             var joinColumns = ProcessMatchExpression(entityType, match);
@@ -97,7 +101,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
                     var value = binding.Expression.GetValue<TEntity>(updater);
                     if (!(value is KnownExpression knownExp))
-                        knownExp = new KnownExpression(ExpressionType.Constant, new ConstantValue(value));
+                        knownExp = new KnownExpression(ExpressionType.Constant, new ConstantValue(value, property));
 
                     if (knownExp.Value1 is ParameterProperty epp1)
                         epp1.Property = entityType.FindProperty(epp1.PropertyName);
@@ -125,7 +129,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     .Select(p =>
                     {
                         var columnName = p.Relational().ColumnName;
-                        var value = new ConstantValue(p.PropertyInfo.GetValue(e));
+                        var value = new ConstantValue(p.PropertyInfo.GetValue(e), p);
                         return (columnName, value);
                     })
                     .ToArray() as ICollection<(string ColumnName, ConstantValue Value)>)
@@ -140,7 +144,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
             var columnUpdateExpressions = updateExpressions?.Select(x => (x.Property.Relational().ColumnName, x.Value)).ToArray();
             var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities, joinColumnNames, columnUpdateExpressions);
-            return (sqlCommand, arguments.Select(a => a.Value));
+            return (sqlCommand, arguments);
         }
 
         private string ExpandValue(IKnownValue value)
@@ -207,16 +211,50 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate)
         {
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate);
-            dbContext.Database.ExecuteSqlCommand(sqlCommand, arguments);
+            var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
+            using (var dbCommand = dbContext.Database.GetDbConnection().CreateCommand())
+            {
+                var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate);
+                var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
+                dbContext.Database.ExecuteSqlCommand(sqlCommand, dbArguments);
+            }
         }
 
         /// <inheritdoc/>
         public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, CancellationToken cancellationToken)
         {
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate);
-            return dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, arguments);
+            var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
+            using (var dbCommand = dbContext.Database.GetDbConnection().CreateCommand())
+            {
+                var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate);
+                var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
+                return dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, dbArguments);
+            }
+        }
+
+        private object PrepareDbCommandArgument(DbCommand dbCommand, IRelationalTypeMappingSource relationalTypeMappingSource, ConstantValue constantValue)
+        {
+            RelationalTypeMapping relationalTypeMapping = null;
+
+            if (constantValue.Property != null)
+            {
+                relationalTypeMapping = relationalTypeMappingSource.FindMapping(constantValue.Property);
+            }
+            else if (constantValue.MemberInfo != null)
+            {
+                relationalTypeMapping = relationalTypeMappingSource.FindMapping(constantValue.MemberInfo);
+            }
+
+            var dbParameter = relationalTypeMapping?.CreateParameter(dbCommand, Parameter(constantValue.ArgumentIndex), constantValue.Value);
+            if (dbParameter == null)
+            {
+                dbParameter = dbCommand.CreateParameter();
+                dbParameter.Direction = ParameterDirection.Input;
+                dbParameter.Value = constantValue.Value;
+                dbParameter.ParameterName = Parameter(constantValue.ArgumentIndex);
+            }
+            return dbParameter;
         }
     }
 }
