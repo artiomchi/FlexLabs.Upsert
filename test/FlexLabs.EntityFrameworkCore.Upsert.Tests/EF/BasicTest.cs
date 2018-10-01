@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
@@ -13,6 +14,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
     {
         private static bool IsAppVeyor => Environment.GetEnvironmentVariable("APPVEYOR") != null;
         private const bool RunLocalDockerTests = false;
+        private const bool DockerLCOW = true;
 
         static BasicTest()
         {
@@ -73,15 +75,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 }
                 else
                 {
+                    var lcow = DockerLCOW ? "--platform linux" : null;
                     if (DatabaseEngines.Contains(TestDbContext.DbDriver.Postgres))
                         _processes[TestDbContext.DbDriver.Postgres] = Process.Start("docker",
-                            $"run --name {Postgres_ImageName} --platform linux -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
+                            $"run --name {Postgres_ImageName} {lcow} -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
                     if (DatabaseEngines.Contains(TestDbContext.DbDriver.MSSQL))
                         _processes[TestDbContext.DbDriver.MSSQL] = Process.Start("docker",
-                            $"run --name {SqlServer_ImageName} --platform linux -e ACCEPT_EULA=Y -e MSSQL_PID=Express -e SA_PASSWORD={Password} -p {SqlServer_Port}:1433 microsoft/mssql-server-linux");
+                            $"run --name {SqlServer_ImageName} {lcow} -e ACCEPT_EULA=Y -e MSSQL_PID=Express -e SA_PASSWORD={Password} -p {SqlServer_Port}:1433 microsoft/mssql-server-linux");
                     if (DatabaseEngines.Contains(TestDbContext.DbDriver.MySQL))
                         _processes[TestDbContext.DbDriver.MySQL] = Process.Start("docker",
-                            $"run --name {MySql_ImageName} --platform linux -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
+                            $"run --name {MySql_ImageName} {lcow} -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
 
                     WaitForConnection(TestDbContext.DbDriver.Postgres, Postgres_Connection);
                     WaitForConnection(TestDbContext.DbDriver.MSSQL, SqlServer_Connection);
@@ -1143,7 +1146,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     .Run();
 
                 Assert.Collection(dbContext.JsonDatas.OrderBy(j => j.ID),
-                    j => Assert.Equal(newJson.Data, j.Data));
+                    j => Assert.True(JToken.DeepEquals(JObject.Parse(newJson.Data), JObject.Parse(j.Data))));
             }
         }
     }

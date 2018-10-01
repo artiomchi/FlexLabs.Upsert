@@ -33,6 +33,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
 
     public class JsonData
     {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
         public int ID { get; set; }
         public string Data { get; set; }
     }
