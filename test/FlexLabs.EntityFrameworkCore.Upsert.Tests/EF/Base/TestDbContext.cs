@@ -16,6 +16,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
             modelBuilder.Entity<PageVisit>().HasIndex(pv => new { pv.UserID, pv.Date }).IsUnique();
             modelBuilder.Entity<DashTable>().HasIndex(t => t.DataSet).IsUnique();
             modelBuilder.Entity<SchemaTable>().HasIndex(t => t.Name).IsUnique();
+            modelBuilder.Entity<Book>().HasIndex(b => b.Name).IsUnique();
+            modelBuilder.Entity<Book>().Property(b => b.Genres)
+                .HasConversion(g => string.Join(",", g), s => s.Split(','));
         }
 
         public DbSet<Country> Countries { get; set; }
@@ -23,6 +26,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DbSet<Status> Statuses { get; set; }
         public DbSet<DashTable> DashTable { get; set; }
         public DbSet<SchemaTable> SchemaTable { get; set; }
+        public DbSet<Book> Books { get; set; }
 
         public enum DbDriver
         {

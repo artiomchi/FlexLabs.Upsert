@@ -49,4 +49,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public int Name { get; set; }
         public DateTime Updated { get; set; }
     }
+
+    public class Book
+    {
+        public int ID { get; set; }
+        public string Name { get; set; }
+        public string[] Genres { get; set; }
+    }
 }

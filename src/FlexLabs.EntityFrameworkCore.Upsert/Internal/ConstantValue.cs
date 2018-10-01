@@ -1,4 +1,7 @@
-﻿namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
+﻿using System.Reflection;
+using Microsoft.EntityFrameworkCore.Metadata;
+
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {
     /// <summary>
     /// This class represents a constant value from an expression, which will be passed as a command argument
@@ -9,15 +12,29 @@
         /// Creates an instance of the ConstantValue class
         /// </summary>
         /// <param name="value">The value used in the expression</param>
-        public ConstantValue(object value)
+        /// <param name="property">The property from which the value is taken</param>
+        /// <param name="memberInfo">The memberInfo from which the value is taken</param>
+        public ConstantValue(object value, IProperty property = null, MemberInfo memberInfo = null)
         {
             Value = value;
+            Property = property;
+            MemberInfo = memberInfo;
         }
 
         /// <summary>
         /// The value used in the expression
         /// </summary>
         public object Value { get; }
+
+        /// <summary>
+        /// The property from which the value is taken
+        /// </summary>
+        public IProperty Property { get; }
+
+        /// <summary>
+        /// The memberInfo from which the value is taken
+        /// </summary>
+        public MemberInfo MemberInfo { get; }
 
         /// <summary>
         /// The index of the argument that will be passed to the Db command
