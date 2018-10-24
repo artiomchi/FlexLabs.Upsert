@@ -3,8 +3,10 @@
 namespace FlexLabs.EntityFrameworkCore.Upsert
 {
     /// <summary>
-    /// Thrown when using unsupported columns as the upsert match expression 
+    /// Thrown when using unsupported columns as the upsert match expression.
+    /// See: https://flexlabs.org/plink/upsert.sqlite3
     /// </summary>
+    /// <seealso cref=""/>
     public sealed class InvalidMatchColumnsException : Exception
     {
         internal InvalidMatchColumnsException()
