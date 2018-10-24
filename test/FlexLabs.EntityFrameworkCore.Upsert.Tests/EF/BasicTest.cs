@@ -262,6 +262,36 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
         [Theory]
         [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_InvalidMatchColumn_NoOn(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                Assert.Throws<InvalidMatchColumnsException>(() =>
+                {
+                    dbContext.Countries.Upsert(new Country()).Run();
+                });
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_InvalidMatchColumn_ExplicitOn(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                Assert.Throws<InvalidMatchColumnsException>(() =>
+                {
+                    dbContext.Countries.Upsert(new Country())
+                        .On(c => c.ID)
+                        .Run();
+                });
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_Country_Update_On(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);

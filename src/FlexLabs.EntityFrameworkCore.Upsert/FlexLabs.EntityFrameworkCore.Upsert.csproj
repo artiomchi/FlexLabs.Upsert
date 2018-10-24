@@ -16,7 +16,7 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>2.0.0</VersionPrefix>
+    <VersionPrefix>2.0.1</VersionPrefix>
     <PackageReleaseNotes>
 + Adding support for upserting multiple entities using `UpsertRange`
 + Adding the InMemory and Sqlite database providers

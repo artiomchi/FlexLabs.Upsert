@@ -74,6 +74,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 throw new ArgumentException("match must be an anonymous object initialiser", nameof(matchExpression));
             }
 
+            if (joinColumns.All(p => p.ValueGenerated != ValueGenerated.Never))
+                throw new InvalidMatchColumnsException();
+
             return joinColumns;
         }
     }
