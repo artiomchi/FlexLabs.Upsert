@@ -260,5 +260,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             Assert.False(property.IsLeftParameter);
             Assert.Null(knownValue.Value2);
         }
+
+        [Fact]
+        public void ExpressionHelpersTests_DateTime_Now()
+        {
+            Expression<Func<TestEntity, TestEntity, TestEntity>> exp = (e1, e2) => new TestEntity
+            {
+                Updated = DateTime.Now,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var updated = Assert.IsType<DateTime>(expValue);
+            Assert.True(updated > DateTime.Now.AddMinutes(-1));
+            Assert.True(updated < DateTime.Now.AddMinutes(1));
+        }
     }
 }

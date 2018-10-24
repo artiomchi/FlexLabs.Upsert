@@ -34,16 +34,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                         switch (memberExp.Member)
                         {
                             case FieldInfo fInfo:
-                                return fInfo.GetValue(memberExp.Expression.GetValue<TSource>(container, true));
+                                return fInfo.GetValue(memberExp.Expression?.GetValue<TSource>(container, true));
 
                             case PropertyInfo pInfo:
-                                if (!nested && typeof(TSource).Equals(memberExp.Expression.Type) && memberExp.Expression is ParameterExpression paramExp)
+                                if (!nested &&
+                                    memberExp.Expression != null &&
+                                    typeof(TSource).Equals(memberExp.Expression.Type) &&
+                                    memberExp.Expression is ParameterExpression paramExp)
                                 {
                                     var isLeftParam = paramExp.Equals(container.Parameters[0]);
                                     if (isLeftParam || paramExp.Equals(container.Parameters[1]))
                                         return new KnownExpression(expression.NodeType, new ParameterProperty(pInfo.Name, isLeftParam));
                                 }
-                                return pInfo.GetValue(memberExp.Expression.GetValue<TSource>(container, true));
+                                return pInfo.GetValue(memberExp.Expression?.GetValue<TSource>(container, true));
 
                             default: throw new Exception("can't handle this type of member expression: " + memberExp.GetType() + ", " + memberExp.Member.GetType());
                         }
