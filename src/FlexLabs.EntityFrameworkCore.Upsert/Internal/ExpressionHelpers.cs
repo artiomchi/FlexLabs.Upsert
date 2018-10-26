@@ -48,7 +48,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                                 }
                                 return pInfo.GetValue(memberExp.Expression?.GetValue<TSource>(container, true));
 
-                            default: throw new Exception("can't handle this type of member expression: " + memberExp.GetType() + ", " + memberExp.Member.GetType());
+                            default:
+                                throw new UnsupportedExpressionException(expression);
                         }
                     }
 
@@ -130,8 +131,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                         if (exp.Method != null)
                             return exp.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null, new[] { exp.Left.GetValue<TSource>(container, true), exp.Right.GetValue<TSource>(container, true) }, CultureInfo.InvariantCulture);
 
-                        throw new NotImplementedException();
-                        //return null;
+                        break;
                     }
             }
 
@@ -139,7 +139,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
             //return Expression.Lambda<Func<object>>(
             //    Expression.Convert(expression, typeof(object)))
             //        .Compile()();
-            throw new NotImplementedException();
+            throw new UnsupportedExpressionException(expression);
         }
     }
 }
