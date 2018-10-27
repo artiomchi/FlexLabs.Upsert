@@ -95,7 +95,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// <summary>
         /// Enables the use of the fallback expression compiler. This can be enabled to add support for more expression types in the Update statement
         /// at the cost of slower evaluation.
-        /// If you have an expression type that isn't supported out of the box, please see https://flexlabs.org/plink/upsert.expressions
+        /// If you have an expression type that isn't supported out of the box, please see https://go.flexlabs.org/upsert.expressions
         /// </summary>
         /// <returns></returns>
         public UpsertCommandBuilder<TEntity> WithFallbackExpressionCompiler()
