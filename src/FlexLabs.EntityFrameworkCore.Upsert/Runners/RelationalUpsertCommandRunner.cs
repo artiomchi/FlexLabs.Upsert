@@ -77,7 +77,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected virtual string TargetSuffix => null;
 
         private (string SqlCommand, IEnumerable<ConstantValue> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
-            Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity, TEntity>> updater, bool noUpdate)
+            Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity, TEntity>> updater, bool noUpdate, bool useExpressionCompiler)
         {
             var joinColumns = ProcessMatchExpression(entityType, match);
             var joinColumnNames = joinColumns.Select(c => c.Relational().ColumnName).ToArray();
@@ -99,7 +99,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     if (property == null)
                         throw new InvalidOperationException("Unknown property " + binding.Member.Name);
 
-                    var value = binding.Expression.GetValue<TEntity>(updater);
+                    var value = binding.Expression.GetValue<TEntity>(updater, useExpressionCompiler);
                     if (!(value is KnownExpression knownExp))
                         knownExp = new KnownExpression(ExpressionType.Constant, new ConstantValue(value, property));
 
@@ -209,12 +209,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         /// <inheritdoc/>
         public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate)
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, bool useExpressionCompiler)
         {
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
             using (var dbCommand = dbContext.Database.GetDbConnection().CreateCommand())
             {
-                var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate);
+                var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate, useExpressionCompiler);
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
                 dbContext.Database.ExecuteSqlCommand(sqlCommand, dbArguments);
             }
@@ -222,12 +222,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         /// <inheritdoc/>
         public override Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, CancellationToken cancellationToken)
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, bool useExpressionCompiler, CancellationToken cancellationToken)
         {
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
             using (var dbCommand = dbContext.Database.GetDbConnection().CreateCommand())
             {
-                var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate);
+                var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate, useExpressionCompiler);
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
                 return dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, dbArguments);
             }

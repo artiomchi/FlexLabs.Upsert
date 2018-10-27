@@ -16,10 +16,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// </summary>
         /// <param name="expression">The expression we're processing</param>
         /// <param name="container">The original lambda expression/func that contained this expression</param>
+        /// <param name="useExpressionCompiler">Allows enabling the fallback expression compiler</param>
         /// <returns>An</returns>
-        public static object GetValue<TSource>(this Expression expression, LambdaExpression container) => GetValue<TSource>(expression, container, false);
+        public static object GetValue<TSource>(this Expression expression, LambdaExpression container, bool useExpressionCompiler = false)
+            => GetValueInternal<TSource>(expression, container, useExpressionCompiler, false);
 
-        private static object GetValue<TSource>(this Expression expression, LambdaExpression container, bool nested)
+        private static object GetValueInternal<TSource>(this Expression expression, LambdaExpression container, bool useExpressionCompiler, bool nested)
         {
             switch (expression.NodeType)
             {
@@ -34,7 +36,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                         switch (memberExp.Member)
                         {
                             case FieldInfo fInfo:
-                                return fInfo.GetValue(memberExp.Expression?.GetValue<TSource>(container, true));
+                                return fInfo.GetValue(memberExp.Expression?.GetValueInternal<TSource>(container, useExpressionCompiler, true));
 
                             case PropertyInfo pInfo:
                                 if (!nested &&
@@ -46,7 +48,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                                     if (isLeftParam || paramExp.Equals(container.Parameters[1]))
                                         return new KnownExpression(expression.NodeType, new ParameterProperty(pInfo.Name, isLeftParam));
                                 }
-                                return pInfo.GetValue(memberExp.Expression?.GetValue<TSource>(container, true));
+                                return pInfo.GetValue(memberExp.Expression?.GetValueInternal<TSource>(container, useExpressionCompiler, true));
 
                             default:
                                 throw new UnsupportedExpressionException(expression);
@@ -58,15 +60,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                         var arrayExp = (NewArrayExpression)expression;
                         var result = Array.CreateInstance(arrayExp.Type.GetElementType(), arrayExp.Expressions.Count);
                         for (int i = 0; i < arrayExp.Expressions.Count; i++)
-                            result.SetValue(arrayExp.Expressions[i].GetValue<TSource>(container, true), i);
+                            result.SetValue(arrayExp.Expressions[i].GetValueInternal<TSource>(container, useExpressionCompiler, true), i);
                         return result;
                     }
 
                 case ExpressionType.Call:
                     {
                         var methodExp = (MethodCallExpression)expression;
-                        var context = methodExp.Object?.GetValue<TSource>(container, true);
-                        var arguments = methodExp.Arguments.Select(a => a.GetValue<TSource>(container, true)).ToArray();
+                        var context = methodExp.Object?.GetValueInternal<TSource>(container, useExpressionCompiler, true);
+                        var arguments = methodExp.Arguments.Select(a => a.GetValueInternal<TSource>(container, useExpressionCompiler, true)).ToArray();
                         return methodExp.Method.Invoke(context, arguments);
                     }
 
@@ -129,16 +131,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                                 return new KnownExpression(exp.NodeType, leftArg, rightArg);
                         }
                         if (exp.Method != null)
-                            return exp.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null, new[] { exp.Left.GetValue<TSource>(container, true), exp.Right.GetValue<TSource>(container, true) }, CultureInfo.InvariantCulture);
+                            return exp.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null, new[] { exp.Left.GetValueInternal<TSource>(container, useExpressionCompiler, true), exp.Right.GetValueInternal<TSource>(container, useExpressionCompiler, true) }, CultureInfo.InvariantCulture);
 
                         break;
                     }
             }
 
             // If we can't translate it to a known expression, just get the value
-            //return Expression.Lambda<Func<object>>(
-            //    Expression.Convert(expression, typeof(object)))
-            //        .Compile()();
+            if (useExpressionCompiler)
+                return Expression.Lambda<Func<object>>(
+                    Expression.Convert(expression, typeof(object)))
+                        .Compile()();
             throw new UnsupportedExpressionException(expression);
         }
     }

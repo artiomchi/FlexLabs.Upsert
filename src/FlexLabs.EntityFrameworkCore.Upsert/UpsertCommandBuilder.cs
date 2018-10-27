@@ -24,7 +24,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         private readonly ICollection<TEntity> _entities;
         private Expression<Func<TEntity, object>> _matchExpression = null;
         private Expression<Func<TEntity, TEntity, TEntity>> _updateExpression = null;
-        private bool _noUpdate = false;
+        private bool _noUpdate = false, _useExpressionCompiler = false;
 
         /// <summary>
         /// Initialise an instance of the UpsertCommandBuilder
@@ -93,6 +93,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         }
 
         /// <summary>
+        /// Enables the use of the fallback expression compiler. This can be enabled to add support for more expression types in the Update statement
+        /// at the cost of slower evaluation.
+        /// If you have an expression type that isn't supported out of the box, please see https://flexlabs.org/plink/upsert.expressions
+        /// </summary>
+        /// <returns></returns>
+        public UpsertCommandBuilder<TEntity> WithFallbackExpressionCompiler()
+        {
+            _useExpressionCompiler = true;
+            return this;
+        }
+
+        /// <summary>
         /// Specifies that if a match is found, no action will be taken on the entity
         /// </summary>
         /// <returns></returns>
@@ -123,7 +135,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public void Run()
         {
             var commandRunner = GetCommandRunner();
-            commandRunner.Run(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _noUpdate);
+            commandRunner.Run(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _noUpdate, _useExpressionCompiler);
         }
 
         /// <summary>
@@ -134,7 +146,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public Task RunAsync(CancellationToken token = default)
         {
             var commandRunner = GetCommandRunner();
-            return commandRunner.RunAsync(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _noUpdate, token);
+            return commandRunner.RunAsync(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _noUpdate, _useExpressionCompiler, token);
         }
     }
 }

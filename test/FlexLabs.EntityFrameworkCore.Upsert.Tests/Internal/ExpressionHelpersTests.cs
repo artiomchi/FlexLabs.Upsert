@@ -275,5 +275,27 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             Assert.True(updated > DateTime.Now.AddMinutes(-1));
             Assert.True(updated < DateTime.Now.AddMinutes(1));
         }
+
+        [Fact]
+        public void ExpressionHelperTests_UnsupportedExpression()
+        {
+            var input = "hello";
+            Expression<Func<TestEntity, TestEntity>> exp = e1 => new TestEntity
+            {
+                Num1 = !string.IsNullOrWhiteSpace(input)
+                    ? input.Length
+                    : 0,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            Assert.Throws<UnsupportedExpressionException>(() =>
+            {
+                memberAssig.GetValue<TestEntity>(exp);
+            });
+
+            var expValue = memberAssig.GetValue<TestEntity>(exp, useExpressionCompiler: true);
+            var num1 = Assert.IsType<int>(expValue);
+            Assert.Equal(input.Length, num1);
+        }
     }
 }
