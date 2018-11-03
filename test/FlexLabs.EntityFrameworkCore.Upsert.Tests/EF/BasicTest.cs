@@ -159,7 +159,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Name = "...loading...",
             ISO = "AU",
             Created = new DateTime(1970, 1, 1),
-            Updated = new DateTime(1970, 1, 1),
         };
         PageVisit _dbVisitOld = new PageVisit
         {
@@ -375,6 +374,42 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     {
                         Name = newCountry.Name,
                         Updated = newCountry.Updated,
+                    })
+                    .Run();
+
+                Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
+                    country =>
+                    {
+                        Assert.Equal(newCountry.ISO, country.ISO);
+                        Assert.Equal(newCountry.Name, country.Name);
+                        Assert.NotEqual(newCountry.Created, country.Created);
+                        Assert.Equal(_dbCountry.Created, country.Created);
+                        Assert.Equal(newCountry.Updated, country.Updated);
+                    });
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_Country_Update_On_WhenMatched_Constants(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newCountry = new Country
+                {
+                    Name = "Australia",
+                    ISO = "AU",
+                    Created = _now,
+                    Updated = _now,
+                };
+
+                dbContext.Countries.Upsert(newCountry)
+                    .On(c => c.ISO)
+                    .WhenMatched(c => new Country
+                    {
+                        Name = "Australia",
+                        Updated = _now,
                     })
                     .Run();
 
@@ -807,6 +842,43 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     visit =>
                     {
                         Assert.Equal(_dbVisit.Visits / 4, visit.Visits);
+                        Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
+                        Assert.Equal(newVisit.LastVisit, visit.LastVisit);
+                    });
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueModulo(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newVisit = new PageVisit
+                {
+                    UserID = 1,
+                    Date = DateTime.Today,
+                    Visits = 1,
+                    FirstVisit = _now,
+                    LastVisit = _now,
+                };
+
+                dbContext.PageVisits.Upsert(newVisit)
+                    .On(pv => new { pv.UserID, pv.Date })
+                    .WhenMatched(pv => new PageVisit
+                    {
+                        Visits = pv.Visits % 4,
+                        LastVisit = _now,
+                    })
+                    .Run();
+
+                Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                    visit => AssertEqual(_dbVisitOld, visit),
+                    visit =>
+                    {
+                        Assert.Equal(_dbVisit.Visits % 4, visit.Visits);
                         Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
                         Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
                         Assert.Equal(newVisit.LastVisit, visit.LastVisit);

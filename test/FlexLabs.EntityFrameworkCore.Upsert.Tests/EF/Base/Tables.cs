@@ -19,7 +19,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         [Required, StringLength(2)]
         public string ISO { get; set; }
         public DateTime Created { get; set; }
-        public DateTime Updated { get; set; }
+        public DateTime? Updated { get; set; }
     }
 
     [Table("Dash-Table")]

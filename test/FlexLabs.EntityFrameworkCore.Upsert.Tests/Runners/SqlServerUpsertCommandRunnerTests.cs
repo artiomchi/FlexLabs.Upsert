@@ -39,5 +39,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "ON [T].[ID] = [S].[ID] " +
             "WHEN NOT MATCHED BY TARGET THEN INSERT ([Name], [Status]) VALUES ([Name], [Status]) " +
             "WHEN MATCHED THEN UPDATE SET [Status] = [T].[Status] + @p2;";
+
+        protected override string Update_Coalesce_Sql =>
+            "MERGE INTO myTable WITH (HOLDLOCK) AS [T] " +
+            "USING ( VALUES (@p0, @p1) ) AS [S] ([Name], [Status]) " +
+            "ON [T].[ID] = [S].[ID] " +
+            "WHEN NOT MATCHED BY TARGET THEN INSERT ([Name], [Status]) VALUES ([Name], [Status]) " +
+            "WHEN MATCHED THEN UPDATE SET [Status] = COALESCE([T].[Status], @p2);";
     }
 }

@@ -175,16 +175,28 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 case ExpressionType.Add:
                 case ExpressionType.Divide:
+                case ExpressionType.Modulo:
                 case ExpressionType.Multiply:
                 case ExpressionType.Subtract:
-                    var left = ExpandValue(expression.Value1);
-                    var right = ExpandValue(expression.Value2);
-                    var op = GetSimpleOperator(expression.ExpressionType);
-                    return $"{left} {op} {right}";
+                    {
+                        var left = ExpandValue(expression.Value1);
+                        var right = ExpandValue(expression.Value2);
+                        var op = GetSimpleOperator(expression.ExpressionType);
+                        return $"{left} {op} {right}";
+                    }
+
+                case ExpressionType.Coalesce:
+                    {
+                        var left = ExpandValue(expression.Value1);
+                        var right = ExpandValue(expression.Value2);
+                        return $"COALESCE({left}, {right})";
+                    }
 
                 case ExpressionType.MemberAccess:
                 case ExpressionType.Constant:
-                    return ExpandValue(expression.Value1);
+                    {
+                        return ExpandValue(expression.Value1);
+                    }
 
                 default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
             }
@@ -201,6 +213,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 case ExpressionType.Add: return "+";
                 case ExpressionType.Divide: return "/";
+                case ExpressionType.Modulo: return "%";
                 case ExpressionType.Multiply: return "*";
                 case ExpressionType.Subtract: return "-";
                 default: throw new InvalidOperationException($"{expressionType} is not a simple arithmetic operation");

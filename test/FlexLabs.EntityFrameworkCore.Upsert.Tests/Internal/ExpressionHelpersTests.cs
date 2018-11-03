@@ -186,6 +186,26 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
         }
 
         [Fact]
+        public void ExpressionHelpersTests_ValueModulo()
+        {
+            Expression<Func<TestEntity, TestEntity>> exp = e => new TestEntity
+            {
+                Num1 = e.Num1 % 4,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+
+            var knownValue = Assert.IsType<KnownExpression>(expValue);
+            Assert.Equal(ExpressionType.Modulo, knownValue.ExpressionType);
+            var value1 = Assert.IsType<ParameterProperty>(knownValue.Value1);
+            Assert.Equal("Num1", value1.PropertyName);
+            Assert.True(value1.IsLeftParameter);
+            var value2 = Assert.IsType<ConstantValue>(knownValue.Value2);
+            Assert.Equal(4, value2.Value);
+        }
+
+        [Fact]
         public void ExpressionHelpersTests_Property()
         {
             Expression<Func<TestEntity, TestEntity>> exp = e => new TestEntity
@@ -274,6 +294,70 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var updated = Assert.IsType<DateTime>(expValue);
             Assert.True(updated > DateTime.Now.AddMinutes(-1));
             Assert.True(updated < DateTime.Now.AddMinutes(1));
+        }
+
+        [Fact]
+        public void ExpressionHelpersTests_Nullable_Assign()
+        {
+            int value = 5;
+
+            Expression<Func<TestEntity, TestEntity, TestEntity>> exp = (e1, e2) => new TestEntity
+            {
+                NumNullable1 = value,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var num = Assert.IsType<int>(expValue);
+            Assert.Equal(value, num);
+        }
+
+        [Fact]
+        public void ExpressionHelpersTests_Nullable_Cast()
+        {
+            int? value = 5;
+
+            Expression<Func<TestEntity, TestEntity, TestEntity>> exp = (e1, e2) => new TestEntity
+            {
+                Num1 = (int)value,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var num = Assert.IsType<int>(expValue);
+            Assert.Equal(value.Value, num);
+        }
+
+        [Fact]
+        public void ExpressionHelpersTests_Nullable_Coalesce()
+        {
+            int? value = 5;
+
+            Expression<Func<TestEntity, TestEntity, TestEntity>> exp = (e1, e2) => new TestEntity
+            {
+                Num1 = value ?? 0,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var num = Assert.IsType<int>(expValue);
+            Assert.Equal(value, num);
+        }
+
+        [Fact]
+        public void ExpressionHelpersTests_Nullable_GetValueOrDefault()
+        {
+            int? value = 5;
+
+            Expression<Func<TestEntity, TestEntity, TestEntity>> exp = (e1, e2) => new TestEntity
+            {
+                Num1 = value.GetValueOrDefault(),
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var num = Assert.IsType<int>(expValue);
+            Assert.Equal(value.Value, num);
         }
 
         [Fact]

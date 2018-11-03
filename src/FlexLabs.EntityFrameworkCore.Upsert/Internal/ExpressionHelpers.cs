@@ -25,9 +25,46 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         {
             switch (expression.NodeType)
             {
+                case ExpressionType.Call:
+                    {
+                        var methodExp = (MethodCallExpression)expression;
+                        var context = methodExp.Object?.GetValueInternal<TSource>(container, useExpressionCompiler, true);
+                        var arguments = methodExp.Arguments.Select(a => a.GetValueInternal<TSource>(container, useExpressionCompiler, true)).ToArray();
+                        return methodExp.Method.Invoke(context, arguments);
+                    }
+
+                case ExpressionType.Coalesce:
+                    {
+                        var coalesceExp = (BinaryExpression)expression;
+                        var left = coalesceExp.Left.GetValueInternal<TSource>(container, useExpressionCompiler, nested);
+                        var right = coalesceExp.Right.GetValueInternal<TSource>(container, useExpressionCompiler, nested);
+
+                        if (left == null)
+                            return right;
+                        if (!(left is IKnownValue))
+                            return left;
+
+                        if (!(left is IKnownValue leftValue))
+                            leftValue = new ConstantValue(left);
+                        if (!(right is IKnownValue rightValue))
+                            rightValue = new ConstantValue(right);
+
+                        return new KnownExpression(expression.NodeType, leftValue, rightValue);
+                    }
+
                 case ExpressionType.Constant:
                     {
                         return ((ConstantExpression)expression).Value;
+                    }
+
+                case ExpressionType.Convert:
+                    {
+                        var convertExp = (UnaryExpression)expression;
+                        if (!nested)
+                            return convertExp.Operand.GetValueInternal<TSource>(container, useExpressionCompiler, nested);
+
+                        var value = convertExp.Operand.GetValueInternal<TSource>(container, useExpressionCompiler, true);
+                        return Convert.ChangeType(value, convertExp.Type);
                     }
 
                 case ExpressionType.MemberAccess:
@@ -64,18 +101,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                         return result;
                     }
 
-                case ExpressionType.Call:
-                    {
-                        var methodExp = (MethodCallExpression)expression;
-                        var context = methodExp.Object?.GetValueInternal<TSource>(container, useExpressionCompiler, true);
-                        var arguments = methodExp.Arguments.Select(a => a.GetValueInternal<TSource>(container, useExpressionCompiler, true)).ToArray();
-                        return methodExp.Method.Invoke(context, arguments);
-                    }
-
                 case ExpressionType.Add:
-                case ExpressionType.Subtract:
-                case ExpressionType.Multiply:
                 case ExpressionType.Divide:
+                case ExpressionType.Modulo:
+                case ExpressionType.Multiply:
+                case ExpressionType.Subtract:
                     {
                     var exp = (BinaryExpression)expression;
                     if (!nested && exp.Method == null)

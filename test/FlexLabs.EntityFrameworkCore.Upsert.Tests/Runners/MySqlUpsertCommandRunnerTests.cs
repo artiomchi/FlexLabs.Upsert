@@ -20,5 +20,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
         protected override string Update_BinaryAdd_Sql =>
             "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Status` = `Status` + @p2";
+
+        protected override string Update_Coalesce_Sql =>
+            "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Status` = COALESCE(`Status`, @p2)";
     }
 }

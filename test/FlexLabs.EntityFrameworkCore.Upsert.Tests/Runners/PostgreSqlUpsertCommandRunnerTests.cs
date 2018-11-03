@@ -30,5 +30,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "INSERT INTO myTable AS \"T\" (\"Name\", \"Status\") " +
             "VALUES (@p0, @p1) ON CONFLICT (\"ID\") " +
             "DO UPDATE SET \"Status\" = \"T\".\"Status\" + @p2";
+
+        protected override string Update_Coalesce_Sql =>
+            "INSERT INTO myTable AS \"T\" (\"Name\", \"Status\") " +
+            "VALUES (@p0, @p1) ON CONFLICT (\"ID\") " +
+            "DO UPDATE SET \"Status\" = COALESCE(\"T\".\"Status\", @p2)";
     }
 }

@@ -112,5 +112,28 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             Assert.Equal(Update_BinaryAdd_Sql, generatedSql);
         }
+
+        protected abstract string Update_Coalesce_Sql { get; }
+        [Fact]
+        public void SqlSyntaxRunner_Update_Coalesce()
+        {
+            var runner = GetRunner();
+            var tableName = "myTable";
+            ICollection<(string ColumnName, ConstantValue Value)> entity = new[]
+            {
+                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 } ),
+                ( "Status", new ConstantValue(3) { ArgumentIndex = 1} ),
+            };
+            var updates = new[]
+            {
+                ("Status", new KnownExpression(ExpressionType.Coalesce,
+                    new ParameterProperty("Status", true) { Property = new MockProperty("Status") },
+                    new ConstantValue(1) { ArgumentIndex = 2 }))
+            };
+
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { "ID" }, updates);
+
+            Assert.Equal(Update_Coalesce_Sql, generatedSql);
+        }
     }
 }
