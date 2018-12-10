@@ -206,6 +206,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 dbContext.SchemaTable.RemoveRange(dbContext.SchemaTable);
                 dbContext.PageVisits.RemoveRange(dbContext.PageVisits);
                 dbContext.Books.RemoveRange(dbContext.Books);
+                dbContext.GuidKeysAutoGen.RemoveRange(dbContext.GuidKeysAutoGen);
+                dbContext.GuidKeys.RemoveRange(dbContext.GuidKeys);
+                dbContext.StringKeysAutoGen.RemoveRange(dbContext.StringKeysAutoGen);
+                dbContext.StringKeys.RemoveRange(dbContext.StringKeys);
 
                 dbContext.Countries.Add(_dbCountry);
                 dbContext.PageVisits.Add(_dbVisitOld);
@@ -256,6 +260,25 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                         Assert.Equal(_dbVisit.UserID, pv.UserID);
                         Assert.Equal(_dbVisit.Date, pv.Date);
                     });
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_EFCore_KeyAutoGen(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                dbContext.GuidKeysAutoGen.Add(new GuidKeyAutoGen { Name = "test" });
+                dbContext.StringKeysAutoGen.Add(new StringKeyAutoGen { Name = "test" });
+                dbContext.SaveChanges();
+
+                // Ensuring EFCore generates empty values for Guid and string keys
+                Assert.Collection(dbContext.GuidKeysAutoGen,
+                    e => Assert.NotEqual(Guid.Empty, e.ID));
+                Assert.Collection(dbContext.StringKeysAutoGen,
+                    e => Assert.NotEmpty(e.ID));
             }
         }
 
@@ -1249,6 +1272,90 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
                 Assert.Collection(dbContext.JsonDatas.OrderBy(j => j.ID),
                     j => Assert.True(JToken.DeepEquals(JObject.Parse(newJson.Data), JObject.Parse(j.Data))));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_GuidKey_AutoGenThrows(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                Assert.Throws<InvalidMatchColumnsException>(delegate
+                {
+                    var newItem = new GuidKeyAutoGen
+                    {
+                        ID = Guid.NewGuid(),
+                        Name = "test",
+                    };
+
+                    dbContext.GuidKeysAutoGen.Upsert(newItem)
+                        .Run();
+                });
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_StringKey_AutoGenThrows(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                Assert.Throws<InvalidMatchColumnsException>(delegate
+                {
+                    var newItem = new StringKeyAutoGen
+                    {
+                        ID = Guid.NewGuid().ToString(),
+                        Name = "test",
+                    };
+
+                    dbContext.StringKeysAutoGen.Upsert(newItem)
+                        .Run();
+                });
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_GuidKey(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem = new GuidKey
+                {
+                    ID = Guid.NewGuid(),
+                    Name = "test",
+                };
+
+                dbContext.GuidKeys.Upsert(newItem)
+                    .Run();
+
+                Assert.Collection(dbContext.GuidKeys.OrderBy(j => j.ID),
+                    j => Assert.Equal(newItem.ID, j.ID));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_StringKey(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem = new StringKey
+                {
+                    ID = Guid.NewGuid().ToString(),
+                    Name = "test",
+                };
+
+                dbContext.StringKeys.Upsert(newItem)
+                    .Run();
+
+                Assert.Collection(dbContext.StringKeys.OrderBy(j => j.ID),
+                    j => Assert.Equal(newItem.ID, j.ID));
             }
         }
     }

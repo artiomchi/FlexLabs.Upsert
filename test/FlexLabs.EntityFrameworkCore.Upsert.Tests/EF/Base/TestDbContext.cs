@@ -34,6 +34,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DbSet<PageVisit> PageVisits { get; set; }
         public DbSet<SchemaTable> SchemaTable { get; set; }
         public DbSet<Status> Statuses { get; set; }
+        public DbSet<GuidKeyAutoGen> GuidKeysAutoGen { get; set; }
+        public DbSet<GuidKey> GuidKeys { get; set; }
+        public DbSet<StringKeyAutoGen> StringKeysAutoGen { get; set; }
+        public DbSet<StringKey> StringKeys { get; set; }
 
         public enum DbDriver
         {

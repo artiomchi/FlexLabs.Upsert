@@ -63,4 +63,30 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public string Name { get; set; }
         public DateTime LastChecked { get; set; }
     }
+
+    public class GuidKeyAutoGen
+    {
+        public Guid ID { get; set; }
+        public string Name { get; set; }
+    }
+
+    public class GuidKey
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public Guid ID { get; set; }
+        public string Name { get; set; }
+    }
+
+    public class StringKeyAutoGen
+    {
+        public string ID { get; set; }
+        public string Name { get; set; }
+    }
+
+    public class StringKey
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public string ID { get; set; }
+        public string Name { get; set; }
+    }
 }

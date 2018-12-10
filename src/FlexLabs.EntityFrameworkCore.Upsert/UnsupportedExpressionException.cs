@@ -4,6 +4,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
 {
     /// <summary>
     /// Thrown when using unsupported expressions in the update clause
+    /// See: https://go.flexlabs.org/upsert.expressions
     /// </summary>
     public class UnsupportedExpressionException : Exception
     {
