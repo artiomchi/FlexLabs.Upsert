@@ -210,6 +210,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 dbContext.GuidKeys.RemoveRange(dbContext.GuidKeys);
                 dbContext.StringKeysAutoGen.RemoveRange(dbContext.StringKeysAutoGen);
                 dbContext.StringKeys.RemoveRange(dbContext.StringKeys);
+                dbContext.KeyOnlies.RemoveRange(dbContext.KeyOnlies);
 
                 dbContext.Countries.Add(_dbCountry);
                 dbContext.PageVisits.Add(_dbVisitOld);
@@ -1356,6 +1357,31 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
                 Assert.Collection(dbContext.StringKeys.OrderBy(j => j.ID),
                     j => Assert.Equal(newItem.ID, j.ID));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_KeyOnly(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem = new KeyOnly
+                {
+                    ID1 = 123,
+                    ID2 = 456,
+                };
+
+                dbContext.KeyOnlies.Upsert(newItem)
+                    .Run();
+
+                Assert.Collection(dbContext.KeyOnlies.OrderBy(j => j.ID1),
+                    j =>
+                    {
+                        Assert.Equal(newItem.ID1, j.ID1);
+                        Assert.Equal(newItem.ID2, j.ID2);
+                    });
             }
         }
     }

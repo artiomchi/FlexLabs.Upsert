@@ -21,6 +21,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
             modelBuilder.Entity<DashTable>().HasIndex(t => t.DataSet).IsUnique();
             modelBuilder.Entity<PageVisit>().HasIndex(pv => new { pv.UserID, pv.Date }).IsUnique();
             modelBuilder.Entity<SchemaTable>().HasIndex(t => t.Name).IsUnique();
+            modelBuilder.Entity<KeyOnly>().HasKey(t => new { t.ID1, t.ID2 });
 
             var dbProvider = this.GetService<IDatabaseProvider>();
             if (dbProvider.Name == "Npgsql.EntityFrameworkCore.PostgreSQL")
@@ -38,6 +39,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DbSet<GuidKey> GuidKeys { get; set; }
         public DbSet<StringKeyAutoGen> StringKeysAutoGen { get; set; }
         public DbSet<StringKey> StringKeys { get; set; }
+        public DbSet<KeyOnly> KeyOnlies { get; set; }
 
         public enum DbDriver
         {

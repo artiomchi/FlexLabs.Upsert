@@ -142,7 +142,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             foreach (var arg in arguments)
                 arg.ArgumentIndex = i++;
 
-            var columnUpdateExpressions = updateExpressions?.Select(x => (x.Property.Relational().ColumnName, x.Value)).ToArray();
+            var columnUpdateExpressions = updateExpressions?.Count > 0
+                ? updateExpressions.Select(x => (x.Property.Relational().ColumnName, x.Value)).ToArray()
+                : null;
             var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities, joinColumnNames, columnUpdateExpressions);
             return (sqlCommand, arguments);
         }

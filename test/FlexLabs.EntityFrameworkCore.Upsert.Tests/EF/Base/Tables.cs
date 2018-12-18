@@ -89,4 +89,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public string ID { get; set; }
         public string Name { get; set; }
     }
+
+    public class KeyOnly
+    {
+        public int ID1 { get; set; }
+        public int ID2 { get; set; }
+    }
 }
