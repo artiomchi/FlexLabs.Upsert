@@ -34,7 +34,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         internal UpsertCommandBuilder(DbContext dbContext, ICollection<TEntity> entities)
         {
             _dbContext = dbContext;
-            _entities = entities ?? throw new ArgumentNullException(nameof(entities));
+            _entities = entities;
 
             _entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity));
         }
@@ -46,6 +46,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// <returns>The current instance of the UpsertCommandBuilder</returns>
         public UpsertCommandBuilder<TEntity> On(Expression<Func<TEntity, object>> match)
         {
+            if (match == null)
+                throw new ArgumentNullException(nameof(match));
             if (_matchExpression != null)
                 throw new InvalidOperationException($"Can't call {nameof(On)} twice!");
 
@@ -60,6 +62,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// <returns>The current instance of the UpsertCommandBuilder</returns>
         public UpsertCommandBuilder<TEntity> WhenMatched(Expression<Func<TEntity, TEntity>> updater)
         {
+            if (updater == null)
+                throw new ArgumentNullException(nameof(updater));
             if (_updateExpression != null)
                 throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} twice!");
             if (_noUpdate)
@@ -83,6 +87,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// <returns>The current instance of the UpsertCommandBuilder</returns>
         public UpsertCommandBuilder<TEntity> WhenMatched(Expression<Func<TEntity, TEntity, TEntity>> updater)
         {
+            if (updater == null)
+                throw new ArgumentNullException(nameof(updater));
             if (_updateExpression != null)
                 throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} twice!");
             if (_noUpdate)
@@ -134,6 +140,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// </summary>
         public void Run()
         {
+            if (_entities.Count == 0)
+                return;
+
             var commandRunner = GetCommandRunner();
             commandRunner.Run(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _noUpdate, _useExpressionCompiler);
         }
@@ -145,6 +154,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// <returns>The asynchronous task for this transaction</returns>
         public Task RunAsync(CancellationToken token = default)
         {
+            if (_entities.Count == 0)
+                return Task.CompletedTask;
+
             var commandRunner = GetCommandRunner();
             return commandRunner.RunAsync(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _noUpdate, _useExpressionCompiler, token);
         }
