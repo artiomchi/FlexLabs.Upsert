@@ -19,11 +19,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public abstract bool Supports(string name);
 
         /// <inheritdoc/>
-        public abstract void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
+        public abstract int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, bool useExpressionCompiler) where TEntity : class;
 
         /// <inheritdoc/>
-        public abstract Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
+        public abstract Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, bool useExpressionCompiler, CancellationToken cancellationToken) where TEntity : class;
 
         /// <summary>

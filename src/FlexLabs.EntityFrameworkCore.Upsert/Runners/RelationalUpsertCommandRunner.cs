@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -223,7 +223,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         /// <inheritdoc/>
-        public override void Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
+        public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, bool useExpressionCompiler)
         {
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
@@ -231,12 +231,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate, useExpressionCompiler);
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
-                dbContext.Database.ExecuteSqlCommand(sqlCommand, dbArguments);
+                return dbContext.Database.ExecuteSqlCommand(sqlCommand, dbArguments);
             }
         }
 
         /// <inheritdoc/>
-        public override async Task RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
+        public override async Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, bool useExpressionCompiler, CancellationToken cancellationToken)
         {
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
@@ -244,7 +244,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate, useExpressionCompiler);
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
-                await dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, dbArguments);
+                return await dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, dbArguments);
             }
         }
 
