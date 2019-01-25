@@ -16,8 +16,12 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>2.0.4</VersionPrefix>
+    <VersionPrefix>2.0.5</VersionPrefix>
     <PackageReleaseNotes>
+v2.0.5:
+! The dbcommand would sometimes be disposed of before finishing the execution of the query!
++ Adding the number of rows affected as the return of the Run/RunAsync calls
+
 v2.0.4:
 ! Checking arguments for validity and null references before processing
 
