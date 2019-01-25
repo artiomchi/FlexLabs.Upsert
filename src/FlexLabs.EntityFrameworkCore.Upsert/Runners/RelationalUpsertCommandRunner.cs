@@ -244,7 +244,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, noUpdate, useExpressionCompiler);
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
-                await dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, dbArguments);
+                return await dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, dbArguments);
             }
         }
 
