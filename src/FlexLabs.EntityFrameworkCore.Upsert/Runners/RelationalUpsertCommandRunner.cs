@@ -28,7 +28,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="updateExpressions">The expressions that represent update commands for matched entities</param>
         /// <returns>A fully formed database query</returns>
         public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
-            ICollection<string> joinColumns, ICollection<(string ColumnName, KnownExpression Value)> updateExpressions);
+            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, KnownExpression Value)> updateExpressions);
         /// <summary>
         /// Escape the name of the table/column/schema in a given database language
         /// </summary>
@@ -80,7 +80,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity, TEntity>> updater, bool noUpdate, bool useExpressionCompiler)
         {
             var joinColumns = ProcessMatchExpression(entityType, match);
-            var joinColumnNames = joinColumns.Select(c => c.Relational().ColumnName).ToArray();
+            var joinColumnNames = joinColumns.Select(c => (c.Relational().ColumnName, c.IsColumnNullable())).ToArray();
 
             var properties = entityType.GetProperties()
                 .Where(p => p.ValueGenerated == ValueGenerated.Never)
@@ -115,7 +115,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 updateExpressions = new List<(IProperty Property, KnownExpression Value)>();
                 foreach (var property in properties)
                 {
-                    if (joinColumnNames.Contains(property.Relational().ColumnName))
+                    if (joinColumnNames.Any(c => c.ColumnName == property.Relational().ColumnName))
                         continue;
 
                     var propertyAccess = new ParameterProperty(property.Name, false) { Property = property };

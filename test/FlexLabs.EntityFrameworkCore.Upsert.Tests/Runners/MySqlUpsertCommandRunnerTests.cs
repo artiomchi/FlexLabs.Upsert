@@ -9,6 +9,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
         protected override string NoUpdate_Sql =>
             "INSERT IGNORE INTO myTable (`Name`, `Status`) VALUES (@p0, @p1)";
 
+        protected override string NoUpdate_WithNullable_Sql =>
+            "INSERT IGNORE INTO myTable (`Name`, `Status`) VALUES (@p0, @p1)";
+
         protected override string Update_Constant_Sql =>
             "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Name` = @p2";
 

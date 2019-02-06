@@ -20,8 +20,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override string TargetPrefix => "[T].";
 
         /// <inheritdoc/>
-        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities, ICollection<string> joinColumns,
-            ICollection<(string ColumnName, KnownExpression Value)> updateExpressions)
+        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
+            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, KnownExpression Value)> updateExpressions)
         {
             var result = new StringBuilder();
             result.Append($"MERGE INTO {tableName} WITH (HOLDLOCK) AS [T] USING ( VALUES (");
@@ -29,7 +29,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append($") ) AS [S] (");
             result.Append(string.Join(", ", entities.First().Select(e => EscapeName(e.ColumnName))));
             result.Append(") ON ");
-            result.Append(string.Join(" AND ", joinColumns.Select(c => $"(([S].[{c}] IS NULL AND [T].[{c}] IS NULL) OR ([S].[{c}] IS NOT NULL AND [T].[{c}] = [S].[{c}]))")));
+            result.Append(string.Join(" AND ", joinColumns.Select(c => c.IsNullable
+                ? $"(([S].[{c.ColumnName}] IS NULL AND [T].[{c.ColumnName}] IS NULL) OR ([S].[{c.ColumnName}] IS NOT NULL AND [T].[{c.ColumnName}] = [S].[{c.ColumnName}]))"
+                : $"[T].[{c.ColumnName}] = [S].[{c.ColumnName}]")));
             result.Append(" WHEN NOT MATCHED BY TARGET THEN INSERT (");
             result.Append(string.Join(", ", entities.First().Select(e => EscapeName(e.ColumnName))));
             result.Append(") VALUES (");

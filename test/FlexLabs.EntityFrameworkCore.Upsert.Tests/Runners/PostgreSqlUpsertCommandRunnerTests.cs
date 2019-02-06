@@ -11,6 +11,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "VALUES (@p0, @p1) ON CONFLICT (\"ID\") " +
             "DO NOTHING";
 
+        protected override string NoUpdate_WithNullable_Sql =>
+            "INSERT INTO myTable AS \"T\" (\"Name\", \"Status\") " +
+            "VALUES (@p0, @p1) ON CONFLICT (\"ID1\", \"ID2\") " +
+            "DO NOTHING";
+
         protected override string Update_Constant_Sql =>
             "INSERT INTO myTable AS \"T\" (\"Name\", \"Status\") " +
             "VALUES (@p0, @p1) ON CONFLICT (\"ID\") " +

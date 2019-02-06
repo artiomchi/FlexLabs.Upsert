@@ -22,9 +22,26 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 ( "Status", new ConstantValue("status") { ArgumentIndex = 1} ),
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { "ID" }, null);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, null);
 
             Assert.Equal(NoUpdate_Sql, generatedSql);
+        }
+
+        protected abstract string NoUpdate_WithNullable_Sql { get; }
+        [Fact]
+        public void SqlSyntaxRunner_NoUpdate_WithNullable()
+        {
+            var runner = GetRunner();
+            var tableName = "myTable";
+            ICollection<(string ColumnName, ConstantValue Value)> entity = new[]
+            {
+                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 } ),
+                ( "Status", new ConstantValue("status") { ArgumentIndex = 1} ),
+            };
+
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID1", false), ("ID2", true) }, null);
+
+            Assert.Equal(NoUpdate_WithNullable_Sql, generatedSql);
         }
 
         protected abstract string Update_Constant_Sql { get; }
@@ -43,7 +60,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 ("Name", new KnownExpression(ExpressionType.Constant, new ConstantValue("newValue") { ArgumentIndex = 2 }))
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { "ID" }, updates);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates);
 
             Assert.Equal(Update_Constant_Sql, generatedSql);
         }
@@ -64,7 +81,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 ("Name", new KnownExpression(ExpressionType.MemberAccess, new ParameterProperty("Name", false) { Property = new MockProperty("Name") }))
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { "ID" }, updates);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates);
 
             Assert.Equal(Update_Source_Sql, generatedSql);
         }
@@ -85,7 +102,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 ("Name", new KnownExpression(ExpressionType.MemberAccess, new ParameterProperty("Name", false) { Property = new MockProperty("Name2") }))
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { "ID" }, updates);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates);
 
             Assert.Equal(Update_Source_RenamedCol_Sql, generatedSql);
         }
@@ -108,7 +125,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                     new ConstantValue(1) { ArgumentIndex = 2 }))
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { "ID" }, updates);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates);
 
             Assert.Equal(Update_BinaryAdd_Sql, generatedSql);
         }
@@ -131,7 +148,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                     new ConstantValue(1) { ArgumentIndex = 2 }))
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { "ID" }, updates);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates);
 
             Assert.Equal(Update_Coalesce_Sql, generatedSql);
         }

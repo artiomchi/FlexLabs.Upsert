@@ -267,16 +267,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Assert.Empty(dbContext.DashTable);
                 Assert.Collection(dbContext.Countries.OrderBy(c => c.ID), c => Assert.Equal("AU", c.ISO));
                 Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
-                    pv =>
-                    {
-                        Assert.Equal(_dbVisitOld.UserID, pv.UserID);
-                        Assert.Equal(_dbVisitOld.Date, pv.Date);
-                    },
-                    pv =>
-                    {
-                        Assert.Equal(_dbVisit.UserID, pv.UserID);
-                        Assert.Equal(_dbVisit.Date, pv.Date);
-                    });
+                    pv => Assert.Equal((_dbVisitOld.UserID, _dbVisitOld.Date), (pv.UserID, pv.Date)),
+                    pv => Assert.Equal((_dbVisit.UserID, _dbVisit.Date), (pv.UserID, pv.Date))
+                );
             }
         }
 
@@ -349,13 +342,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     .Run();
 
                 Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
-                    country =>
-                    {
-                        Assert.Equal(newCountry.ISO, country.ISO);
-                        Assert.Equal(newCountry.Name, country.Name);
-                        Assert.Equal(newCountry.Created, country.Created);
-                        Assert.Equal(newCountry.Updated, country.Updated);
-                    });
+                    country => Assert.Equal(
+                        (newCountry.ISO, newCountry.Name, newCountry.Created, newCountry.Updated),
+                        (country.ISO, country.Name, country.Created, country.Updated)));
             }
         }
 
@@ -490,20 +479,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     .Run();
 
                 Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
-                    country =>
-                    {
-                        Assert.Equal(_dbCountry.ISO, country.ISO);
-                        Assert.Equal(_dbCountry.Name, country.Name);
-                        Assert.Equal(_dbCountry.Created, country.Created);
-                        Assert.Equal(_dbCountry.Updated, country.Updated);
-                    },
-                    country =>
-                    {
-                        Assert.Equal(newCountry.ISO, country.ISO);
-                        Assert.Equal(newCountry.Name, country.Name);
-                        Assert.Equal(newCountry.Created, country.Created);
-                        Assert.Equal(newCountry.Updated, country.Updated);
-                    });
+                    country => Assert.Equal(
+                        (_dbCountry.ISO, _dbCountry.Name, _dbCountry.Created, _dbCountry.Updated),
+                        (country.ISO, country.Name, country.Created, country.Updated)),
+                    country => Assert.Equal(
+                        (newCountry.ISO, newCountry.Name, newCountry.Created, newCountry.Updated),
+                        (country.ISO, country.Name, country.Created, country.Updated)));
             }
         }
 
@@ -1147,18 +1128,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 dbContext.Statuses.Upsert(newStatus).Run();
 
                 Assert.Collection(dbContext.Statuses.OrderBy(s => s.ID),
-                    status =>
-                    {
-                        Assert.Equal(_dbStatus.ID, status.ID);
-                        Assert.Equal(_dbStatus.Name, status.Name);
-                        Assert.Equal(_dbStatus.LastChecked, status.LastChecked);
-                    },
-                    status =>
-                    {
-                        Assert.Equal(newStatus.ID, status.ID);
-                        Assert.Equal(newStatus.Name, status.Name);
-                        Assert.Equal(newStatus.LastChecked, status.LastChecked);
-                    });
+                    status => Assert.Equal(
+                        (_dbStatus.ID, _dbStatus.Name, _dbStatus.LastChecked),
+                        (status.ID, status.Name, status.LastChecked)),
+                    status => Assert.Equal(
+                        (newStatus.ID, newStatus.Name, newStatus.LastChecked),
+                        (status.ID, status.Name, status.LastChecked)));
             }
         }
 
@@ -1179,11 +1154,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 dbContext.Statuses.Upsert(newStatus).Run();
 
                 Assert.Collection(dbContext.Statuses,
-                    status =>
-                    {
-                        Assert.Equal(newStatus.Name, status.Name);
-                        Assert.Equal(newStatus.LastChecked, status.LastChecked);
-                    });
+                    status => Assert.Equal((newStatus.Name, newStatus.LastChecked), (status.Name, status.LastChecked)));
             }
         }
 
@@ -1393,11 +1364,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     .Run();
 
                 Assert.Collection(dbContext.KeyOnlies.OrderBy(j => j.ID1),
-                    j =>
-                    {
-                        Assert.Equal(newItem.ID1, j.ID1);
-                        Assert.Equal(newItem.ID2, j.ID2);
-                    });
+                    j => Assert.Equal((newItem.ID1, newItem.ID2), (j.ID1, j.ID2)));
             }
         }
 
