@@ -22,6 +22,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
             modelBuilder.Entity<PageVisit>().HasIndex(pv => new { pv.UserID, pv.Date }).IsUnique();
             modelBuilder.Entity<SchemaTable>().HasIndex(t => t.Name).IsUnique();
             modelBuilder.Entity<KeyOnly>().HasKey(t => new { t.ID1, t.ID2 });
+            modelBuilder.Entity<NullableCompositeKey>().HasIndex(t => new { t.ID1, t.ID2 }).IsUnique();
 
             var dbProvider = this.GetService<IDatabaseProvider>();
             if (dbProvider.Name == "Npgsql.EntityFrameworkCore.PostgreSQL")
@@ -40,6 +41,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DbSet<StringKeyAutoGen> StringKeysAutoGen { get; set; }
         public DbSet<StringKey> StringKeys { get; set; }
         public DbSet<KeyOnly> KeyOnlies { get; set; }
+        public DbSet<NullableCompositeKey> NullableCompositeKeys { get; set; }
 
         public enum DbDriver
         {
@@ -77,7 +79,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
                     // Using the SQLitePCLRaw.provider.sqlite3.netstandard11 package
                     // which loads the external sqlite3 standard dynamic library instead of the embeded old one.
                     SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
-                    // Stop other packages from loading embeded sqlite3 library.
+                    // Stop other packages from loading embedded sqlite3 library.
                     SQLitePCL.raw.FreezeProvider();
 
                     // For debugging purpose, we want to see which sqlite3 version we are using.

@@ -95,4 +95,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public int ID1 { get; set; }
         public int ID2 { get; set; }
     }
+
+    public class NullableCompositeKey
+    {
+        public int ID { get; set; }
+        public int ID1 { get; set; }
+        public int? ID2 { get; set; }
+        public string Value { get; set; }
+    }
 }

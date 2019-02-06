@@ -189,6 +189,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Genres = new[] { "Fantasy" },
         };
 
+        NullableCompositeKey _nullableKey1 = new NullableCompositeKey
+        {
+            ID1 = 1,
+            ID2 = 2,
+            Value = "First",
+        };
+        NullableCompositeKey _nullableKey2 = new NullableCompositeKey
+        {
+            ID1 = 1,
+            ID2 = null,
+            Value = "Second",
+        };
+
         DateTime _now = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
         int _increment = 8;
         public BasicTest(Contexts contexts)
@@ -211,12 +224,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 dbContext.StringKeysAutoGen.RemoveRange(dbContext.StringKeysAutoGen);
                 dbContext.StringKeys.RemoveRange(dbContext.StringKeys);
                 dbContext.KeyOnlies.RemoveRange(dbContext.KeyOnlies);
+                dbContext.NullableCompositeKeys.RemoveRange(dbContext.NullableCompositeKeys);
 
                 dbContext.Countries.Add(_dbCountry);
                 dbContext.PageVisits.Add(_dbVisitOld);
                 dbContext.PageVisits.Add(_dbVisit);
                 dbContext.Statuses.Add(_dbStatus);
                 dbContext.Books.Add(_dbBook);
+                dbContext.NullableCompositeKeys.Add(_nullableKey1);
+                dbContext.NullableCompositeKeys.Add(_nullableKey2);
                 dbContext.SaveChanges();
             }
         }
@@ -1382,6 +1398,42 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                         Assert.Equal(newItem.ID1, j.ID1);
                         Assert.Equal(newItem.ID2, j.ID2);
                     });
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_NullableKeys(TestDbContext.DbDriver driver)
+        {
+            if (driver == TestDbContext.DbDriver.MySQL || driver == TestDbContext.DbDriver.Postgres || driver == TestDbContext.DbDriver.Sqlite)
+                return;
+
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem1 = new NullableCompositeKey
+                {
+                    ID1 = 1,
+                    ID2 = 3,
+                    Value = "Third",
+                };
+                var newItem2 = new NullableCompositeKey
+                {
+                    ID1 = 1,
+                    ID2 = null,
+                    Value = "Fourth",
+                };
+
+                dbContext.NullableCompositeKeys.UpsertRange(newItem1, newItem2)
+                    .On(j => new { j.ID1, j.ID2 })
+                    .Run();
+
+                var dbValues = dbContext.NullableCompositeKeys.ToArray();
+                Assert.Collection(dbContext.NullableCompositeKeys.OrderBy(j => j.ID1).ThenBy(j => j.ID2),
+                    j => Assert.Equal((1, null, "Fourth"), (j.ID1, j.ID2, j.Value)),
+                    j => Assert.Equal((1, 2, "First"), (j.ID1, j.ID2, j.Value)),
+                    j => Assert.Equal((1, 3, "Third"), (j.ID1, j.ID2, j.Value))
+                );
             }
         }
     }
