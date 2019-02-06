@@ -29,7 +29,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append($") ) AS [S] (");
             result.Append(string.Join(", ", entities.First().Select(e => EscapeName(e.ColumnName))));
             result.Append(") ON ");
-            result.Append(string.Join(" AND ", joinColumns.Select(c => $"[T].[{c}] = [S].[{c}]")));
+            result.Append(string.Join(" AND ", joinColumns.Select(c => $"(([S].[{c}] IS NULL AND [T].[{c}] IS NULL) OR ([S].[{c}] IS NOT NULL AND [T].[{c}] = [S].[{c}]))")));
             result.Append(" WHEN NOT MATCHED BY TARGET THEN INSERT (");
             result.Append(string.Join(", ", entities.First().Select(e => EscapeName(e.ColumnName))));
             result.Append(") VALUES (");
