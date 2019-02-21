@@ -22,7 +22,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
             modelBuilder.Entity<PageVisit>().HasIndex(pv => new { pv.UserID, pv.Date }).IsUnique();
             modelBuilder.Entity<SchemaTable>().HasIndex(t => t.Name).IsUnique();
             modelBuilder.Entity<KeyOnly>().HasKey(t => new { t.ID1, t.ID2 });
-            modelBuilder.Entity<NullableCompositeKey>().HasIndex(t => new { t.ID1, t.ID2 }).IsUnique();
+            modelBuilder.Entity<NullableCompositeKey>().HasIndex(t => new { t.ID1, t.ID2 }).IsUnique().HasFilter(null);
 
             var dbProvider = this.GetService<IDatabaseProvider>();
             if (dbProvider.Name == "Npgsql.EntityFrameworkCore.PostgreSQL")
