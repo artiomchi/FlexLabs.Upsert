@@ -16,7 +16,7 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>2.0.6</VersionPrefix>
+    <VersionPrefix>2.0.7</VersionPrefix>
     <PackageReleaseNotes>
 v2.0.6:
 + Adding support for null value upsert matches
