@@ -17,6 +17,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
             modelBuilder.Entity<Book>().HasIndex(b => b.Name).IsUnique();
             modelBuilder.Entity<Book>().Property(b => b.Genres)
                 .HasConversion(g => string.Join(",", g), s => s.Split(','));
+            modelBuilder.Entity<Book>().Property<DateTime?>("NonMappedColumn");
             modelBuilder.Entity<Country>().HasIndex(c => c.ISO).IsUnique();
             modelBuilder.Entity<DashTable>().HasIndex(t => t.DataSet).IsUnique();
             modelBuilder.Entity<PageVisit>().HasIndex(pv => new { pv.UserID, pv.Date }).IsUnique();

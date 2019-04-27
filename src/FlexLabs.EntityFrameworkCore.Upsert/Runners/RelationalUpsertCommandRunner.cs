@@ -84,6 +84,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
             var properties = entityType.GetProperties()
                 .Where(p => p.ValueGenerated == ValueGenerated.Never)
+                .Where(p => p.PropertyInfo != null)
                 .ToArray();
 
             List<(IProperty Property, KnownExpression Value)> updateExpressions = null;
