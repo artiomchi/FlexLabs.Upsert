@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Collections.Generic;
+using System.Reflection;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
@@ -40,5 +41,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// The index of the argument that will be passed to the Db command
         /// </summary>
         public int ArgumentIndex { get; set; }
+
+        /// <inheritdoc/>
+        public IEnumerable<ConstantValue> GetConstantValues()
+        {
+            yield return this;
+        }
+
+        /// <inheritdoc/>
+        public IEnumerable<PropertyValue> GetPropertyValues()
+        {
+            return new PropertyValue[0];
+        }
     }
 }

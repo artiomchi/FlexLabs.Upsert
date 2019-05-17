@@ -28,7 +28,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="updateExpressions">The expressions that represent update commands for matched entities</param>
         /// <returns>A fully formed database query</returns>
         public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
-            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, KnownExpression Value)> updateExpressions);
+            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions);
         /// <summary>
         /// Escape the name of the table/column/schema in a given database language
         /// </summary>
@@ -87,13 +87,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .Where(p => p.PropertyInfo != null)
                 .ToArray();
 
-            List<(IProperty Property, KnownExpression Value)> updateExpressions = null;
+            List<(IProperty Property, IKnownValue Value)> updateExpressions = null;
             if (updater != null)
             {
                 if (!(updater.Body is MemberInitExpression entityUpdater))
                     throw new ArgumentException("updater must be an Initialiser of the TEntity type", nameof(updater));
 
-                updateExpressions = new List<(IProperty Property, KnownExpression Value)>();
+                updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
                 foreach (MemberAssignment binding in entityUpdater.Bindings)
                 {
                     var property = entityType.FindProperty(binding.Member.Name);
@@ -101,27 +101,25 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         throw new InvalidOperationException("Unknown property " + binding.Member.Name);
 
                     var value = binding.Expression.GetValue<TEntity>(updater, useExpressionCompiler);
-                    if (!(value is KnownExpression knownExp))
-                        knownExp = new KnownExpression(ExpressionType.Constant, new ConstantValue(value, property));
+                    if (!(value is IKnownValue knownVal))
+                        knownVal = new ConstantValue(value, property);
 
-                    if (knownExp.Value1 is ParameterProperty epp1)
-                        epp1.Property = entityType.FindProperty(epp1.PropertyName);
-                    if (knownExp.Value2 is ParameterProperty epp2)
-                        epp2.Property = entityType.FindProperty(epp2.PropertyName);
-                    updateExpressions.Add((property, knownExp));
+                    foreach (var valProperty in knownVal.GetPropertyValues())
+                        valProperty.Property = entityType.FindProperty(valProperty.PropertyName);
+
+                    updateExpressions.Add((property, knownVal));
                 }
             }
             else if (!noUpdate)
             {
-                updateExpressions = new List<(IProperty Property, KnownExpression Value)>();
+                updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
                 foreach (var property in properties)
                 {
                     if (joinColumnNames.Any(c => c.ColumnName == property.Relational().ColumnName))
                         continue;
 
-                    var propertyAccess = new ParameterProperty(property.Name, false) { Property = property };
-                    var updateExpression = new KnownExpression(ExpressionType.MemberAccess, propertyAccess);
-                    updateExpressions.Add((property, updateExpression));
+                    var propertyAccess = new PropertyValue(property.Name, false) { Property = property };
+                    updateExpressions.Add((property, propertyAccess));
                 }
             }
 
@@ -138,7 +136,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
             var arguments = newEntities.SelectMany(e => e.Select(p => p.Value)).ToList();
             if (updateExpressions != null)
-                arguments.AddRange(updateExpressions.SelectMany(e => new[] { e.Value.Value1, e.Value.Value2 }).OfType<ConstantValue>());
+                arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues()));
             int i = 0;
             foreach (var arg in arguments)
                 arg.ArgumentIndex = i++;
@@ -150,17 +148,25 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             return (sqlCommand, arguments);
         }
 
-        private string ExpandValue(IKnownValue value)
+        /// <summary>
+        /// Expand a known value into database syntax
+        /// </summary>
+        /// <param name="value">The KnownValue that has to be converted to database language</param>
+        /// <returns>A string containing the expression converted to database language</returns>
+        protected virtual string ExpandValue(IKnownValue value)
         {
             switch (value)
             {
-                case ParameterProperty prop:
+                case PropertyValue prop:
                     var prefix = prop.IsLeftParameter ? TargetPrefix : SourcePrefix;
                     var suffix = prop.IsLeftParameter ? TargetSuffix : SourceSuffix;
                     return prefix + EscapeName(prop.Property.Relational().ColumnName) + suffix;
 
                 case ConstantValue constVal:
                     return Parameter(constVal.ArgumentIndex);
+
+                case KnownExpression expression:
+                    return $"( {ExpandExpression(expression)} )";
 
                 default:
                     throw new InvalidOperationException();

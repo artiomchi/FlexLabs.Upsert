@@ -22,9 +22,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Name` = VALUES(`Name2`)";
 
         protected override string Update_BinaryAdd_Sql =>
-            "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Status` = `Status` + @p2";
+            "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Status` = ( `Status` + @p2 )";
 
         protected override string Update_Coalesce_Sql =>
-            "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Status` = COALESCE(`Status`, @p2)";
+            "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Status` = ( COALESCE(`Status`, @p2) )";
+
+        protected override string Update_BinaryAddMultiply_Sql =>
+            "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Status` = ( ( `Status` + @p2 ) * VALUES(`Status`) )";
+
+        protected override string Update_BinaryAddMultiplyGroup_Sql =>
+            "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Status` = ( `Status` + ( @p2 * VALUES(`Status`) ) )";
     }
 }

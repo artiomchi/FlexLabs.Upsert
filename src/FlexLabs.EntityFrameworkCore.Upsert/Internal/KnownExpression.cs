@@ -1,11 +1,13 @@
-﻿using System.Linq.Expressions;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {
     /// <summary>
     /// A class that represents a known type of expression
     /// </summary>
-    public class KnownExpression
+    public class KnownExpression : IKnownValue
     {
         /// <summary>
         /// Initialises a new instance of the class
@@ -45,5 +47,23 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// The value used in the expression
         /// </summary>
         public IKnownValue Value2 { get; }
+
+        /// <inheritdoc/>
+        public IEnumerable<ConstantValue> GetConstantValues()
+        {
+            if (Value1 != null && Value2 != null)
+                return Value1.GetConstantValues().Concat(Value2.GetConstantValues());
+
+            return Value1?.GetConstantValues() ?? Value2?.GetConstantValues() ?? new ConstantValue[0];
+        }
+
+        /// <inheritdoc/>
+        public IEnumerable<PropertyValue> GetPropertyValues()
+        {
+            if (Value1 != null && Value2 != null)
+                return Value1.GetPropertyValues().Concat(Value2.GetPropertyValues());
+
+            return Value1?.GetPropertyValues() ?? Value2?.GetPropertyValues() ?? new PropertyValue[0];
+        }
     }
 }

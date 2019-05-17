@@ -76,14 +76,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                                 return fInfo.GetValue(memberExp.Expression?.GetValueInternal<TSource>(container, useExpressionCompiler, true));
 
                             case PropertyInfo pInfo:
-                                if (!nested &&
-                                    memberExp.Expression != null &&
-                                    typeof(TSource).Equals(memberExp.Expression.Type) &&
-                                    memberExp.Expression is ParameterExpression paramExp)
+                                if (!nested && memberExp.Expression?.NodeType == ExpressionType.Parameter && typeof(TSource).Equals(memberExp.Expression.Type))
                                 {
-                                    var isLeftParam = paramExp.Equals(container.Parameters[0]);
-                                    if (isLeftParam || paramExp.Equals(container.Parameters[1]))
-                                        return new KnownExpression(expression.NodeType, new ParameterProperty(pInfo.Name, isLeftParam));
+                                    var isLeftParam = memberExp.Expression.Equals(container.Parameters[0]);
+                                    if (isLeftParam || memberExp.Expression.Equals(container.Parameters[1]))
+                                        return new PropertyValue(pInfo.Name, isLeftParam);
                                 }
                                 return pInfo.GetValue(memberExp.Expression?.GetValueInternal<TSource>(container, useExpressionCompiler, true));
 
@@ -107,58 +104,24 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                 case ExpressionType.Multiply:
                 case ExpressionType.Subtract:
                     {
-                    var exp = (BinaryExpression)expression;
-                    if (!nested && exp.Method == null)
-                    {
-                            IKnownValue getValue(Expression e)
-                            {
-                                switch (e.NodeType)
-                                {
-                                    case ExpressionType.Constant:
-                                        {
-                                            return new ConstantValue(((ConstantExpression)e).Value);
-                                        }
+                        var exp = (BinaryExpression)expression;
+                        if (!nested)
+                        {
+                            var leftArg = exp.Left.GetValueInternal<TSource>(container, useExpressionCompiler, false);
+                            if (!(leftArg is IKnownValue leftArgKnown))
+                                if (leftArg is KnownExpression leftArgExp)
+                                    leftArgKnown = leftArgExp.Value1;
+                                else
+                                    leftArgKnown = new ConstantValue(leftArg);
+                            var rightArg = exp.Right.GetValueInternal<TSource>(container, useExpressionCompiler, false);
+                            if (!(rightArg is IKnownValue rightArgKnown))
+                                if (rightArg is KnownExpression rightArgExp)
+                                    rightArgKnown = rightArgExp.Value1;
+                                else
+                                    rightArgKnown = new ConstantValue(rightArg);
 
-                                    case ExpressionType.MemberAccess:
-                                        {
-                                            var memberExp = (MemberExpression)e;
-                                            switch (memberExp.Expression.NodeType)
-                                            {
-                                                case ExpressionType.Constant:
-                                                    {
-                                                        var constExp = (ConstantExpression)memberExp.Expression;
-                                                        switch (memberExp.Member)
-                                                        {
-                                                            case FieldInfo fInfo:
-                                                                return new ConstantValue(fInfo.GetValue(constExp.Value), property: null, memberInfo: fInfo);
-
-                                                            case PropertyInfo pInfo:
-                                                                return new ConstantValue(pInfo.GetValue(constExp.Value), property: null, memberInfo: pInfo);
-                                                        }
-                                                        break;
-                                                    }
-
-                                                case ExpressionType.Parameter:
-                                                    {
-                                                        if (memberExp.Member is PropertyInfo)
-                                                        {
-                                                            var isLeftParam = memberExp.Expression.Equals(container.Parameters[0]);
-                                                            if (isLeftParam || memberExp.Expression.Equals(container.Parameters[1]))
-                                                                return new ParameterProperty(memberExp.Member.Name, isLeftParam);
-                                                        }
-                                                        break;
-                                                    }
-                                            }
-                                            break;
-                                        }
-                                }
-                                return null;
-                            };
-
-                            var leftArg = getValue(exp.Left);
-                            var rightArg = getValue(exp.Right);
-                            if (leftArg != null && rightArg != null)
-                                return new KnownExpression(exp.NodeType, leftArg, rightArg);
+                            if (leftArgKnown != null && rightArgKnown != null)
+                                return new KnownExpression(exp.NodeType, leftArgKnown, rightArgKnown);
                         }
                         if (exp.Method != null)
                             return exp.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null, new[] { exp.Left.GetValueInternal<TSource>(container, useExpressionCompiler, true), exp.Right.GetValueInternal<TSource>(container, useExpressionCompiler, true) }, CultureInfo.InvariantCulture);

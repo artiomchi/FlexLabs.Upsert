@@ -23,7 +23,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         /// <inheritdoc/>
         public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
-            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, KnownExpression Value)> updateExpressions)
+            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions)
         {
             var result = new StringBuilder("INSERT ");
             if (updateExpressions == null)
@@ -36,7 +36,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (updateExpressions != null)
             {
                 result.Append(" ON DUPLICATE KEY UPDATE ");
-                result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{EscapeName(e.ColumnName)} = {ExpandExpression(e.Value)}")));
+                result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
             }
             return result.ToString();
         }

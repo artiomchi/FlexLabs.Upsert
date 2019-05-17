@@ -16,27 +16,11 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>2.0.7</VersionPrefix>
+    <VersionPrefix>2.1.0</VersionPrefix>
     <PackageReleaseNotes>
-v2.0.6:
-+ Adding support for null value upsert matches
-
-v2.0.5:
-! The dbcommand would sometimes be disposed of before finishing the execution of the query!
-+ Adding the number of rows affected as the return of the Run/RunAsync calls
-
-v2.0.4:
-! Checking arguments for validity and null references before processing
-
-v2.0.3:
-! Patching incorrectly constructed SQL statement in case no columns need updating
-
-v2.0.0:
-+ Adding support for EF 2.1 Type Conversions
-+ Adding support for static property/field accessors (e.g. DateTime.Now)
-* Explicitly throwing an exception when using identity keys as upsert match columns (since it wouldn't have worked correctly anyway)
-+ Added help links to exceptions linking to more details
-+ Added support for basic type conversions and modulo operator in expressions
+v2.1.0:
+* Improved expression parser should support more expressions
++ Support for more complex multi-operation combined expressions
     </PackageReleaseNotes>
   </PropertyGroup>
 

@@ -98,7 +98,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
 
             var knownValue = Assert.IsType<KnownExpression>(expValue);
             Assert.Equal(ExpressionType.Add, knownValue.ExpressionType);
-            var value1 = Assert.IsType<ParameterProperty>(knownValue.Value1);
+            var value1 = Assert.IsType<PropertyValue>(knownValue.Value1);
             Assert.Equal("Num1", value1.PropertyName);
             Assert.True(value1.IsLeftParameter);
             var value2 = Assert.IsType<ConstantValue>(knownValue.Value2);
@@ -120,7 +120,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             Assert.Equal(ExpressionType.Add, knownValue.ExpressionType);
             var value1 = Assert.IsType<ConstantValue>(knownValue.Value1);
             Assert.Equal(1, value1.Value);
-            var value2 = Assert.IsType<ParameterProperty>(knownValue.Value2);
+            var value2 = Assert.IsType<PropertyValue>(knownValue.Value2);
             Assert.Equal("Num1", value2.PropertyName);
             Assert.True(value2.IsLeftParameter);
         }
@@ -138,7 +138,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
 
             var knownValue = Assert.IsType<KnownExpression>(expValue);
             Assert.Equal(ExpressionType.Subtract, knownValue.ExpressionType);
-            var value1 = Assert.IsType<ParameterProperty>(knownValue.Value1);
+            var value1 = Assert.IsType<PropertyValue>(knownValue.Value1);
             Assert.Equal("Num1", value1.PropertyName);
             Assert.True(value1.IsLeftParameter);
             var value2 = Assert.IsType<ConstantValue>(knownValue.Value2);
@@ -158,7 +158,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
 
             var knownValue = Assert.IsType<KnownExpression>(expValue);
             Assert.Equal(ExpressionType.Multiply, knownValue.ExpressionType);
-            var value1 = Assert.IsType<ParameterProperty>(knownValue.Value1);
+            var value1 = Assert.IsType<PropertyValue>(knownValue.Value1);
             Assert.Equal("Num1", value1.PropertyName);
             Assert.True(value1.IsLeftParameter);
             var value2 = Assert.IsType<ConstantValue>(knownValue.Value2);
@@ -178,7 +178,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
 
             var knownValue = Assert.IsType<KnownExpression>(expValue);
             Assert.Equal(ExpressionType.Divide, knownValue.ExpressionType);
-            var value1 = Assert.IsType<ParameterProperty>(knownValue.Value1);
+            var value1 = Assert.IsType<PropertyValue>(knownValue.Value1);
             Assert.Equal("Num1", value1.PropertyName);
             Assert.True(value1.IsLeftParameter);
             var value2 = Assert.IsType<ConstantValue>(knownValue.Value2);
@@ -198,7 +198,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
 
             var knownValue = Assert.IsType<KnownExpression>(expValue);
             Assert.Equal(ExpressionType.Modulo, knownValue.ExpressionType);
-            var value1 = Assert.IsType<ParameterProperty>(knownValue.Value1);
+            var value1 = Assert.IsType<PropertyValue>(knownValue.Value1);
             Assert.Equal("Num1", value1.PropertyName);
             Assert.True(value1.IsLeftParameter);
             var value2 = Assert.IsType<ConstantValue>(knownValue.Value2);
@@ -216,12 +216,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp);
 
-            var knownValue = Assert.IsType<KnownExpression>(expValue);
-            Assert.Equal(ExpressionType.MemberAccess, knownValue.ExpressionType);
-            var property = Assert.IsType<ParameterProperty>(knownValue.Value1);
+            var property = Assert.IsType<PropertyValue>(expValue);
             Assert.Equal("Num1", property.PropertyName);
             Assert.True(property.IsLeftParameter);
-            Assert.Null(knownValue.Value2);
         }
 
         [Fact]
@@ -235,12 +232,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp);
 
-            var knownValue = Assert.IsType<KnownExpression>(expValue);
-            Assert.Equal(ExpressionType.MemberAccess, knownValue.ExpressionType);
-            var property = Assert.IsType<ParameterProperty>(knownValue.Value1);
+            var property = Assert.IsType<PropertyValue>(expValue);
             Assert.Equal("Num2", property.PropertyName);
             Assert.True(property.IsLeftParameter);
-            Assert.Null(knownValue.Value2);
         }
 
         [Fact]
@@ -254,12 +248,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp);
 
-            var knownValue = Assert.IsType<KnownExpression>(expValue);
-            Assert.Equal(ExpressionType.MemberAccess, knownValue.ExpressionType);
-            var property = Assert.IsType<ParameterProperty>(knownValue.Value1);
+            var property = Assert.IsType<PropertyValue>(expValue);
             Assert.Equal("Num1", property.PropertyName);
             Assert.True(property.IsLeftParameter);
-            Assert.Null(knownValue.Value2);
         }
 
         [Fact]
@@ -273,12 +264,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp);
 
-            var knownValue = Assert.IsType<KnownExpression>(expValue);
-            Assert.Equal(ExpressionType.MemberAccess, knownValue.ExpressionType);
-            var property = Assert.IsType<ParameterProperty>(knownValue.Value1);
+            var property = Assert.IsType<PropertyValue>(expValue);
             Assert.Equal("Num1", property.PropertyName);
             Assert.False(property.IsLeftParameter);
-            Assert.Null(knownValue.Value2);
         }
 
         [Fact]
@@ -380,6 +368,150 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var expValue = memberAssig.GetValue<TestEntity>(exp, useExpressionCompiler: true);
             var num1 = Assert.IsType<int>(expValue);
             Assert.Equal(input.Length, num1);
+        }
+
+        [Fact]
+        public void CompoundExpression_Sum()
+        {
+            Expression<Func<TestEntity, TestEntity, TestEntity>> exp = (e1, e2) => new TestEntity
+            {
+                Text1 = e1.Text1 + "." + e2.Text2,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+
+            var expression = Assert.IsType<KnownExpression>(expValue);
+            Assert.Equal(ExpressionType.Add, expression.ExpressionType);
+
+            var exp1 = Assert.IsType<KnownExpression>(expression.Value1);
+            Assert.Equal(ExpressionType.Add, exp1.ExpressionType);
+            var param1 = Assert.IsType<PropertyValue>(exp1.Value1);
+            Assert.Equal("Text1", param1.PropertyName);
+            var param2 = Assert.IsType<ConstantValue>(exp1.Value2);
+            Assert.Equal(".", param2.Value);
+            var param3 = Assert.IsType<PropertyValue>(expression.Value2);
+            Assert.Equal("Text2", param3.PropertyName);
+        }
+
+        [Fact]
+        public void CompoundExpression_Sum_Grouped1()
+        {
+            Expression<Func<TestEntity, TestEntity, TestEntity>> exp = (e1, e2) => new TestEntity
+            {
+                Text1 = (e1.Text1 + ".") + e2.Text2,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+
+            var expression = Assert.IsType<KnownExpression>(expValue);
+            Assert.Equal(ExpressionType.Add, expression.ExpressionType);
+
+            var exp1 = Assert.IsType<KnownExpression>(expression.Value1);
+            Assert.Equal(ExpressionType.Add, exp1.ExpressionType);
+            var param1 = Assert.IsType<PropertyValue>(exp1.Value1);
+            Assert.Equal("Text1", param1.PropertyName);
+            var param2 = Assert.IsType<ConstantValue>(exp1.Value2);
+            Assert.Equal(".", param2.Value);
+            var param3 = Assert.IsType<PropertyValue>(expression.Value2);
+            Assert.Equal("Text2", param3.PropertyName);
+        }
+
+        [Fact]
+        public void CompoundExpression_Sum_Grouped2()
+        {
+            Expression<Func<TestEntity, TestEntity, TestEntity>> exp = (e1, e2) => new TestEntity
+            {
+                Text1 = e1.Text1 + ("." + e2.Text2),
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+
+            var expression = Assert.IsType<KnownExpression>(expValue);
+            Assert.Equal(ExpressionType.Add, expression.ExpressionType);
+
+            var param1 = Assert.IsType<PropertyValue>(expression.Value1);
+            Assert.Equal("Text1", param1.PropertyName);
+            var exp1 = Assert.IsType<KnownExpression>(expression.Value2);
+            Assert.Equal(ExpressionType.Add, exp1.ExpressionType);
+            var param2 = Assert.IsType<ConstantValue>(exp1.Value1);
+            Assert.Equal(".", param2.Value);
+            var param3 = Assert.IsType<PropertyValue>(exp1.Value2);
+            Assert.Equal("Text2", param3.PropertyName);
+        }
+
+        [Fact]
+        public void CompoundExpression_Multiply()
+        {
+            Expression<Func<TestEntity, TestEntity, TestEntity>> exp = (e1, e2) => new TestEntity
+            {
+                Num1 = e1.Num1 + 7 * e2.Num2,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+
+            var expression = Assert.IsType<KnownExpression>(expValue);
+            Assert.Equal(ExpressionType.Add, expression.ExpressionType);
+
+            var param1 = Assert.IsType<PropertyValue>(expression.Value1);
+            Assert.Equal("Num1", param1.PropertyName);
+            var exp1 = Assert.IsType<KnownExpression>(expression.Value2);
+            Assert.Equal(ExpressionType.Multiply, exp1.ExpressionType);
+            var param2 = Assert.IsType<ConstantValue>(exp1.Value1);
+            Assert.Equal(7, param2.Value);
+            var param3 = Assert.IsType<PropertyValue>(exp1.Value2);
+            Assert.Equal("Num2", param3.PropertyName);
+        }
+
+        [Fact]
+        public void CompoundExpression_Multiply_Grouped1()
+        {
+            Expression<Func<TestEntity, TestEntity, TestEntity>> exp = (e1, e2) => new TestEntity
+            {
+                Num1 = (e1.Num1 + 7) * e2.Num2,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+
+            var expression = Assert.IsType<KnownExpression>(expValue);
+            Assert.Equal(ExpressionType.Multiply, expression.ExpressionType);
+
+            var exp1 = Assert.IsType<KnownExpression>(expression.Value1);
+            Assert.Equal(ExpressionType.Add, exp1.ExpressionType);
+            var param1 = Assert.IsType<PropertyValue>(exp1.Value1);
+            Assert.Equal("Num1", param1.PropertyName);
+            var param2 = Assert.IsType<ConstantValue>(exp1.Value2);
+            Assert.Equal(7, param2.Value);
+            var param3 = Assert.IsType<PropertyValue>(expression.Value2);
+            Assert.Equal("Num2", param3.PropertyName);
+        }
+
+        [Fact]
+        public void CompoundExpression_Multiply_Grouped2()
+        {
+            Expression<Func<TestEntity, TestEntity, TestEntity>> exp = (e1, e2) => new TestEntity
+            {
+                Num1 = e1.Num1 + (7 * e2.Num2),
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+
+            var expression = Assert.IsType<KnownExpression>(expValue);
+            Assert.Equal(ExpressionType.Add, expression.ExpressionType);
+
+            var param1 = Assert.IsType<PropertyValue>(expression.Value1);
+            Assert.Equal("Num1", param1.PropertyName);
+            var exp1 = Assert.IsType<KnownExpression>(expression.Value2);
+            Assert.Equal(ExpressionType.Multiply, exp1.ExpressionType);
+            var param2 = Assert.IsType<ConstantValue>(exp1.Value1);
+            Assert.Equal(7, param2.Value);
+            var param3 = Assert.IsType<PropertyValue>(exp1.Value2);
+            Assert.Equal("Num2", param3.PropertyName);
         }
     }
 }
