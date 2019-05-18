@@ -29,7 +29,7 @@ v2.1.0:
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\certs\FlexLabsStrongKey.snk</AssemblyOriginatorKeyFile>
-    <PostBuildEvent>signtool.exe sign /n "Artiom Chilaru" /t "http://timestamp.digicert.com" FlexLabs.EntityFrameworkCore.Upsert.dll</PostBuildEvent>
+    <PostBuildEvent>signtool.exe sign /n "Artiom Chilaru" /fd sha256 /tr "http://timestamp.digicert.com" /td sha256 FlexLabs.EntityFrameworkCore.Upsert.dll</PostBuildEvent>
   </PropertyGroup>
 
   <ItemGroup>
