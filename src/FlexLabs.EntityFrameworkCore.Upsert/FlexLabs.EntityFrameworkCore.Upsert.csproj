@@ -11,7 +11,7 @@
 Uses `INSERT … ON CONFLICT DO UPDATE` in PostgreSQL/Sqlite, `MERGE` in SqlServer and `INSERT INTO … ON DUPLICATE KEY UPDATE` in MySQL.
 
 Also supports injecting sql command generators to add support for other providers</Description>
-    <Copyright>Artiom Chilaru © 2018</Copyright>
+    <Copyright>Artiom Chilaru © 2019</Copyright>
     <PackageProjectUrl>https://github.com/artiomchi/FlexLabs.Upsert</PackageProjectUrl>
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
@@ -31,7 +31,8 @@ v2.1.0:
     <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\certs\FlexLabsStrongKey.snk</AssemblyOriginatorKeyFile>
-    <PostBuildEvent>signtool.exe sign /n "Artiom Chilaru" /fd sha256 /tr "http://timestamp.digicert.com" /td sha256 FlexLabs.EntityFrameworkCore.Upsert.dll</PostBuildEvent>
+    <SignCertificateName>Artiom Chilaru</SignCertificateName>
+    <PostBuildEvent>signtool.exe sign /n "$(SignCertificateName)" /fd sha256 /tr "http://timestamp.digicert.com" /td sha256 FlexLabs.EntityFrameworkCore.Upsert.dll</PostBuildEvent>
   </PropertyGroup>
 
   <ItemGroup>
