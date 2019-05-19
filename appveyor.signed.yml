@@ -71,27 +71,3 @@ for:
     api_key:
       secure: BlCFbX6MZpsBFqMRZHGultlTjjW8N7fwApHSx/AidToI+nIVCGb5G0yJ3+faCHbc
     artifact: /.*\.nupkg/
-
-- branches:
-    only:
-    - /prerelease\/.*/
-
-  init:
-  - ps: $Env:VersionSuffixParam = "--version-suffix"
-  - ps: $Env:VersionSuffixValue = ($Env:APPVEYOR_REPO_BRANCH.Substring(11) + "-" + $Env:APPVEYOR_BUILD_NUMBER.PadLeft(5, "0"))
-
-- branches:
-    only:
-    - master
-
-  init:
-  - ps: $Env:VersionSuffixParam = $null
-  - ps: $Env:VersionSuffixValue = $null
-
-  deploy:
-  - provider: NuGet
-    server: https://www.myget.org/F/artiomchi/api/v2/package
-    symbol_server: https://www.myget.org/F/artiomchi/symbols/api/v2/package
-    api_key:
-      secure: BlCFbX6MZpsBFqMRZHGultlTjjW8N7fwApHSx/AidToI+nIVCGb5G0yJ3+faCHbc
-    artifact: /.*\.nupkg/
