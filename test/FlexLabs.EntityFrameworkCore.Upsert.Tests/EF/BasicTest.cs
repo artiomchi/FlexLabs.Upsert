@@ -213,6 +213,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         {
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
             {
+                dbContext.TestEntities.RemoveRange(dbContext.TestEntities);
                 dbContext.Countries.RemoveRange(dbContext.Countries);
                 dbContext.DashTable.RemoveRange(dbContext.DashTable);
                 dbContext.Statuses.RemoveRange(dbContext.Statuses);
@@ -233,6 +234,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 dbContext.Books.Add(_dbBook);
                 dbContext.NullableCompositeKeys.Add(_nullableKey1);
                 dbContext.NullableCompositeKeys.Add(_nullableKey2);
+                dbContext.SaveChanges();
+            }
+        }
+
+        private void ResetDb<TEntity>(TestDbContext.DbDriver driver, TEntity seedValue)
+        {
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                dbContext.Add(seedValue);
                 dbContext.SaveChanges();
             }
         }
@@ -1401,6 +1412,205 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     j => Assert.Equal((1, 2, "First"), (j.ID1, j.ID2, j.Value)),
                     j => Assert.Equal((1, 3, "Third"), (j.ID1, j.ID2, j.Value))
                 );
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_CompositeExpression_New(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContex = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem = new TestEntity
+                {
+                    Num1 = 1,
+                    Num2 = 7,
+                    Text1 = "hello",
+                    Text2 = "world",
+                };
+
+                dbContex.TestEntities.Upsert(newItem)
+                    .On(j => j.Num1)
+                    .WhenMatched((je, jn) => new TestEntity
+                    {
+                        Num2 = je.Num2 * 2 + jn.Num2,
+                        Text1 = je.Text1 + ", " + jn.Text1 + ", " + jn.Text2,
+                    })
+                    .Run();
+
+                Assert.Collection(dbContex.TestEntities,
+                    e => Assert.Equal((newItem.Num1, newItem.Num2, newItem.Text1, newItem.Text2), (e.Num1, e.Num2, e.Text1, e.Text2)));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_CompositeExpression_Update(TestDbContext.DbDriver driver)
+        {
+            var dbItem = new TestEntity
+            {
+                Num1 = 1,
+                Num2 = 7,
+                Text1 = "hello",
+                Text2 = "world",
+            };
+
+            ResetDb(driver, dbItem);
+            using (var dbContex = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem = new TestEntity
+                {
+                    Num1 = 1,
+                    Num2 = 2,
+                    Text1 = "who",
+                    Text2 = "where",
+                };
+
+                dbContex.TestEntities.Upsert(newItem)
+                    .On(j => j.Num1)
+                    .WhenMatched((je, jn) => new TestEntity
+                    {
+                        Num2 = je.Num2 * 2 + jn.Num2,
+                        //Text1 = je.Text1 + ", " + jn.Text1 + ", " + jn.Text2, // String concatenation works differently in some databases :)
+                    })
+                    .Run();
+
+                Assert.Collection(dbContex.TestEntities,
+                    e => Assert.Equal(
+                        (
+                        dbItem.Num1,
+                        dbItem.Num2 * 2 + newItem.Num2,
+                        dbItem.Text1,// + ", " + newItem.Text1 + ", " + newItem.Text2,
+                        dbItem.Text2
+                        ), (
+                        e.Num1,
+                        e.Num2,
+                        e.Text1,
+                        e.Text2
+                        )));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_ConditionalExpression_New(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContex = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem = new TestEntity
+                {
+                    Num1 = 1,
+                    Num2 = 7,
+                    Text1 = "hello",
+                    Text2 = "world",
+                };
+
+                dbContex.TestEntities.Upsert(newItem)
+                    .On(j => j.Num1)
+                    .WhenMatched((je, jn) => new TestEntity
+                    {
+                        Num2 = je.Num2 - jn.Num2 > 0 ? je.Num2 - jn.Num2 : 0,
+                    })
+                    .Run();
+
+                Assert.Collection(dbContex.TestEntities,
+                    e => Assert.Equal((newItem.Num1, newItem.Num2, newItem.Text1, newItem.Text2), (e.Num1, e.Num2, e.Text1, e.Text2)));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_ConditionalExpression_UpdateTrue(TestDbContext.DbDriver driver)
+        {
+            var dbItem = new TestEntity
+            {
+                Num1 = 1,
+                Num2 = 7,
+                Text1 = "hello",
+                Text2 = "world",
+            };
+
+            ResetDb(driver, dbItem);
+            using (var dbContex = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem = new TestEntity
+                {
+                    Num1 = 1,
+                    Num2 = 2,
+                    Text1 = "who",
+                    Text2 = "where",
+                };
+
+                dbContex.TestEntities.Upsert(newItem)
+                    .On(j => j.Num1)
+                    .WhenMatched((je, jn) => new TestEntity
+                    {
+                        Num2 = je.Num2 - jn.Num2 > 0 ? je.Num2 - jn.Num2 : 0,
+                    })
+                    .Run();
+
+                Assert.Collection(dbContex.TestEntities,
+                    e => Assert.Equal(
+                        (
+                        dbItem.Num1,
+                        dbItem.Num2 - newItem.Num2,
+                        dbItem.Text1,
+                        dbItem.Text2
+                        ), (
+                        e.Num1,
+                        e.Num2,
+                        e.Text1,
+                        e.Text2
+                        )));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_ConditionalExpression_UpdateFalse(TestDbContext.DbDriver driver)
+        {
+            var dbItem = new TestEntity
+            {
+                Num1 = 1,
+                Num2 = 7,
+                Text1 = "hello",
+                Text2 = "world",
+            };
+
+            ResetDb(driver, dbItem);
+            using (var dbContex = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem = new TestEntity
+                {
+                    Num1 = 1,
+                    Num2 = 22,
+                    Text1 = "who",
+                    Text2 = "where",
+                };
+
+                dbContex.TestEntities.Upsert(newItem)
+                    .On(j => j.Num1)
+                    .WhenMatched((je, jn) => new TestEntity
+                    {
+                        Num2 = je.Num2 - jn.Num2 > 0 ? je.Num2 - jn.Num2 : 0,
+                    })
+                    .Run();
+
+                Assert.Collection(dbContex.TestEntities,
+                    e => Assert.Equal(
+                        (
+                        dbItem.Num1,
+                        0,
+                        dbItem.Text1,
+                        dbItem.Text2
+                        ), (
+                        e.Num1,
+                        e.Num2,
+                        e.Text1,
+                        e.Text2
+                        )));
             }
         }
     }

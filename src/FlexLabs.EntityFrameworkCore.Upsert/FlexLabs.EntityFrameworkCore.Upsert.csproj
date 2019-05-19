@@ -21,6 +21,8 @@ Also supports injecting sql command generators to add support for other provider
 v2.1.0:
 * Improved expression parser should support more expressions
 + Support for more complex multi-operation combined expressions
++ Support for conditional expressions
++ Support for comparison expressions
     </PackageReleaseNotes>
   </PropertyGroup>
 

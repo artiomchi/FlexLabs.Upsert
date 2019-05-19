@@ -187,6 +187,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 case ExpressionType.Modulo:
                 case ExpressionType.Multiply:
                 case ExpressionType.Subtract:
+                case ExpressionType.LessThan:
+                case ExpressionType.LessThanOrEqual:
+                case ExpressionType.GreaterThan:
+                case ExpressionType.GreaterThanOrEqual:
+                case ExpressionType.Equal:
+                case ExpressionType.NotEqual:
                     {
                         var left = ExpandValue(expression.Value1);
                         var right = ExpandValue(expression.Value2);
@@ -199,6 +205,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         var left = ExpandValue(expression.Value1);
                         var right = ExpandValue(expression.Value2);
                         return $"COALESCE({left}, {right})";
+                    }
+
+                case ExpressionType.Conditional:
+                    {
+                        var ifTrue = ExpandValue(expression.Value1);
+                        var ifFalse = ExpandValue(expression.Value2);
+                        var test = ExpandValue(expression.Value3);
+                        return $"CASE WHEN {test} THEN {ifTrue} ELSE {ifFalse} END";
                     }
 
                 case ExpressionType.MemberAccess:
@@ -225,6 +239,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 case ExpressionType.Modulo: return "%";
                 case ExpressionType.Multiply: return "*";
                 case ExpressionType.Subtract: return "-";
+                case ExpressionType.LessThan: return "<";
+                case ExpressionType.LessThanOrEqual: return "<=";
+                case ExpressionType.GreaterThan: return ">";
+                case ExpressionType.GreaterThanOrEqual: return ">=";
+                case ExpressionType.Equal: return "=";
+                case ExpressionType.NotEqual: return "!=";
                 default: throw new InvalidOperationException($"{expressionType} is not a simple arithmetic operation");
             }
         }

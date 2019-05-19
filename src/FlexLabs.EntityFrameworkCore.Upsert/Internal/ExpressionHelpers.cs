@@ -52,6 +52,23 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                         return new KnownExpression(expression.NodeType, leftValue, rightValue);
                     }
 
+                case ExpressionType.Conditional:
+                    {
+                        var conditionalExp = (ConditionalExpression)expression;
+                        var ifTrue = conditionalExp.IfTrue.GetValueInternal<TSource>(container, useExpressionCompiler, nested);
+                        var ifFalse = conditionalExp.IfFalse.GetValueInternal<TSource>(container, useExpressionCompiler, nested);
+                        var conditionExp = conditionalExp.Test.GetValueInternal<TSource>(container, useExpressionCompiler, nested);
+
+                        if (!(conditionExp is IKnownValue knownCondition))
+                            knownCondition = new ConstantValue(conditionExp);
+                        if (!(ifTrue is IKnownValue knownTrue))
+                            knownTrue = new ConstantValue(ifTrue);
+                        if (!(ifFalse is IKnownValue knownFalse))
+                            knownFalse = new ConstantValue(ifFalse);
+
+                        return new KnownExpression(expression.NodeType, knownTrue, knownFalse, knownCondition);
+                    }
+
                 case ExpressionType.Constant:
                     {
                         return ((ConstantExpression)expression).Value;
@@ -103,6 +120,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                 case ExpressionType.Modulo:
                 case ExpressionType.Multiply:
                 case ExpressionType.Subtract:
+                case ExpressionType.LessThan:
+                case ExpressionType.LessThanOrEqual:
+                case ExpressionType.GreaterThan:
+                case ExpressionType.GreaterThanOrEqual:
+                case ExpressionType.Equal:
+                case ExpressionType.NotEqual:
                     {
                         var exp = (BinaryExpression)expression;
                         if (!nested)

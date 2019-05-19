@@ -34,6 +34,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         }
 
         /// <summary>
+        /// Initialises a new instance of the class
+        /// </summary>
+        /// <param name="expressionType">The type of the operation being executed</param>
+        /// <param name="value1">The value used in the expression</param>
+        /// <param name="value2">The value used in the expression</param>
+        /// <param name="value3">The value used in the expression</param>
+        public KnownExpression(ExpressionType expressionType, IKnownValue value1, IKnownValue value2, IKnownValue value3)
+        {
+            ExpressionType = expressionType;
+            Value1 = value1;
+            Value2 = value2;
+            Value3 = value3;
+        }
+
+        /// <summary>
         /// The type of the operation being executed
         /// </summary>
         public ExpressionType ExpressionType { get; }
@@ -48,22 +63,22 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// </summary>
         public IKnownValue Value2 { get; }
 
-        /// <inheritdoc/>
-        public IEnumerable<ConstantValue> GetConstantValues()
-        {
-            if (Value1 != null && Value2 != null)
-                return Value1.GetConstantValues().Concat(Value2.GetConstantValues());
+        /// <summary>
+        /// The value used in the expression
+        /// </summary>
+        public IKnownValue Value3 { get; }
 
-            return Value1?.GetConstantValues() ?? Value2?.GetConstantValues() ?? new ConstantValue[0];
+        private IEnumerable<IKnownValue> GetValues()
+        {
+            yield return Value1;
+            yield return Value2;
+            yield return Value3;
         }
 
         /// <inheritdoc/>
-        public IEnumerable<PropertyValue> GetPropertyValues()
-        {
-            if (Value1 != null && Value2 != null)
-                return Value1.GetPropertyValues().Concat(Value2.GetPropertyValues());
+        public IEnumerable<ConstantValue> GetConstantValues() => GetValues().Where(v => v != null).SelectMany(v => v.GetConstantValues());
 
-            return Value1?.GetPropertyValues() ?? Value2?.GetPropertyValues() ?? new PropertyValue[0];
-        }
+        /// <inheritdoc/>
+        public IEnumerable<PropertyValue> GetPropertyValues() => GetValues().Where(v => v != null).SelectMany(v => v.GetPropertyValues());
     }
 }

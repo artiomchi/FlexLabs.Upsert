@@ -14,6 +14,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<TestEntity>().HasIndex(b => b.Num1).IsUnique();
             modelBuilder.Entity<Book>().HasIndex(b => b.Name).IsUnique();
             modelBuilder.Entity<Book>().Property(b => b.Genres)
                 .HasConversion(g => string.Join(",", g), s => s.Split(','));
@@ -30,6 +31,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
                 modelBuilder.Entity<JsonData>().Property(j => j.Data).HasColumnType("jsonb");
         }
 
+        public DbSet<TestEntity> TestEntities { get; set; }
         public DbSet<Book> Books { get; set; }
         public DbSet<Country> Countries { get; set; }
         public DbSet<DashTable> DashTable { get; set; }
