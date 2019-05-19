@@ -14,7 +14,7 @@ Also supports injecting sql command generators to add support for other provider
     <Copyright>Artiom Chilaru © 2019</Copyright>
     <PackageProjectUrl>https://github.com/artiomchi/FlexLabs.Upsert</PackageProjectUrl>
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
-    <PackageLicenseUrl>https://opensource.org/licenses/MIT</PackageLicenseUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
     <VersionPrefix>2.1.0</VersionPrefix>
     <PackageReleaseNotes>
