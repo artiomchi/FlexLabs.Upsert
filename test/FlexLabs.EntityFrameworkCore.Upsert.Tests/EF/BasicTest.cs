@@ -1435,7 +1435,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     .WhenMatched((je, jn) => new TestEntity
                     {
                         Num2 = je.Num2 * 2 + jn.Num2,
-                        Text1 = je.Text1 + ", " + jn.Text1 + ", " + jn.Text2,
                     })
                     .Run();
 
@@ -1472,7 +1471,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     .WhenMatched((je, jn) => new TestEntity
                     {
                         Num2 = je.Num2 * 2 + jn.Num2,
-                        //Text1 = je.Text1 + ", " + jn.Text1 + ", " + jn.Text2, // String concatenation works differently in some databases :)
                     })
                     .Run();
 
@@ -1481,7 +1479,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                         (
                         dbItem.Num1,
                         dbItem.Num2 * 2 + newItem.Num2,
-                        dbItem.Text1,// + ", " + newItem.Text1 + ", " + newItem.Text2,
+                        dbItem.Text1,
                         dbItem.Text2
                         ), (
                         e.Num1,
