@@ -22,7 +22,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 ( "Status", new ConstantValue("status") { ArgumentIndex = 1} ),
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, null);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, null, null);
 
             Assert.Equal(NoUpdate_Sql, generatedSql);
         }
@@ -39,7 +39,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 ( "Status", new ConstantValue("status") { ArgumentIndex = 1} ),
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID1", false), ("ID2", true) }, null);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID1", false), ("ID2", true) }, null, null);
 
             Assert.Equal(NoUpdate_WithNullable_Sql, generatedSql);
         }
@@ -60,7 +60,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 ("Name", (IKnownValue)new ConstantValue("newValue") { ArgumentIndex = 2 })
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
 
             Assert.Equal(Update_Constant_Sql, generatedSql);
         }
@@ -81,7 +81,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 ("Name", (IKnownValue)new PropertyValue("Name", false) { Property = new MockProperty("Name") })
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
 
             Assert.Equal(Update_Source_Sql, generatedSql);
         }
@@ -102,7 +102,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 ("Name", (IKnownValue)new PropertyValue("Name", false) { Property = new MockProperty("Name2") })
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
 
             Assert.Equal(Update_Source_RenamedCol_Sql, generatedSql);
         }
@@ -125,7 +125,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                     new ConstantValue(1) { ArgumentIndex = 2 }))
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
 
             Assert.Equal(Update_BinaryAdd_Sql, generatedSql);
         }
@@ -148,7 +148,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                     new ConstantValue(1) { ArgumentIndex = 2 }))
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
 
             Assert.Equal(Update_Coalesce_Sql, generatedSql);
         }
@@ -173,7 +173,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                     new PropertyValue("Status", false) { Property = new MockProperty("Status") }))
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
 
             Assert.Equal(Update_BinaryAddMultiply_Sql, generatedSql);
         }
@@ -198,7 +198,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                         new PropertyValue("Status", false) { Property = new MockProperty("Status") })))
             };
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates);
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
 
             Assert.Equal(Update_BinaryAddMultiplyGroup_Sql, generatedSql);
         }

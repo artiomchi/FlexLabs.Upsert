@@ -29,10 +29,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="entities">Array of entities to be upserted</param>
         /// <param name="matchExpression">Expression that represents which properties will be used as a match clause for the upsert command</param>
         /// <param name="updateExpression">Expression that represents which properties will be updated, and what values will be set</param>
+        /// <param name="updateCondition">Expression that checks whether the database entry should be updated</param>
         /// <param name="noUpdate">Specifies that if a match is found, no action will be taken on the entity</param>
         /// <param name="useExpressionCompiler">If true, will fallback to the (slower) expression compiler for unhandled update expressions</param>
         int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, bool useExpressionCompiler) where TEntity : class;
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, Expression<Func<TEntity, TEntity, bool>> updateCondition, bool noUpdate, bool useExpressionCompiler)
+            where TEntity : class;
 
         /// <summary>
         /// Run the upsert command for the entities passed
@@ -43,11 +45,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="entities">Array of entities to be upserted</param>
         /// <param name="matchExpression">Expression that represents which properties will be used as a match clause for the upsert command</param>
         /// <param name="updateExpression">Expression that represents which properties will be updated, and what values will be set</param>
+        /// <param name="updateCondition">Expression that checks whether the database entry should be updated</param>
         /// <param name="noUpdate">Specifies that if a match is found, no action will be taken on the entity</param>
         /// <param name="useExpressionCompiler">If true, will fallback to the (slower) expression compiler for unhandled update expressions</param>
         /// <param name="cancellationToken">The CancellationToken to observe while waiting for the task to complete.</param>
         /// <returns>The task that represents the asynchronous upsert operation</returns>
         Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, bool useExpressionCompiler, CancellationToken cancellationToken) where TEntity : class;
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, Expression<Func<TEntity, TEntity, bool>> updateCondition, bool noUpdate, bool useExpressionCompiler,
+            CancellationToken cancellationToken) where TEntity : class;
     }
 }

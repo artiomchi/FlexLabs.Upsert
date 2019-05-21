@@ -19,12 +19,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public override bool Supports(string providerName) => providerName == "Microsoft.EntityFrameworkCore.InMemory";
 
         private void RunCore<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate) where TEntity : class
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, Expression<Func<TEntity, TEntity, bool>> updateCondition, bool noUpdate) where TEntity : class
         {
             // Find matching entities in the dbContext
             var matches = FindMatches(entityType, entities, dbContext, matchExpression);
 
             Action<TEntity, TEntity> updateAction = null;
+            Func<TEntity, TEntity, bool> updateTest = updateCondition?.Compile();
             if (updateExpression != null)
             {
                 // If update expression is specified, create an update delegate based on that
@@ -65,6 +66,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     continue;
                 }
 
+                if (updateTest?.Invoke(dbEntity, newEntity) == false)
+                    continue;
+
                 updateAction?.Invoke(dbEntity, newEntity);
             }
         }
@@ -95,17 +99,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         /// <inheritdoc/>
         public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, bool useExpressionCompiler)
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, Expression<Func<TEntity, TEntity, bool>> updateCondition, bool noUpdate, bool useExpressionCompiler)
         {
-            RunCore(dbContext, entityType, entities, matchExpression, updateExpression, noUpdate);
+            RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, noUpdate);
             return dbContext.SaveChanges();
         }
 
         /// <inheritdoc/>
         public override Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, bool noUpdate, bool useExpressionCompiler, CancellationToken cancellationToken)
+            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, Expression<Func<TEntity, TEntity, bool>> updateCondition, bool noUpdate, bool useExpressionCompiler,
+            CancellationToken cancellationToken)
         {
-            RunCore(dbContext, entityType, entities, matchExpression, updateExpression, noUpdate);
+            RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, noUpdate);
             return dbContext.SaveChangesAsync(cancellationToken);
         }
     }

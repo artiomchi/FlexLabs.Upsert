@@ -495,5 +495,24 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             IsPropertyValue(falseExp.Value1, "Num1", true);
             IsConstantValue(falseExp.Value2, 7);
         }
+
+        [Fact]
+        public void CompoundExpression_Conditional_NotEqual()
+        {
+            Expression<Func<TestEntity, TestEntity, TestEntity>> exp = (e1, e2) => new TestEntity
+            {
+                Num1 = e1.Num1 != 4 ? 0 : 1,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+
+            var condExpr = IsKnownExpression(expValue, ExpressionType.Conditional);
+            var testExp = IsKnownExpression(condExpr.Value3, ExpressionType.NotEqual);
+            IsPropertyValue(testExp.Value1, "Num1", true);
+            IsConstantValue(testExp.Value2, 4);
+            IsConstantValue(condExpr.Value1, 0);
+            IsConstantValue(condExpr.Value2, 1);
+        }
     }
 }

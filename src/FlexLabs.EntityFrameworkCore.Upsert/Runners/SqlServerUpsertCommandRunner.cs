@@ -21,7 +21,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         /// <inheritdoc/>
         public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
-            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions)
+            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions,
+            KnownExpression updateCondition)
         {
             var result = new StringBuilder();
             result.Append($"MERGE INTO {tableName} WITH (HOLDLOCK) AS [T] USING ( VALUES (");
@@ -39,7 +40,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append(")");
             if (updateExpressions != null)
             {
-                result.Append(" WHEN MATCHED THEN UPDATE SET ");
+                result.Append(" WHEN MATCHED");
+                if (updateCondition != null)
+                    result.Append($" AND {ExpandExpression(updateCondition)}");
+                result.Append(" THEN UPDATE SET ");
                 result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
             }
             result.Append(";");

@@ -1611,5 +1611,195 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                         )));
             }
         }
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_UpdateCondition_New(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContex = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem = new TestEntity
+                {
+                    Num1 = 1,
+                    Num2 = 7,
+                    Text1 = "hello",
+                    Text2 = "world",
+                };
+
+                dbContex.TestEntities.Upsert(newItem)
+                    .On(j => j.Num1)
+                    .WhenMatched((e1, e2) => new TestEntity
+                    {
+                        Num2 = e2.Num2,
+                    })
+                    .UpdateIf((ed, en) => ed.Num2 != en.Num2)
+                    .Run();
+
+                Assert.Collection(dbContex.TestEntities,
+                    e => Assert.Equal((newItem.Num1, newItem.Num2, newItem.Text1, newItem.Text2), (e.Num1, e.Num2, e.Text1, e.Text2)));
+            }
+        }
+
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_UpdateCondition_New_AutoUpdate(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using (var dbContex = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem = new TestEntity
+                {
+                    Num1 = 1,
+                    Num2 = 7,
+                    Text1 = "hello",
+                    Text2 = "world",
+                };
+
+                dbContex.TestEntities.Upsert(newItem)
+                    .On(j => j.Num1)
+                    .UpdateIf((ed, en) => ed.Num2 != en.Num2)
+                    .Run();
+
+                Assert.Collection(dbContex.TestEntities,
+                    e => Assert.Equal((newItem.Num1, newItem.Num2, newItem.Text1, newItem.Text2), (e.Num1, e.Num2, e.Text1, e.Text2)));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_UpdateCondition_Update(TestDbContext.DbDriver driver)
+        {
+            var dbItem = new TestEntity
+            {
+                Num1 = 1,
+                Num2 = 7,
+                Text1 = "hello",
+                Text2 = "world",
+            };
+
+            ResetDb(driver, dbItem);
+            using (var dbContex = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem = new TestEntity
+                {
+                    Num1 = 1,
+                    Num2 = 2,
+                    Text1 = "who",
+                    Text2 = "where",
+                };
+
+                dbContex.TestEntities.Upsert(newItem)
+                    .On(j => j.Num1)
+                    .WhenMatched((e1, e2) => new TestEntity
+                    {
+                        Num2 = e2.Num2,
+                    })
+                    .UpdateIf((ed, en) => ed.Num2 != en.Num2)
+                    .Run();
+
+                Assert.Collection(dbContex.TestEntities,
+                    e => Assert.Equal(
+                        (
+                        dbItem.Num1,
+                        newItem.Num2,
+                        dbItem.Text1,
+                        dbItem.Text2
+                        ), (
+                        e.Num1,
+                        e.Num2,
+                        e.Text1,
+                        e.Text2
+                        )));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_UpdateCondition_AutoUpdate(TestDbContext.DbDriver driver)
+        {
+            var dbItem = new TestEntity
+            {
+                Num1 = 1,
+                Num2 = 7,
+                Text1 = "hello",
+                Text2 = "world",
+            };
+
+            ResetDb(driver, dbItem);
+            using (var dbContex = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem = new TestEntity
+                {
+                    Num1 = 1,
+                    Num2 = 2,
+                    Text1 = "who",
+                    Text2 = "where",
+                };
+
+                dbContex.TestEntities.Upsert(newItem)
+                    .On(j => j.Num1)
+                    .UpdateIf((ed, en) => ed.Num2 != en.Num2)
+                    .Run();
+
+                Assert.Collection(dbContex.TestEntities,
+                    e => Assert.Equal(
+                        (
+                        newItem.Num1,
+                        newItem.Num2,
+                        newItem.Text1,
+                        newItem.Text2
+                        ), (
+                        e.Num1,
+                        e.Num2,
+                        e.Text1,
+                        e.Text2
+                        )));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_UpdateCondition_NoUpdate(TestDbContext.DbDriver driver)
+        {
+            var dbItem = new TestEntity
+            {
+                Num1 = 1,
+                Num2 = 7,
+                Text1 = "hello",
+                Text2 = "world",
+            };
+
+            ResetDb(driver, dbItem);
+            using (var dbContex = new TestDbContext(_dataContexts[driver]))
+            {
+                var newItem = new TestEntity
+                {
+                    Num1 = 1,
+                    Num2 = 7,
+                    Text1 = "who",
+                    Text2 = "where",
+                };
+
+                dbContex.TestEntities.Upsert(newItem)
+                    .On(j => j.Num1)
+                    .UpdateIf((ed, en) => ed.Num2 != en.Num2)
+                    .Run();
+
+                Assert.Collection(dbContex.TestEntities,
+                    e => Assert.Equal(
+                        (
+                        dbItem.Num1,
+                        dbItem.Num2,
+                        dbItem.Text1,
+                        dbItem.Text2
+                        ), (
+                        e.Num1,
+                        e.Num2,
+                        e.Text1,
+                        e.Text2
+                        )));
+            }
+        }
     }
 }
