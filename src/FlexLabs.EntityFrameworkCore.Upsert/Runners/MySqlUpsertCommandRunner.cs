@@ -26,6 +26,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions,
             KnownExpression updateCondition)
         {
+            if (updateCondition != null)
+                throw UnsupportedExpressionException.MySQLConditionalUpdate();
+
             var result = new StringBuilder("INSERT ");
             if (updateExpressions == null)
                 result.Append("IGNORE ");

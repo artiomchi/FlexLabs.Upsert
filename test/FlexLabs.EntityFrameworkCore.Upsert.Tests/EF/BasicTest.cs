@@ -34,6 +34,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
         public static readonly List<TestDbContext.DbDriver> DatabaseEngines;
         public static IEnumerable<object[]> GetDatabaseEngines() => DatabaseEngines.Select(e => new object[] { e });
+        public static IEnumerable<object[]> GetDatabaseEnginesExceptMySql() => DatabaseEngines.Where(e => e != TestDbContext.DbDriver.MySQL).Select(e => new object[] { e });
 
         public class Contexts : IDisposable
         {
@@ -1612,7 +1613,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             }
         }
         [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
+        [MemberData(nameof(GetDatabaseEnginesExceptMySql))]
         public void Upsert_UpdateCondition_New(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
@@ -1642,7 +1643,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
 
         [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
+        [MemberData(nameof(GetDatabaseEnginesExceptMySql))]
         public void Upsert_UpdateCondition_New_AutoUpdate(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
@@ -1667,7 +1668,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
+        [MemberData(nameof(GetDatabaseEnginesExceptMySql))]
         public void Upsert_UpdateCondition_Update(TestDbContext.DbDriver driver)
         {
             var dbItem = new TestEntity
@@ -1715,7 +1716,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
+        [MemberData(nameof(GetDatabaseEnginesExceptMySql))]
         public void Upsert_UpdateCondition_AutoUpdate(TestDbContext.DbDriver driver)
         {
             var dbItem = new TestEntity
@@ -1759,7 +1760,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
+        [MemberData(nameof(GetDatabaseEnginesExceptMySql))]
         public void Upsert_UpdateCondition_NoUpdate(TestDbContext.DbDriver driver)
         {
             var dbItem = new TestEntity

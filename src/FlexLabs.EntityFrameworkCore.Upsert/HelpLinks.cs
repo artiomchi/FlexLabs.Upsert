@@ -8,5 +8,6 @@
         // Also referenced in the xml comment for UnsupportedExpressionException
         // Also referenced in the xml comment for UpsertCommandBuilder.WithFallbackExpressionCompiler
         internal const string SupportedExpressions = "https://go.flexlabs.org/upsert.expressions";
+        internal const string MySQLConditionalUpdate = "https://go.flexlabs.org/upsert.mysql.where";
     }
 }
