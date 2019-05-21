@@ -38,13 +38,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 result.Append(" ON DUPLICATE KEY UPDATE ");
                 result.Append(string.Join(", ", updateExpressions
-                    .Select((e, i) =>
-                    {
-                        var statement = $"{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}";
-                        if (updateCondition != null)
-                            statement = $"IF ({ExpandExpression(updateCondition)}, {statement}, {EscapeName(e.ColumnName)})";
-                        return statement;
-                    })));
+                    .Select((e, i) => updateCondition != null
+                        ? $"{EscapeName(e.ColumnName)} = IF ({ExpandExpression(updateCondition)}, {ExpandValue(e.Value)}, {EscapeName(e.ColumnName)})"
+                        : $"{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
             }
             return result.ToString();
         }
