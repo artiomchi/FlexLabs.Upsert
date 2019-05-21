@@ -86,7 +86,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var joinColumnNames = joinColumns.Select(c => (c.Relational().ColumnName, c.IsColumnNullable())).ToArray();
 
             var properties = entityType.GetProperties()
-                .Where(p => p.ValueGenerated == ValueGenerated.Never)
+                .Where(p => p.ValueGenerated == ValueGenerated.Never || p.AfterSaveBehavior == PropertySaveBehavior.Save)
                 .Where(p => p.PropertyInfo != null)
                 .ToArray();
 

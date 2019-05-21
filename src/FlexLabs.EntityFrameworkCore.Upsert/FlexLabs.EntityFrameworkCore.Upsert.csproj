@@ -20,6 +20,7 @@ Also supports injecting sql command generators to add support for other provider
     <PackageReleaseNotes>
 v2.1.1:
 + Add filter condition for updates on upsert
+! Updating properties with default values
 
 v2.1.0:
 * Improved expression parser should support more expressions
