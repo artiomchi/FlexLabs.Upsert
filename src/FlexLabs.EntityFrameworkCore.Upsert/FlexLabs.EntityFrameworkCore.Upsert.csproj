@@ -16,9 +16,9 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>2.1.1</VersionPrefix>
+    <VersionPrefix>2.1.2</VersionPrefix>
     <PackageReleaseNotes>
-v2.1.1:
+v2.1.2:
 + Add filter condition for updates on upsert
 ! Updating properties with default values
 
