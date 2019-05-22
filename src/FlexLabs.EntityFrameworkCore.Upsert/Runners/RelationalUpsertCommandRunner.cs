@@ -44,6 +44,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <returns>The reference to the parameter</returns>
         protected virtual string Parameter(int index) => "@p" + index;
         /// <summary>
+        /// Reference an named variable defined by the query runner
+        /// </summary>
+        /// <param name="name">The name of the variable</param>
+        /// <returns>The reference to the variable</returns>
+        protected virtual string Variable(string name) => "@x" + name;
+        /// <summary>
         /// Get the escaped database table schema
         /// </summary>
         /// <param name="entityType">The entity type of the table</param>
@@ -167,12 +173,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// Expand a known value into database syntax
         /// </summary>
         /// <param name="value">The KnownValue that has to be converted to database language</param>
+        /// <param name="modifiers">Modifier flags that may affect how an expression is translated to SQL</param>
         /// <returns>A string containing the expression converted to database language</returns>
-        protected virtual string ExpandValue(IKnownValue value)
+        protected virtual string ExpandValue(IKnownValue value, ExpressionModifiers modifiers = 0)
         {
             switch (value)
             {
                 case PropertyValue prop:
+                    if (modifiers.HasFlag(ExpressionModifiers.LeftPropertyAsVariable) && prop.IsLeftParameter)
+                        return Variable(prop.Property.Relational().ColumnName);
+
                     var prefix = prop.IsLeftParameter ? TargetPrefix : SourcePrefix;
                     var suffix = prop.IsLeftParameter ? TargetSuffix : SourceSuffix;
                     return prefix + EscapeName(prop.Property.Relational().ColumnName) + suffix;
@@ -192,8 +202,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// Expand a known expression into database syntax
         /// </summary>
         /// <param name="expression">The KnownExpression that has to be converted to database language</param>
+        /// <param name="modifiers">Modifier flags that may affect how an expression is translated to SQL</param>
         /// <returns>A string containing the expression converted to database language</returns>
-        protected virtual string ExpandExpression(KnownExpression expression)
+        protected virtual string ExpandExpression(KnownExpression expression, ExpressionModifiers modifiers = 0)
         {
             switch (expression.ExpressionType)
             {
@@ -209,31 +220,31 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 case ExpressionType.Equal:
                 case ExpressionType.NotEqual:
                     {
-                        var left = ExpandValue(expression.Value1);
-                        var right = ExpandValue(expression.Value2);
+                        var left = ExpandValue(expression.Value1, modifiers);
+                        var right = ExpandValue(expression.Value2, modifiers);
                         var op = GetSimpleOperator(expression.ExpressionType);
                         return $"{left} {op} {right}";
                     }
 
                 case ExpressionType.Coalesce:
                     {
-                        var left = ExpandValue(expression.Value1);
-                        var right = ExpandValue(expression.Value2);
+                        var left = ExpandValue(expression.Value1, modifiers);
+                        var right = ExpandValue(expression.Value2, modifiers);
                         return $"COALESCE({left}, {right})";
                     }
 
                 case ExpressionType.Conditional:
                     {
-                        var ifTrue = ExpandValue(expression.Value1);
-                        var ifFalse = ExpandValue(expression.Value2);
-                        var test = ExpandValue(expression.Value3);
+                        var ifTrue = ExpandValue(expression.Value1, modifiers);
+                        var ifFalse = ExpandValue(expression.Value2, modifiers);
+                        var test = ExpandValue(expression.Value3, modifiers);
                         return $"CASE WHEN {test} THEN {ifTrue} ELSE {ifFalse} END";
                     }
 
                 case ExpressionType.MemberAccess:
                 case ExpressionType.Constant:
                     {
-                        return ExpandValue(expression.Value1);
+                        return ExpandValue(expression.Value1, modifiers);
                     }
 
                 default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);

@@ -26,9 +26,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions,
             KnownExpression updateCondition)
         {
-            if (updateCondition != null)
-                throw UnsupportedExpressionException.MySQLConditionalUpdate();
-
             var result = new StringBuilder("INSERT ");
             if (updateExpressions == null)
                 result.Append("IGNORE ");
@@ -40,9 +37,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (updateExpressions != null)
             {
                 result.Append(" ON DUPLICATE KEY UPDATE ");
+                var variables = updateCondition != null
+                    ? string.Join(", ", updateExpressions.Select(e => $"IF (({Variable(e.ColumnName)} := {EscapeName(e.ColumnName)}), NULL, NULL)"))
+                    : null;
                 result.Append(string.Join(", ", updateExpressions
                     .Select((e, i) => updateCondition != null
-                        ? $"{EscapeName(e.ColumnName)} = IF ({ExpandExpression(updateCondition)}, {ExpandValue(e.Value)}, {EscapeName(e.ColumnName)})"
+                        ? i == 0
+                        ? $"{EscapeName(e.ColumnName)} = COALESCE ({variables}, IF ({ExpandExpression(updateCondition, ExpressionModifiers.LeftPropertyAsVariable)}, {ExpandValue(e.Value)}, {EscapeName(e.ColumnName)}))"
+                        : $"{EscapeName(e.ColumnName)} = IF ({ExpandExpression(updateCondition, ExpressionModifiers.LeftPropertyAsVariable)}, {ExpandValue(e.Value)}, {EscapeName(e.ColumnName)})"
                         : $"{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
             }
             return result.ToString();
