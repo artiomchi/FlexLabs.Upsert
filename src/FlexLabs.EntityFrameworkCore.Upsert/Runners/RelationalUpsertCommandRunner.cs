@@ -173,19 +173,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// Expand a known value into database syntax
         /// </summary>
         /// <param name="value">The KnownValue that has to be converted to database language</param>
-        /// <param name="modifiers">Modifier flags that may affect how an expression is translated to SQL</param>
+        /// <param name="expandLeftColumn">Override the way the table column names are rendered</param>
         /// <returns>A string containing the expression converted to database language</returns>
-        protected virtual string ExpandValue(IKnownValue value, ExpressionModifiers modifiers = 0)
+        protected virtual string ExpandValue(IKnownValue value, Func<string, string> expandLeftColumn = null)
         {
             switch (value)
             {
                 case PropertyValue prop:
-                    if (modifiers.HasFlag(ExpressionModifiers.LeftPropertyAsVariable) && prop.IsLeftParameter)
-                        return Variable(prop.Property.Relational().ColumnName);
+                    var columnName = prop.Property.Relational().ColumnName;
+                    if (expandLeftColumn != null && prop.IsLeftParameter)
+                        return expandLeftColumn(columnName);
 
                     var prefix = prop.IsLeftParameter ? TargetPrefix : SourcePrefix;
                     var suffix = prop.IsLeftParameter ? TargetSuffix : SourceSuffix;
-                    return prefix + EscapeName(prop.Property.Relational().ColumnName) + suffix;
+                    return prefix + EscapeName(columnName) + suffix;
 
                 case ConstantValue constVal:
                     return Parameter(constVal.ArgumentIndex);
@@ -202,9 +203,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// Expand a known expression into database syntax
         /// </summary>
         /// <param name="expression">The KnownExpression that has to be converted to database language</param>
-        /// <param name="modifiers">Modifier flags that may affect how an expression is translated to SQL</param>
+        /// <param name="expandLeftColumn">Override the way the table column names are rendered</param>
         /// <returns>A string containing the expression converted to database language</returns>
-        protected virtual string ExpandExpression(KnownExpression expression, ExpressionModifiers modifiers = 0)
+        protected virtual string ExpandExpression(KnownExpression expression, Func<string, string> expandLeftColumn = null)
         {
             switch (expression.ExpressionType)
             {
@@ -218,8 +219,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 case ExpressionType.GreaterThan:
                 case ExpressionType.GreaterThanOrEqual:
                     {
-                        var left = ExpandValue(expression.Value1, modifiers);
-                        var right = ExpandValue(expression.Value2, modifiers);
+                        var left = ExpandValue(expression.Value1, expandLeftColumn);
+                        var right = ExpandValue(expression.Value2, expandLeftColumn);
                         var op = GetSimpleOperator(expression.ExpressionType);
                         return $"{left} {op} {right}";
                     }
@@ -234,31 +235,31 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                             return IsNullExpression(value2Null ? expression.Value1 : expression.Value2, expression.ExpressionType == ExpressionType.NotEqual);
                         }
 
-                        var left = ExpandValue(expression.Value1, modifiers);
-                        var right = ExpandValue(expression.Value2, modifiers);
+                        var left = ExpandValue(expression.Value1, expandLeftColumn);
+                        var right = ExpandValue(expression.Value2, expandLeftColumn);
                         var op = GetSimpleOperator(expression.ExpressionType);
                         return $"{left} {op} {right}";
                     }
 
                 case ExpressionType.Coalesce:
                     {
-                        var left = ExpandValue(expression.Value1, modifiers);
-                        var right = ExpandValue(expression.Value2, modifiers);
+                        var left = ExpandValue(expression.Value1, expandLeftColumn);
+                        var right = ExpandValue(expression.Value2, expandLeftColumn);
                         return $"COALESCE({left}, {right})";
                     }
 
                 case ExpressionType.Conditional:
                     {
-                        var ifTrue = ExpandValue(expression.Value1, modifiers);
-                        var ifFalse = ExpandValue(expression.Value2, modifiers);
-                        var test = ExpandValue(expression.Value3, modifiers);
+                        var ifTrue = ExpandValue(expression.Value1, expandLeftColumn);
+                        var ifFalse = ExpandValue(expression.Value2, expandLeftColumn);
+                        var test = ExpandValue(expression.Value3, expandLeftColumn);
                         return $"CASE WHEN {test} THEN {ifTrue} ELSE {ifFalse} END";
                     }
 
                 case ExpressionType.MemberAccess:
                 case ExpressionType.Constant:
                     {
-                        return ExpandValue(expression.Value1, modifiers);
+                        return ExpandValue(expression.Value1, expandLeftColumn);
                     }
 
                 default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);

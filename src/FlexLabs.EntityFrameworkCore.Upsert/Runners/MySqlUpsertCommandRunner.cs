@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
+using Microsoft.EntityFrameworkCore;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
@@ -37,15 +38,28 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (updateExpressions != null)
             {
                 result.Append(" ON DUPLICATE KEY UPDATE ");
-                var variables = updateCondition != null
-                    ? string.Join(", ", updateExpressions.Select(e => $"IF (({Variable(e.ColumnName)} := {EscapeName(e.ColumnName)}), NULL, NULL)"))
-                    : null;
-                result.Append(string.Join(", ", updateExpressions
-                    .Select((e, i) => updateCondition != null
-                        ? i == 0
-                        ? $"{EscapeName(e.ColumnName)} = COALESCE ({variables}, IF ({ExpandExpression(updateCondition, ExpressionModifiers.LeftPropertyAsVariable)}, {ExpandValue(e.Value)}, {EscapeName(e.ColumnName)}))"
-                        : $"{EscapeName(e.ColumnName)} = IF ({ExpandExpression(updateCondition, ExpressionModifiers.LeftPropertyAsVariable)}, {ExpandValue(e.Value)}, {EscapeName(e.ColumnName)})"
-                        : $"{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
+                if (updateCondition != null)
+                {
+                    var variables = string.Join(", ", updateExpressions.Select(e => $"IF (({Variable(e.ColumnName)} := {EscapeName(e.ColumnName)}), NULL, NULL)"));
+                    string expandColumn(string propertyName)
+                    {
+                        if (updateExpressions.Any(e => e.ColumnName == propertyName))
+                            return Variable(propertyName);
+                        return TargetPrefix + EscapeName(propertyName) + TargetSuffix;
+                    }
+                    result.Append(string.Join(", ", updateExpressions
+                        .Select((e, i) =>
+                        {
+                            var valueExpression = $"IF ({ExpandExpression(updateCondition, expandColumn)}, {ExpandValue(e.Value)}, {EscapeName(e.ColumnName)})";
+                            return i == 0
+                                ? $"{EscapeName(e.ColumnName)} = COALESCE ({variables}, {valueExpression})"
+                                : $"{EscapeName(e.ColumnName)} = {valueExpression}";
+                        })));
+                }
+                else
+                {
+                    result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
+                }
             }
             return result.ToString();
         }
