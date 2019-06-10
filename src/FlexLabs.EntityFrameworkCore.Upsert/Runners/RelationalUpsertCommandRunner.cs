@@ -148,10 +148,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .Select(e => properties
                     .Select(p =>
                     {
-                        var columnName = p.Relational().ColumnName;
-                        var value = new ConstantValue(p.PropertyInfo.GetValue(e), p);
+                        var relational = p.Relational();
+                        var columnName = relational.ColumnName;
+                        var rawValue = p.PropertyInfo.GetValue(e);
+                        if (rawValue == null && (relational.DefaultValue ?? relational.DefaultValueSql) != null)
+                            return (null, null);
+                        var value = new ConstantValue(rawValue, p);
                         return (columnName, value);
                     })
+                    .Where(r => r.columnName != null)
                     .ToArray() as ICollection<(string ColumnName, ConstantValue Value)>)
                 .ToArray();
 
