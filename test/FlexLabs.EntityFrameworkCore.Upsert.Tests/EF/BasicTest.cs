@@ -1831,7 +1831,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     .UpdateIf(j => j.Text1 != null)
                     .Run();
 
-                Assert.Collection(dbContext.TestEntities.ToArray(),
+                Assert.Collection(dbContext.TestEntities.OrderBy(e => e.Num1).ToArray(),
                     e => Assert.Equal(
                         (
                         dbItem1.Num1,
