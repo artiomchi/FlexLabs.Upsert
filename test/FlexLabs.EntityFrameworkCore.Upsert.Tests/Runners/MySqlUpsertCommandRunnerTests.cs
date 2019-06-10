@@ -32,5 +32,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
         protected override string Update_BinaryAddMultiplyGroup_Sql =>
             "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Status` = ( `Status` + ( @p2 * VALUES(`Status`) ) )";
+
+        protected override string Update_Condition_Sql =>
+            "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Name` = @p2 WHERE `Counter` > @p3";
+
+        protected override string Update_Condition_NullCheck_Sql =>
+            "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Name` = @p2 WHERE `Counter` IS NOT NULL";
     }
 }

@@ -217,9 +217,23 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 case ExpressionType.LessThanOrEqual:
                 case ExpressionType.GreaterThan:
                 case ExpressionType.GreaterThanOrEqual:
+                    {
+                        var left = ExpandValue(expression.Value1, modifiers);
+                        var right = ExpandValue(expression.Value2, modifiers);
+                        var op = GetSimpleOperator(expression.ExpressionType);
+                        return $"{left} {op} {right}";
+                    }
+
                 case ExpressionType.Equal:
                 case ExpressionType.NotEqual:
                     {
+                        var value1Null = expression.Value1 is ConstantValue constant1 && constant1.Value == null;
+                        var value2Null = expression.Value2 is ConstantValue constant2 && constant2.Value == null;
+                        if (value1Null || value2Null)
+                        {
+                            return IsNullExpression(value2Null ? expression.Value1 : expression.Value2, expression.ExpressionType == ExpressionType.NotEqual);
+                        }
+
                         var left = ExpandValue(expression.Value1, modifiers);
                         var right = ExpandValue(expression.Value2, modifiers);
                         var op = GetSimpleOperator(expression.ExpressionType);
@@ -249,6 +263,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
                 default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
             }
+        }
+
+        /// <summary>
+        /// Translates a check for null values to sql
+        /// </summary>
+        /// <param name="value">Value to be checked for null</param>
+        /// <param name="notNull">Reverse the check to test for non null value</param>
+        /// <returns>Sql statement representing the check</returns>
+        protected virtual string IsNullExpression(IKnownValue value, bool notNull)
+        {
+            return !notNull
+                ? $"{ExpandValue(value)} IS NULL"
+                : $"{ExpandValue(value)} IS NOT NULL";
         }
 
         /// <summary>

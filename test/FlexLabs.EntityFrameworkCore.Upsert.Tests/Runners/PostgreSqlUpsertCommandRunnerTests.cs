@@ -50,5 +50,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "INSERT INTO myTable AS \"T\" (\"Name\", \"Status\") " +
             "VALUES (@p0, @p1) ON CONFLICT (\"ID\") " +
             "DO UPDATE SET \"Status\" = ( \"T\".\"Status\" + ( @p2 * EXCLUDED.\"Status\" ) )";
+
+        protected override string Update_Condition_Sql =>
+            "INSERT INTO myTable AS \"T\" (\"Name\", \"Status\") " +
+            "VALUES (@p0, @p1) ON CONFLICT (\"ID\") " +
+            "DO UPDATE SET \"Name\" = @p2 " +
+            "WHERE \"T\".\"Counter\" > @p3";
+
+        protected override string Update_Condition_NullCheck_Sql =>
+            "INSERT INTO myTable AS \"T\" (\"Name\", \"Status\") " +
+            "VALUES (@p0, @p1) ON CONFLICT (\"ID\") " +
+            "DO UPDATE SET \"Name\" = @p2 " +
+            "WHERE \"T\".\"Counter\" IS NOT NULL";
     }
 }

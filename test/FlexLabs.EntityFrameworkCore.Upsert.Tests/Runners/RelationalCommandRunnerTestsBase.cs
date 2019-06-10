@@ -202,5 +202,49 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             Assert.Equal(Update_BinaryAddMultiplyGroup_Sql, generatedSql);
         }
+        protected abstract string Update_Condition_Sql { get; }
+        [Fact]
+        public void SqlSyntaxRunner_Update_Condition()
+        {
+            var runner = GetRunner();
+            var tableName = "myTable";
+            ICollection<(string ColumnName, ConstantValue Value)> entity = new[]
+            {
+                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 } ),
+                ( "Status", new ConstantValue("status") { ArgumentIndex = 1} ),
+            };
+            var updates = new[]
+            {
+                ("Name", (IKnownValue)new ConstantValue("newValue") { ArgumentIndex = 2 })
+            };
+            var condition = new KnownExpression(ExpressionType.GreaterThan, new PropertyValue("Counter", true) { Property = new MockProperty("Counter") }, new ConstantValue(12) { ArgumentIndex = 3 });
+
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, condition);
+
+            Assert.Equal(Update_Condition_Sql, generatedSql);
+        }
+
+        protected abstract string Update_Condition_NullCheck_Sql { get; }
+        [Fact]
+        public void SqlSyntaxRunner_Update_Condition_NullCheck()
+        {
+            var runner = GetRunner();
+            var tableName = "myTable";
+            ICollection<(string ColumnName, ConstantValue Value)> entity = new[]
+            {
+                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 } ),
+                ( "Status", new ConstantValue("status") { ArgumentIndex = 1} ),
+            };
+            var updates = new[]
+            {
+                ("Name", (IKnownValue)new ConstantValue("newValue") { ArgumentIndex = 2 })
+            };
+            var condition = new KnownExpression(ExpressionType.NotEqual, new PropertyValue("Counter", true) { Property = new MockProperty("Counter") }, new ConstantValue(null) { ArgumentIndex = 3 });
+
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, condition);
+
+            Assert.Equal(Update_Condition_NullCheck_Sql, generatedSql);
+        }
+
     }
 }

@@ -238,12 +238,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             }
         }
 
-        private void ResetDb<TEntity>(TestDbContext.DbDriver driver, TEntity seedValue)
+        private void ResetDb<TEntity>(TestDbContext.DbDriver driver, params TEntity[] seedValue)
         {
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
             {
-                dbContext.Add(seedValue);
+                dbContext.AddRange(seedValue.Cast<object>());
                 dbContext.SaveChanges();
             }
         }
@@ -1798,6 +1798,59 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                         e.Num2,
                         e.Text1,
                         e.Text2
+                        )));
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_UpdateCondition_NullCheck(TestDbContext.DbDriver driver)
+        {
+            var dbItem1 = new TestEntity
+            {
+                Num1 = 1,
+                Num2 = 2,
+                Text1 = "hello",
+            };
+            var dbItem2 = new TestEntity
+            {
+                Num1 = 2,
+                Num2 = 3,
+                Text1 = null
+            };
+
+            ResetDb(driver, dbItem1, dbItem2);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                dbContext.TestEntities.UpsertRange(dbItem1, dbItem2)
+                    .On(j => j.Num1)
+                    .WhenMatched(j => new TestEntity
+                    {
+                        Num2 = j.Num2 + 1,
+                    })
+                    .UpdateIf(j => j.Text1 != null)
+                    .Run();
+
+                Assert.Collection(dbContext.TestEntities.ToArray(),
+                    e => Assert.Equal(
+                        (
+                        dbItem1.Num1,
+                        dbItem1.Num2 + 1,
+                        dbItem1.Text1
+                        ), (
+                        e.Num1,
+                        e.Num2,
+                        e.Text1
+                        )),
+                    e => Assert.Equal(
+                        (
+                        dbItem2.Num1,
+                        dbItem2.Num2,
+                        dbItem2.Text1
+                        ), (
+                        e.Num1,
+                        e.Num2,
+                        e.Text1
                         )));
             }
         }
