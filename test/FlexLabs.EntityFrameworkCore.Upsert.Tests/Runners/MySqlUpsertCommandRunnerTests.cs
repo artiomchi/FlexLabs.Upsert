@@ -9,11 +9,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
         protected override string NoUpdate_Sql =>
             "INSERT IGNORE INTO myTable (`Name`, `Status`) VALUES (@p0, @p1)";
 
+        protected override string NoUpdate_Multiple_Sql =>
+            "INSERT IGNORE INTO myTable (`Name`, `Status`) VALUES (@p0, @p1), (@p2, @p3)";
+
         protected override string NoUpdate_WithNullable_Sql =>
             "INSERT IGNORE INTO myTable (`Name`, `Status`) VALUES (@p0, @p1)";
 
         protected override string Update_Constant_Sql =>
             "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Name` = @p2";
+
+        protected override string Update_Constant_Multiple_Sql =>
+            "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1), (@p2, @p3) ON DUPLICATE KEY UPDATE `Name` = @p4";
 
         protected override string Update_Source_Sql =>
             "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Name` = VALUES(`Name`)";

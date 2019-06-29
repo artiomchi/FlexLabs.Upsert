@@ -11,6 +11,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "VALUES (@p0, @p1) ON CONFLICT (\"ID\") " +
             "DO NOTHING";
 
+        protected override string NoUpdate_Multiple_Sql =>
+            "INSERT INTO myTable AS \"T\" (\"Name\", \"Status\") " +
+            "VALUES (@p0, @p1), (@p2, @p3) ON CONFLICT (\"ID\") " +
+            "DO NOTHING";
+
         protected override string NoUpdate_WithNullable_Sql =>
             "INSERT INTO myTable AS \"T\" (\"Name\", \"Status\") " +
             "VALUES (@p0, @p1) ON CONFLICT (\"ID1\", \"ID2\") " +
@@ -20,6 +25,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "INSERT INTO myTable AS \"T\" (\"Name\", \"Status\") " +
             "VALUES (@p0, @p1) ON CONFLICT (\"ID\") " +
             "DO UPDATE SET \"Name\" = @p2";
+
+        protected override string Update_Constant_Multiple_Sql =>
+            "INSERT INTO myTable AS \"T\" (\"Name\", \"Status\") " +
+            "VALUES (@p0, @p1), (@p2, @p3) ON CONFLICT (\"ID\") " +
+            "DO UPDATE SET \"Name\" = @p4";
 
         protected override string Update_Source_Sql =>
             "INSERT INTO myTable AS \"T\" (\"Name\", \"Status\") " +

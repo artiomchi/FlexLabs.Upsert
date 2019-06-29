@@ -12,6 +12,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "ON [T].[ID] = [S].[ID] " +
             "WHEN NOT MATCHED BY TARGET THEN INSERT ([Name], [Status]) VALUES ([Name], [Status]);";
 
+        protected override string NoUpdate_Multiple_Sql =>
+            "MERGE INTO myTable WITH (HOLDLOCK) AS [T] " +
+            "USING ( VALUES (@p0, @p1), (@p2, @p3) ) AS [S] ([Name], [Status]) " +
+            "ON [T].[ID] = [S].[ID] " +
+            "WHEN NOT MATCHED BY TARGET THEN INSERT ([Name], [Status]) VALUES ([Name], [Status]);";
+
         protected override string NoUpdate_WithNullable_Sql =>
             "MERGE INTO myTable WITH (HOLDLOCK) AS [T] " +
             "USING ( VALUES (@p0, @p1) ) AS [S] ([Name], [Status]) " +
@@ -24,6 +30,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "ON [T].[ID] = [S].[ID] " +
             "WHEN NOT MATCHED BY TARGET THEN INSERT ([Name], [Status]) VALUES ([Name], [Status]) " +
             "WHEN MATCHED THEN UPDATE SET [Name] = @p2;";
+
+        protected override string Update_Constant_Multiple_Sql =>
+            "MERGE INTO myTable WITH (HOLDLOCK) AS [T] " +
+            "USING ( VALUES (@p0, @p1), (@p2, @p3) ) AS [S] ([Name], [Status]) " +
+            "ON [T].[ID] = [S].[ID] " +
+            "WHEN NOT MATCHED BY TARGET THEN INSERT ([Name], [Status]) VALUES ([Name], [Status]) " +
+            "WHEN MATCHED THEN UPDATE SET [Name] = @p4;";
 
         protected override string Update_Source_Sql =>
             "MERGE INTO myTable WITH (HOLDLOCK) AS [T] " +

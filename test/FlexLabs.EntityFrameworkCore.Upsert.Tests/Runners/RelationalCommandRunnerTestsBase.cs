@@ -27,6 +27,31 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             Assert.Equal(NoUpdate_Sql, generatedSql);
         }
 
+        protected abstract string NoUpdate_Multiple_Sql { get; }
+        [Fact]
+        public void SqlSyntaxRunner_NoUpdate_Multiple()
+        {
+            var runner = GetRunner();
+            var tableName = "myTable";
+            ICollection<(string ColumnName, ConstantValue Value)>[] entities = new[]
+            {
+                new[]
+                {
+                    ( "Name", new ConstantValue("value") { ArgumentIndex = 0 } ),
+                    ( "Status", new ConstantValue("status") { ArgumentIndex = 1} ),
+                },
+                new[]
+                {
+                    ( "Name", new ConstantValue("value") { ArgumentIndex = 2 } ),
+                    ( "Status", new ConstantValue("status") { ArgumentIndex = 3} ),
+                },
+            };
+
+            var generatedSql = runner.GenerateCommand(tableName, entities, new[] { ("ID", false) }, null, null);
+
+            Assert.Equal(NoUpdate_Multiple_Sql, generatedSql);
+        }
+
         protected abstract string NoUpdate_WithNullable_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_NoUpdate_WithNullable()
@@ -63,6 +88,35 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
 
             Assert.Equal(Update_Constant_Sql, generatedSql);
+        }
+
+        protected abstract string Update_Constant_Multiple_Sql { get; }
+        [Fact]
+        public void SqlSyntaxRunner_Update_Constant_Multiple()
+        {
+            var runner = GetRunner();
+            var tableName = "myTable";
+            ICollection<(string ColumnName, ConstantValue Value)>[] entities = new[]
+            {
+                new[]
+                {
+                    ( "Name", new ConstantValue("value") { ArgumentIndex = 0 } ),
+                    ( "Status", new ConstantValue("status") { ArgumentIndex = 1} ),
+                },
+                new[]
+                {
+                    ( "Name", new ConstantValue("value") { ArgumentIndex = 2 } ),
+                    ( "Status", new ConstantValue("status") { ArgumentIndex = 3} ),
+                },
+            };
+            var updates = new[]
+            {
+                ("Name", (IKnownValue)new ConstantValue("newValue") { ArgumentIndex = 4 })
+            };
+
+            var generatedSql = runner.GenerateCommand(tableName, entities, new[] { ("ID", false) }, updates, null);
+
+            Assert.Equal(Update_Constant_Multiple_Sql, generatedSql);
         }
 
         protected abstract string Update_Source_Sql { get; }
