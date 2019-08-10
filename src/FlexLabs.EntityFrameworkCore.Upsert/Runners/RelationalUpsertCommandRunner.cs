@@ -271,6 +271,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         return ExpandValue(expression.Value1, expandLeftColumn);
                     }
 
+                case ExpressionType.AndAlso:
+                case ExpressionType.OrElse:
+                    {
+                        var exp = expression.ExpressionType == ExpressionType.AndAlso ? "AND" : "OR";
+                        var left = ExpandValue(expression.Value1, expandLeftColumn);
+                        var right = ExpandValue(expression.Value2, expandLeftColumn);
+                        return $"{left} {exp} {right}";
+                    }
+
                 default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
             }
         }

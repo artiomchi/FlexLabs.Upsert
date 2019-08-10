@@ -126,6 +126,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                 case ExpressionType.GreaterThanOrEqual:
                 case ExpressionType.Equal:
                 case ExpressionType.NotEqual:
+                case ExpressionType.AndAlso:
+                case ExpressionType.OrElse:
                     {
                         var exp = (BinaryExpression)expression;
                         if (!nested)

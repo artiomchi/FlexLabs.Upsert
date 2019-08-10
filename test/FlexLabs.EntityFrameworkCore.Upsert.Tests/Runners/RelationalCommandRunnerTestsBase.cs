@@ -256,6 +256,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             Assert.Equal(Update_BinaryAddMultiplyGroup_Sql, generatedSql);
         }
+
         protected abstract string Update_Condition_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_Update_Condition()
@@ -276,6 +277,30 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, condition);
 
             Assert.Equal(Update_Condition_Sql, generatedSql);
+        }
+
+        protected abstract string Update_Condition_AndCondition_Sql { get; }
+        [Fact]
+        public void SqlSyntaxRunner_Update_Condition_AndCondition()
+        {
+            var runner = GetRunner();
+            var tableName = "myTable";
+            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql)> entity = new[]
+            {
+                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null ),
+                ( "Status", new ConstantValue("status") { ArgumentIndex = 1}, (string)null ),
+            };
+            var updates = new[]
+            {
+                ("Name", (IKnownValue)new ConstantValue("newValue") { ArgumentIndex = 2 })
+            };
+            var condition = new KnownExpression(ExpressionType.AndAlso,
+                new KnownExpression(ExpressionType.GreaterThan, new PropertyValue("Counter", true) { Property = new MockProperty("Counter") }, new ConstantValue(12) { ArgumentIndex = 3 }),
+                new KnownExpression(ExpressionType.NotEqual, new PropertyValue("Status", true) { Property = new MockProperty("Status") }, new PropertyValue("Status", false) { Property = new MockProperty("Status") }));
+
+            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, condition);
+
+            Assert.Equal(Update_Condition_AndCondition_Sql, generatedSql);
         }
 
         protected abstract string Update_Condition_NullCheck_Sql { get; }

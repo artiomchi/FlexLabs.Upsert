@@ -533,5 +533,39 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             IsConstantValue(condExpr.Value1, 0);
             IsConstantValue(condExpr.Value2, 1);
         }
+
+        [Fact]
+        public void Condition_AndAlso()
+        {
+            Expression<Func<TestEntity, TestEntity, bool>> exp = (e1, e2)
+                => e1.Num1 != e2.Num1 && e1.Text1 != e2.Text1;
+
+            var expValue = exp.Body.GetValue<TestEntity>(exp);
+
+            var orElseExp = IsKnownExpression(expValue, ExpressionType.AndAlso);
+            var leftExp = IsKnownExpression(orElseExp.Value1, ExpressionType.NotEqual);
+            IsPropertyValue(leftExp.Value1, "Num1", true);
+            IsPropertyValue(leftExp.Value2, "Num1", false);
+            var rightExp = IsKnownExpression(orElseExp.Value2, ExpressionType.NotEqual);
+            IsPropertyValue(rightExp.Value1, "Text1", true);
+            IsPropertyValue(rightExp.Value2, "Text1", false);
+        }
+
+        [Fact]
+        public void Condition_ElseIf()
+        {
+            Expression<Func<TestEntity, TestEntity, bool>> exp = (e1, e2)
+                => e1.Num1 != e2.Num1 || e1.Text1 != e2.Text1;
+
+            var expValue = exp.Body.GetValue<TestEntity>(exp);
+
+            var orElseExp = IsKnownExpression(expValue, ExpressionType.OrElse);
+            var leftExp = IsKnownExpression(orElseExp.Value1, ExpressionType.NotEqual);
+            IsPropertyValue(leftExp.Value1, "Num1", true);
+            IsPropertyValue(leftExp.Value2, "Num1", false);
+            var rightExp = IsKnownExpression(orElseExp.Value2, ExpressionType.NotEqual);
+            IsPropertyValue(rightExp.Value1, "Text1", true);
+            IsPropertyValue(rightExp.Value2, "Text1", false);
+        }
     }
 }

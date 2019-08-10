@@ -1692,7 +1692,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     {
                         Num2 = e2.Num2,
                     })
-                    .UpdateIf((ed, en) => ed.Num2 != en.Num2)
+                    .UpdateIf((ed, en) => ed.Num2 != en.Num2 || ed.Text1 != en.Text1)
                     .Run();
 
                 Assert.Collection(dbContex.TestEntities,

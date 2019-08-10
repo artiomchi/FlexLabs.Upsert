@@ -42,6 +42,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
         protected override string Update_Condition_Sql =>
             "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Name` = COALESCE (IF ((@xName := `Name`), NULL, NULL), IF (`Counter` > @p3, @p2, `Name`))";
 
+        protected override string Update_Condition_AndCondition_Sql =>
+            "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Name` = COALESCE (IF ((@xName := `Name`), NULL, NULL), IF (( `Counter` > @p3 ) AND ( `Status` != VALUES(`Status`) ), @p2, `Name`))";
+
         protected override string Update_Condition_NullCheck_Sql =>
             "INSERT INTO myTable (`Name`, `Status`) VALUES (@p0, @p1) ON DUPLICATE KEY UPDATE `Name` = COALESCE (IF ((@xName := `Name`), NULL, NULL), IF (`Counter` IS NOT NULL, @p2, `Name`))";
     }
