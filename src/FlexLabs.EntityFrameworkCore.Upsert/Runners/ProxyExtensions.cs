@@ -42,19 +42,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
                 return property.Relational().ColumnName;
 
-            var method = typeof(IProperty).Assembly.GetType("Microsoft.EntityFrameworkCore.PropertyExtensions")
+            var method = typeof(RelationalDatabaseFacadeExtensions).Assembly.GetType("Microsoft.EntityFrameworkCore.RelationalPropertyExtensions")
                 .GetMethod("GetColumnName", BindingFlags.Static);
             return (string)method.Invoke(null, new object[] { property });
         }
 
-        public static string GetDefaultValue(this IProperty property)
+        public static object GetDefaultValue(this IProperty property)
         {
             if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
                 return property.Relational().DefaultValue;
 
-            var method = typeof(IProperty).Assembly.GetType("Microsoft.EntityFrameworkCore.PropertyExtensions")
-                .GetMethod("DefaultValue", BindingFlags.Static);
-            return (string)method.Invoke(null, new object[] { property });
+            var method = typeof(RelationalDatabaseFacadeExtensions).Assembly.GetType("Microsoft.EntityFrameworkCore.RelationalPropertyExtensions")
+                .GetMethod("GetDefaultValue", BindingFlags.Static);
+            return method.Invoke(null, new object[] { property });
         }
 
         public static string GetDefaultValueSql(this IProperty property)
@@ -62,8 +62,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
                 return property.Relational().DefaultValueSql;
 
-            var method = typeof(IProperty).Assembly.GetType("Microsoft.EntityFrameworkCore.PropertyExtensions")
-                .GetMethod("DefaultValueSql", BindingFlags.Static);
+            var method = typeof(RelationalDatabaseFacadeExtensions).Assembly.GetType("Microsoft.EntityFrameworkCore.RelationalPropertyExtensions")
+                .GetMethod("GetDefaultValueSql", BindingFlags.Static);
             return (string)method.Invoke(null, new object[] { property });
         }
     }
