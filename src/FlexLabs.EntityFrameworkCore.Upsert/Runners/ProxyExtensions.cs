@@ -12,7 +12,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
                 return entity.Relational().Schema;
 
-            var method = typeof(RelationalEntityTypeExtensions).GetMethod("GetSchema", BindingFlags.Static);
+            var method = typeof(RelationalDatabaseFacadeExtensions).Assembly.GetType("Microsoft.EntityFrameworkCore.RelationalEntityTypeExtensions")
+                .GetMethod("GetSchema", BindingFlags.Static);
             return (string)method.Invoke(null, new object[] { entity });
         }
 
@@ -21,7 +22,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
                 return entity.Relational().TableName;
 
-            var method = typeof(RelationalEntityTypeExtensions).GetMethod("GetTableName", BindingFlags.Static);
+            var method = typeof(RelationalDatabaseFacadeExtensions).Assembly.GetType("Microsoft.EntityFrameworkCore.RelationalEntityTypeExtensions")
+                .GetMethod("GetTableName", BindingFlags.Static);
             return (string)method.Invoke(null, new object[] { entity });
         }
 
@@ -30,7 +32,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
                 return property.AfterSaveBehavior;
 
-            var method = typeof(PropertyExtensions).GetMethod("GetAfterSaveBehavior", BindingFlags.Static);
+            var method = typeof(IProperty).Assembly.GetType("Microsoft.EntityFrameworkCore.PropertyExtensions")
+                .GetMethod("GetAfterSaveBehavior", BindingFlags.Static);
             return (PropertySaveBehavior)method.Invoke(null, new object[] { property });
         }
 
@@ -39,7 +42,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
                 return property.Relational().ColumnName;
 
-            var method = typeof(PropertyExtensions).GetMethod("GetColumnName", BindingFlags.Static);
+            var method = typeof(IProperty).Assembly.GetType("Microsoft.EntityFrameworkCore.PropertyExtensions")
+                .GetMethod("GetColumnName", BindingFlags.Static);
             return (string)method.Invoke(null, new object[] { property });
         }
 
@@ -48,7 +52,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
                 return property.Relational().DefaultValue;
 
-            var method = typeof(PropertyExtensions).GetMethod("DefaultValue", BindingFlags.Static);
+            var method = typeof(IProperty).Assembly.GetType("Microsoft.EntityFrameworkCore.PropertyExtensions")
+                .GetMethod("DefaultValue", BindingFlags.Static);
             return (string)method.Invoke(null, new object[] { property });
         }
 
@@ -57,7 +62,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
                 return property.Relational().DefaultValueSql;
 
-            var method = typeof(PropertyExtensions).GetMethod("DefaultValueSql", BindingFlags.Static);
+            var method = typeof(IProperty).Assembly.GetType("Microsoft.EntityFrameworkCore.PropertyExtensions")
+                .GetMethod("DefaultValueSql", BindingFlags.Static);
             return (string)method.Invoke(null, new object[] { property });
         }
     }
