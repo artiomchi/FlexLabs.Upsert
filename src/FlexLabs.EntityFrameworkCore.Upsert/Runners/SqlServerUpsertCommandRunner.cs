@@ -20,13 +20,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override string TargetPrefix => "[T].";
 
         /// <inheritdoc/>
-        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
+        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql)>> entities,
             ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions,
             KnownExpression updateCondition)
         {
             var result = new StringBuilder();
             result.Append($"MERGE INTO {tableName} WITH (HOLDLOCK) AS [T] USING ( VALUES (");
-            result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => Parameter(e.Value.ArgumentIndex))))));
+            result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => e.DefaultSql ?? Parameter(e.Value.ArgumentIndex))))));
             result.Append($") ) AS [S] (");
             result.Append(string.Join(", ", entities.First().Select(e => EscapeName(e.ColumnName))));
             result.Append(") ON ");

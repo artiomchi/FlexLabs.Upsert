@@ -23,7 +23,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override string TargetPrefix => null;
 
         /// <inheritdoc/>
-        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
+        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql)>> entities,
             ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions,
             KnownExpression updateCondition)
         {
@@ -33,7 +33,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append($"INTO {tableName} (");
             result.Append(string.Join(", ", entities.First().Select(e => EscapeName(e.ColumnName))));
             result.Append(") VALUES (");
-            result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => Parameter(e.Value.ArgumentIndex))))));
+            result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => e.DefaultSql ?? Parameter(e.Value.ArgumentIndex))))));
             result.Append(")");
             if (updateExpressions != null)
             {

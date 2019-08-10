@@ -38,7 +38,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 {
                     var tmp = updateFunc(dbEntity, newEntity);
                     foreach (var prop in properties)
-                        prop.SetValue(dbEntity, prop.GetValue(tmp));
+                    {
+                        var property = entityType.FindProperty(prop.Name);
+                        prop.SetValue(dbEntity, prop.GetValue(tmp) ?? property.GetDefaultValue());
+                    }
                 };
             }
             else if (!noUpdate)
@@ -54,7 +57,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 updateAction = (dbEntity, newEntity) =>
                 {
                     foreach (var prop in properties)
-                        prop.SetValue(dbEntity, prop.GetValue(newEntity));
+                    {
+                        var property = entityType.FindProperty(prop.Name);
+                        prop.SetValue(dbEntity, prop.GetValue(newEntity) ?? property.GetDefaultValue());
+                    }
                 };
             }
 
@@ -62,6 +68,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 if (dbEntity == null)
                 {
+                    foreach (var prop in typeof(TEntity).GetProperties())
+                    {
+                        if (prop.GetValue(newEntity) == null)
+                        {
+                            var property = entityType.FindProperty(prop.Name);
+                            if (property != null)
+                            {
+                                var defaultValue = property.GetDefaultValue();
+                                if (defaultValue != null)
+                                {
+                                    prop.SetValue(newEntity, defaultValue);
+                                }
+                            }
+                        }
+                    }
                     dbContext.Add(newEntity);
                     continue;
                 }

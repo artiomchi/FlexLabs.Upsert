@@ -14,9 +14,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            var dbProvider = this.GetService<IDatabaseProvider>();
+
             modelBuilder.Entity<TestEntity>().HasIndex(b => b.Num1).IsUnique();
             modelBuilder.Entity<TestEntity>().Property(e => e.Num2).HasDefaultValue(27);
-            modelBuilder.Entity<TestEntity>().Property(e => e.Text3).HasDefaultValue("B");
             modelBuilder.Entity<Book>().HasIndex(b => b.Name).IsUnique();
             modelBuilder.Entity<Book>().Property(b => b.Genres)
                 .HasConversion(g => string.Join(",", g), s => s.Split(new[] { ',' }));
@@ -28,9 +29,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
             modelBuilder.Entity<KeyOnly>().HasKey(t => new { t.ID1, t.ID2 });
             modelBuilder.Entity<NullableCompositeKey>().HasIndex(t => new { t.ID1, t.ID2 }).IsUnique().HasFilter(null);
 
-            var dbProvider = this.GetService<IDatabaseProvider>();
             if (dbProvider.Name == "Npgsql.EntityFrameworkCore.PostgreSQL")
                 modelBuilder.Entity<JsonData>().Property(j => j.Data).HasColumnType("jsonb");
+            if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql
+                modelBuilder.Entity<NullableRequired>().Property(e => e.Text).HasDefaultValue("B");
         }
 
         public DbSet<TestEntity> TestEntities { get; set; }
@@ -47,6 +49,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DbSet<StringKey> StringKeys { get; set; }
         public DbSet<KeyOnly> KeyOnlies { get; set; }
         public DbSet<NullableCompositeKey> NullableCompositeKeys { get; set; }
+        public DbSet<NullableRequired> NullableRequireds { get; set; }
 
         public enum DbDriver
         {

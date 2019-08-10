@@ -28,7 +28,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="updateExpressions">The expressions that represent update commands for matched entities</param>
         /// <param name="updateCondition">The expression that tests whether existing entities should be updated</param>
         /// <returns>A fully formed database query</returns>
-        public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
+        public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql)>> entities,
             ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions,
             KnownExpression updateCondition);
         /// <summary>
@@ -150,13 +150,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     {
                         var columnName = p.GetColumnName();
                         var rawValue = p.PropertyInfo.GetValue(e);
-                        if (rawValue == null && (p.GetDefaultValue() ?? p.GetDefaultValueSql()) != null)
-                            return (null, null);
+                        string defaultSql = null;
+                        if (rawValue == null)
+                        {
+                            if (p.GetDefaultValue() != null)
+                                rawValue = p.GetDefaultValue();
+                            else
+                                defaultSql = p.GetDefaultValueSql();
+                        }
                         var value = new ConstantValue(rawValue, p);
-                        return (columnName, value);
+                        return (columnName, value, defaultSql);
                     })
-                    .Where(r => r.columnName != null)
-                    .ToArray() as ICollection<(string ColumnName, ConstantValue Value)>)
+                    .ToArray() as ICollection<(string ColumnName, ConstantValue Value, string DefaultSql)>)
                 .ToArray();
 
             var arguments = newEntities.SelectMany(e => e.Select(p => p.Value)).ToList();

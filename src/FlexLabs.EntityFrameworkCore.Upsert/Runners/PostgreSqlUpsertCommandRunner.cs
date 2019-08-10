@@ -20,7 +20,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override string TargetPrefix => "\"T\".";
 
         /// <inheritdoc/>
-        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value)>> entities,
+        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql)>> entities,
             ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions,
             KnownExpression updateCondition)
         {
@@ -28,7 +28,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append($"INSERT INTO {tableName} AS \"T\" (");
             result.Append(string.Join(", ", entities.First().Select(e => EscapeName(e.ColumnName))));
             result.Append(") VALUES (");
-            result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => Parameter(e.Value.ArgumentIndex))))));
+            result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => e.DefaultSql ?? Parameter(e.Value.ArgumentIndex))))));
             result.Append(") ON CONFLICT (");
             result.Append(string.Join(", ", joinColumns.Select(c => EscapeName(c.ColumnName))));
             result.Append(") DO ");

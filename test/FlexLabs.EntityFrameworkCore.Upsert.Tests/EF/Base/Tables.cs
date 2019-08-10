@@ -112,8 +112,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public int? NumNullable1 { get; set; }
         public string Text1 { get; set; }
         public string Text2 { get; set; }
-        [Required]
-        public string Text3 { get; set; }
         public DateTime Updated { get; set; }
+    }
+
+    public class NullableRequired
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int ID { get; set; }
+        [Required]
+        public string Text { get; set; }
     }
 }

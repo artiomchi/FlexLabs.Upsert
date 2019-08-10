@@ -1851,5 +1851,31 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                         )));
             }
         }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_NullableRequired_Insert(TestDbContext.DbDriver driver)
+        {
+            if (driver == TestDbContext.DbDriver.MySQL)
+                return; // Default values on text columns not supported in MySQL
+
+            ResetDb(driver);
+            using (var dbContext = new TestDbContext(_dataContexts[driver]))
+            {
+                var newEntity = new NullableRequired
+                {
+                    ID = 1
+                };
+
+                dbContext.NullableRequireds.Upsert(newEntity)
+                    .On(c => c.ID)
+                    .Run();
+
+                Assert.Collection(dbContext.NullableRequireds.OrderBy(c => c.ID),
+                    entity => Assert.Equal(
+                        ("B"),
+                        (entity.Text)));
+            }
+        }
     }
 }
