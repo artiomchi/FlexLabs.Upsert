@@ -1,4 +1,4 @@
-﻿#if !NETCORE3
+#if !NETCORE3
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -10,7 +10,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public static string GetSchema(this IEntityType entity)
         {
             if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
-                return entity.Relational().ColumnName;
+                return entity.Relational().Schema;
 
             var method = typeof(RelationalEntityTypeExtensions).GetMethod("GetSchema", BindingFlags.Static);
             return (string)method.Invoke(null, new object[] { entity });
@@ -19,7 +19,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public static string GetTableName(this IEntityType entity)
         {
             if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
-                return entity.Relational().ColumnName;
+                return entity.Relational().TableName;
 
             var method = typeof(RelationalEntityTypeExtensions).GetMethod("GetTableName", BindingFlags.Static);
             return (string)method.Invoke(null, new object[] { entity });
@@ -55,7 +55,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public static string GetDefaultValueSql(this IProperty property)
         {
             if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
-                return property.Relational().DefaultValue;
+                return property.Relational().DefaultValueSql;
 
             var method = typeof(PropertyExtensions).GetMethod("DefaultValueSql", BindingFlags.Static);
             return (string)method.Invoke(null, new object[] { property });
