@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -16,8 +16,11 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>2.1.2</VersionPrefix>
+    <VersionPrefix>2.2</VersionPrefix>
     <PackageReleaseNotes>
+v2.2.0:      
+* Artificial support attempt for .NET Core 3.0
+      
 v2.1.2:
 + Add filter condition for updates on upsert
 ! Updating properties with default values

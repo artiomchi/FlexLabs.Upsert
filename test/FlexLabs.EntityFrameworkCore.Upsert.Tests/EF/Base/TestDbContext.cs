@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -19,7 +19,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
             modelBuilder.Entity<TestEntity>().Property(e => e.Text3).HasDefaultValue("B");
             modelBuilder.Entity<Book>().HasIndex(b => b.Name).IsUnique();
             modelBuilder.Entity<Book>().Property(b => b.Genres)
-                .HasConversion(g => string.Join(",", g), s => s.Split(','));
+                .HasConversion(g => string.Join(",", g), s => s.Split(new[] { ',' }));
             modelBuilder.Entity<Book>().Property<DateTime?>("NonMappedColumn");
             modelBuilder.Entity<Country>().HasIndex(c => c.ISO).IsUnique();
             modelBuilder.Entity<DashTable>().HasIndex(t => t.DataSet).IsUnique();
