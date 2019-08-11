@@ -7,9 +7,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
     internal static class ProxyExtensions
     {
+        private static bool? IsEFCore2Value = null;
+        private static bool IsEFCore2
+            => IsEFCore2Value ?? (IsEFCore2Value = typeof(IProperty).GetProperty("AfterSaveBehavior"));
+
         public static string GetSchema(this IEntityType entity)
         {
-            if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
+            if (IsEFCore2)
                 return entity.Relational().Schema;
 
             var method = typeof(RelationalDatabaseFacadeExtensions).Assembly.GetType("Microsoft.EntityFrameworkCore.RelationalEntityTypeExtensions")
@@ -19,7 +23,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         public static string GetTableName(this IEntityType entity)
         {
-            if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
+            if (IsEFCore2)
                 return entity.Relational().TableName;
 
             var method = typeof(RelationalDatabaseFacadeExtensions).Assembly.GetType("Microsoft.EntityFrameworkCore.RelationalEntityTypeExtensions")
@@ -29,7 +33,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         public static PropertySaveBehavior GetAfterSaveBehavior(this IProperty property)
         {
-            if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
+            if (IsEFCore2)
                 return property.AfterSaveBehavior;
 
             var method = typeof(IProperty).Assembly.GetType("Microsoft.EntityFrameworkCore.PropertyExtensions")
@@ -39,7 +43,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         public static string GetColumnName(this IProperty property)
         {
-            if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
+            if (IsEFCore2)
                 return property.Relational().ColumnName;
 
             var method = typeof(RelationalDatabaseFacadeExtensions).Assembly.GetType("Microsoft.EntityFrameworkCore.RelationalPropertyExtensions")
@@ -49,7 +53,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         public static object GetDefaultValue(this IProperty property)
         {
-            if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
+            if (IsEFCore2)
                 return property.Relational().DefaultValue;
 
             var method = typeof(RelationalDatabaseFacadeExtensions).Assembly.GetType("Microsoft.EntityFrameworkCore.RelationalPropertyExtensions")
@@ -59,7 +63,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         public static string GetDefaultValueSql(this IProperty property)
         {
-            if (typeof(IProperty).GetProperty("AfterSaveBehavior") != null)
+            if (IsEFCore2)
                 return property.Relational().DefaultValueSql;
 
             var method = typeof(RelationalDatabaseFacadeExtensions).Assembly.GetType("Microsoft.EntityFrameworkCore.RelationalPropertyExtensions")
