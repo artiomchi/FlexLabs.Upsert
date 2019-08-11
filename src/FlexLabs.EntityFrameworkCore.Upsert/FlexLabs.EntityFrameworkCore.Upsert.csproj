@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
     <LangVersion>7.1</LangVersion>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\FlexLabs.EntityFrameworkCore.Upsert.xml</DocumentationFile>
     <Authors>Artiom Chilaru</Authors>
@@ -16,23 +16,16 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>2.2</VersionPrefix>
+    <VersionPrefix>3.0.0</VersionPrefix>
     <PackageReleaseNotes>
+v3.0.0
+* EF Core 3 support
+
 v2.2.0:      
 + Support for more expressions (AND and OR)
 + Support for default column values and expressions
 + Null value handling in generated SQL
 ! Patched MySQL syntax for columns that haven't been updated but may be present in expressions
-      
-v2.1.2:
-+ Add filter condition for updates on upsert
-! Updating properties with default values
-
-v2.1.0:
-* Improved expression parser should support more expressions
-+ Support for more complex multi-operation combined expressions
-+ Support for conditional expressions
-+ Support for comparison expressions
     </PackageReleaseNotes>
   </PropertyGroup>
 
@@ -45,8 +38,17 @@ v2.1.0:
     <PostBuildEvent>signtool.exe sign /n "$(SignCertificateName)" /fd sha256 /tr "http://timestamp.digicert.com" /td sha256 FlexLabs.EntityFrameworkCore.Upsert.dll</PostBuildEvent>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <EFCoreVersion>2.1.0</EFCoreVersion>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition="'$(TargetFramework)'=='netstandard2.1'">
+    <DefineConstants>$(DefineConstants);EFCORE3</DefineConstants>
+    <EFCoreVersion>3.0.0-preview7.19362.6</EFCoreVersion>
+  </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="2.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EFCoreVersion)" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)'=='Release'">
