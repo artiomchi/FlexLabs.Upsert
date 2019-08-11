@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -19,7 +19,10 @@ Also supports injecting sql command generators to add support for other provider
     <VersionPrefix>2.2</VersionPrefix>
     <PackageReleaseNotes>
 v2.2.0:      
-* Artificial support attempt for .NET Core 3.0
++ Support for more expressions (AND and OR)
++ Support for default column values and expressions
++ Null value handling in generated SQL
+! Patched MySQL syntax for columns that haven't been updated but may be present in expressions
       
 v2.1.2:
 + Add filter condition for updates on upsert
