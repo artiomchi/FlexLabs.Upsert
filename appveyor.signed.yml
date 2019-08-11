@@ -29,6 +29,7 @@ install:
 - ps: appveyor-tools\secure-file -decrypt certs\FlexLabsStrongKey.snk.enc -secret $Env:skey_secret
 - ps: appveyor-tools\secure-file -decrypt certs\codesig.pfx.enc -secret $Env:cert_secret
 - ps: Import-PfxCertificate -FilePath certs\codesig.pfx -CertStoreLocation Cert:\CurrentUser\My -Password (ConvertTo-SecureString $Env:certsig_pass -AsPlainText -Force)
+- ps: choco install dotnetcore-sdk --pre
 
 before_build:
 - ps: 'Write-Output ("Build version suffix: " + $Env:VersionSuffixValue)'
