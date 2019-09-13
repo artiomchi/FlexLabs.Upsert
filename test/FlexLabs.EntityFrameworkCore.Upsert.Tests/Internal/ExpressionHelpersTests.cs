@@ -205,6 +205,38 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
         }
 
         [Fact]
+        public void ExpressionHelpersTests_ValueBitwiseOr()
+        {
+            Expression<Func<TestEntity, TestEntity>> exp = e => new TestEntity
+            {
+                Num1 = e.Num1 | 1,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+
+            var knownValue = IsKnownExpression(expValue, ExpressionType.Or);
+            IsPropertyValue(knownValue.Value1, "Num1", true);
+            IsConstantValue(knownValue.Value2, 1);
+        }
+
+        [Fact]
+        public void ExpressionHelpersTests_ValueBitwiseAnd()
+        {
+            Expression<Func<TestEntity, TestEntity>> exp = e => new TestEntity
+            {
+                Num1 = e.Num1 & 1,
+            };
+
+            var memberAssig = GetMemberExpression(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp);
+
+            var knownValue = IsKnownExpression(expValue, ExpressionType.And);
+            IsPropertyValue(knownValue.Value1, "Num1", true);
+            IsConstantValue(knownValue.Value2, 1);
+        }
+
+        [Fact]
         public void ExpressionHelpersTests_Property()
         {
             Expression<Func<TestEntity, TestEntity>> exp = e => new TestEntity
