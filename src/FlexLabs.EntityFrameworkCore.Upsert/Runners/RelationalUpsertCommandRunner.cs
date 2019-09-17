@@ -219,9 +219,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             switch (expression.ExpressionType)
             {
                 case ExpressionType.Add:
+                case ExpressionType.And:
                 case ExpressionType.Divide:
                 case ExpressionType.Modulo:
                 case ExpressionType.Multiply:
+                case ExpressionType.Or:
                 case ExpressionType.Subtract:
                 case ExpressionType.LessThan:
                 case ExpressionType.LessThanOrEqual:
@@ -307,9 +309,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             switch (expressionType)
             {
                 case ExpressionType.Add: return "+";
+                case ExpressionType.And: return "&";
                 case ExpressionType.Divide: return "/";
                 case ExpressionType.Modulo: return "%";
                 case ExpressionType.Multiply: return "*";
+                case ExpressionType.Or: return "|";
                 case ExpressionType.Subtract: return "-";
                 case ExpressionType.LessThan: return "<";
                 case ExpressionType.LessThanOrEqual: return "<=";
