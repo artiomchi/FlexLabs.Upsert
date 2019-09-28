@@ -44,7 +44,7 @@ v2.2.0:
   
   <PropertyGroup Condition="'$(TargetFramework)'=='netstandard2.1'">
     <DefineConstants>$(DefineConstants);EFCORE3</DefineConstants>
-    <EFCoreVersion>3.0.0-preview7.19362.6</EFCoreVersion>
+    <EFCoreVersion>3.0.0</EFCoreVersion>
   </PropertyGroup>
 
   <ItemGroup>

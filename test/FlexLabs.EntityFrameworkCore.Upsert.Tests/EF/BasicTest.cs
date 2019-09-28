@@ -304,11 +304,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_InvalidMatchColumn_NoOn(TestDbContext.DbDriver driver)
         {
-#if EFCORE3
-            if (driver == TestDbContext.DbDriver.InMemory)
-                return; // Issues in InMemory provider with EF Core 3
-#endif
-
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
             {
@@ -1128,11 +1123,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_Status_Update_AutoMatched_New(TestDbContext.DbDriver driver)
         {
-#if EFCORE3
-            if (driver == TestDbContext.DbDriver.InMemory)
-                return; // Issues in InMemory provider with EF Core 3
-#endif
-
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
             {
@@ -1265,11 +1255,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_JsonData(TestDbContext.DbDriver driver)
         {
-#if EFCORE3
-            if (driver == TestDbContext.DbDriver.InMemory)
-                return; // Issues in InMemory provider with EF Core 3
-#endif
-
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
             {
@@ -1290,11 +1275,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_GuidKey_AutoGenThrows(TestDbContext.DbDriver driver)
         {
-#if EFCORE3
-            if (driver == TestDbContext.DbDriver.InMemory)
-                return; // Issues in InMemory provider with EF Core 3
-#endif
-
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
             {
@@ -1316,11 +1296,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_StringKey_AutoGenThrows(TestDbContext.DbDriver driver)
         {
-#if EFCORE3
-            if (driver == TestDbContext.DbDriver.InMemory)
-                return; // Issues in InMemory provider with EF Core 3
-#endif
-
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
             {
@@ -1342,11 +1317,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_GuidKey(TestDbContext.DbDriver driver)
         {
-#if EFCORE3
-            if (driver == TestDbContext.DbDriver.InMemory)
-                return; // Issues in InMemory provider with EF Core 3
-#endif
-
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
             {
@@ -1368,11 +1338,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_StringKey(TestDbContext.DbDriver driver)
         {
-#if EFCORE3
-            if (driver == TestDbContext.DbDriver.InMemory)
-                return; // Issues in InMemory provider with EF Core 3
-#endif
-
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
             {
@@ -1394,11 +1359,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_KeyOnly(TestDbContext.DbDriver driver)
         {
-#if EFCORE3
-            if (driver == TestDbContext.DbDriver.InMemory)
-                return; // Issues in InMemory provider with EF Core 3
-#endif
-
             ResetDb(driver);
             using (var dbContext = new TestDbContext(_dataContexts[driver]))
             {
