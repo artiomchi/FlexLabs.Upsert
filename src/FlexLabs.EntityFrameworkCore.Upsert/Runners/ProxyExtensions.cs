@@ -1,3 +1,4 @@
+#if !EFCORE3
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -13,3 +14,4 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public static string GetDefaultValueSql(this IProperty property) => property.Relational().DefaultValueSql;
     }
 }
+#endif
