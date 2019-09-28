@@ -40,6 +40,9 @@ build_script:
 - ps: dotnet build -c $Env:CONFIGURATION $Env:VersionSuffixParam $Env:VersionSuffixValue
 - ps: dir -rec *.nupkg | foreach { nuget sign $_ -CertificateSubjectName "Artiom Chilaru" -Timestamper "http://timestamp.digicert.com" }
 
+test_script:
+- ps: dotnet test --test-adapter-path:. --logger:Appveyor
+
 artifacts:
 - path: '**\*.nupkg'
 
