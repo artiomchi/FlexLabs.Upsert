@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0;netcoreapp3.0</TargetFrameworks>
+    <NoWarn>EF1001</NoWarn>
     <IsPackable>false</IsPackable>
     <EFCoreVersion>2.2.0</EFCoreVersion>
   </PropertyGroup>

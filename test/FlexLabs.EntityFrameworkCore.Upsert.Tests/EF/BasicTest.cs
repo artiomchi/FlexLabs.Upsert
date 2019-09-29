@@ -28,7 +28,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 DatabaseEngines.AddRange(new[]
                 {
                     TestDbContext.DbDriver.Postgres,
-                    TestDbContext.DbDriver.MySQL,
+                    //TestDbContext.DbDriver.MySQL,
                 });
         }
 
