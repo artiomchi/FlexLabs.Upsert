@@ -38,10 +38,11 @@ before_build:
 build_script:
 - ps: $Env:PATH = $Env:PATH + ";C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\"
 - ps: dotnet build -c $Env:CONFIGURATION $Env:VersionSuffixParam $Env:VersionSuffixValue
+- ps: dotnet pack -c $Env:CONFIGURATION $Env:VersionSuffixParam $Env:VersionSuffixValue
 - ps: dir -rec *.nupkg | foreach { nuget sign $_ -CertificateSubjectName "Artiom Chilaru" -Timestamper "http://timestamp.digicert.com" }
 
 test_script:
-- ps: dotnet test --test-adapter-path:. --logger:Appveyor
+- ps: dotnet test -c $Env:CONFIGURATION
 
 artifacts:
 - path: '**\*.nupkg'

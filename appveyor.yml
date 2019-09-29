@@ -18,4 +18,4 @@ build_script:
 - ps: dotnet build -c $Env:CONFIGURATION
 
 test_script:
-- ps: dotnet test --test-adapter-path:. --logger:Appveyor
+- ps: dotnet test -c $Env:CONFIGURATION

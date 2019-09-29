@@ -1,7 +1,7 @@
 @IF [%1] == [] GOTO NOPARAM
 
 @ECHO -- Building solution in release mode
-dotnet build -c Release -p:SignCertificateName="Open Source Developer%%2c Artiom Chilaru"
+dotnet pack -c Release -p:SignCertificateName="Open Source Developer%%2c Artiom Chilaru"
 @IF ERRORLEVEL 1 goto ERROR
 
 @ECHO -- Signing the nuget package
