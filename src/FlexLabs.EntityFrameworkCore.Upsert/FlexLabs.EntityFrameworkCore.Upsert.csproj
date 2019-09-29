@@ -1,9 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
     <LangVersion>7.1</LangVersion>
-    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\FlexLabs.EntityFrameworkCore.Upsert.xml</DocumentationFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Authors>Artiom Chilaru</Authors>
     <Company>Artiom Chilaru</Company>
     <Description>Adds basic support for "Upsert" operations to EF Core.
@@ -34,7 +34,8 @@ v2.2.0:
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <IncludeSymbols>True</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\certs\FlexLabsStrongKey.snk</AssemblyOriginatorKeyFile>
     <SignCertificateName>Artiom Chilaru</SignCertificateName>
@@ -55,7 +56,7 @@ v2.2.0:
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)'=='Release'">
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta-62925-02" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-19270-01" PrivateAssets="All" />
   </ItemGroup>
 
 </Project>
