@@ -1,4 +1,5 @@
-﻿using FlexLabs.EntityFrameworkCore.Upsert.Runners;
+﻿using System;
+using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using Microsoft.EntityFrameworkCore;
 
 namespace Microsoft.Extensions.DependencyInjection
@@ -36,6 +37,9 @@ namespace Microsoft.Extensions.DependencyInjection
         public static DbContextOptionsBuilder ReplaceUpsertCommandRunner<TRunner>(this DbContextOptionsBuilder builder)
             where TRunner : class, IUpsertCommandRunner
         {
+            if (builder == null)
+                throw new ArgumentNullException(nameof(builder));
+
             builder.ReplaceService<IUpsertCommandRunner, TRunner>();
             return builder;
         }

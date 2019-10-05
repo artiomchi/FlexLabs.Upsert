@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Text;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
-using Microsoft.EntityFrameworkCore;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {

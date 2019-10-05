@@ -81,7 +81,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                             return convertExp.Operand.GetValueInternal<TSource>(container, useExpressionCompiler, nested);
 
                         var value = convertExp.Operand.GetValueInternal<TSource>(container, useExpressionCompiler, true);
-                        return Convert.ChangeType(value, convertExp.Type);
+                        return Convert.ChangeType(value, convertExp.Type, CultureInfo.InvariantCulture);
                     }
 
                 case ExpressionType.MemberAccess:

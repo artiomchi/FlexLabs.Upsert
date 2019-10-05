@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
@@ -48,7 +49,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public UpsertCommandBuilder<TEntity> On(Expression<Func<TEntity, object>> match)
         {
             if (_matchExpression != null)
-                throw new InvalidOperationException($"Can't call {nameof(On)} twice!");
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(On)));
 
             _matchExpression = match ?? throw new ArgumentNullException(nameof(match));
             return this;
@@ -64,9 +65,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             if (updater == null)
                 throw new ArgumentNullException(nameof(updater));
             if (_updateExpression != null)
-                throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} twice!");
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched)));
             if (_noUpdate)
-                throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} when {nameof(NoUpdate)} has been called, as they are mutually exclusive");
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched), nameof(NoUpdate)));
 
             _updateExpression =
                 Expression.Lambda<Func<TEntity, TEntity, TEntity>>(
@@ -85,9 +86,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public UpsertCommandBuilder<TEntity> WhenMatched(Expression<Func<TEntity, TEntity, TEntity>> updater)
         {
             if (_updateExpression != null)
-                throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} twice!");
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched)));
             if (_noUpdate)
-                throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} when {nameof(NoUpdate)} has been called, as they are mutually exclusive");
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched), nameof(NoUpdate)));
 
             _updateExpression = updater ?? throw new ArgumentNullException(nameof(updater));
             return this;
@@ -103,9 +104,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             if (condition == null)
                 throw new ArgumentNullException(nameof(condition));
             if (_updateCondition != null)
-                throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} twice!");
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched)));
             if (_noUpdate)
-                throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} when {nameof(NoUpdate)} has been called, as they are mutually exclusive");
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched), nameof(NoUpdate)));
 
             _updateCondition =
                 Expression.Lambda<Func<TEntity, TEntity, bool>>(
@@ -124,9 +125,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public UpsertCommandBuilder<TEntity> UpdateIf(Expression<Func<TEntity, TEntity, bool>> condition)
         {
             if (_updateCondition != null)
-                throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} twice!");
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched)));
             if (_noUpdate)
-                throw new InvalidOperationException($"Can't call {nameof(WhenMatched)} when {nameof(NoUpdate)} has been called, as they are mutually exclusive");
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched), nameof(NoUpdate)));
 
             _updateCondition = condition ?? throw new ArgumentNullException(nameof(condition));
             return this;
@@ -151,7 +152,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public UpsertCommandBuilder<TEntity> NoUpdate()
         {
             if (_updateExpression != null)
-                throw new InvalidOperationException($"Can't call {nameof(NoUpdate)} when {nameof(WhenMatched)} has been called, as they are mutually exclusive");
+                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(NoUpdate), nameof(WhenMatched)));
 
             _noUpdate = true;
             return this;
@@ -161,10 +162,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         {
             var dbProvider = _dbContext.GetService<IDatabaseProvider>();
             var commandRunner = _dbContext.GetInfrastructure().GetServices<IUpsertCommandRunner>()
-                .Concat(DefaultRunners.Runners)
+                .Concat(DefaultRunners.GetRunners())
                 .FirstOrDefault(r => r.Supports(dbProvider.Name));
             if (commandRunner == null)
-                throw new NotSupportedException("Database provider not supported yet!");
+                throw new NotSupportedException(Resources.DatabaseProviderNotSupportedYet);
 
             return commandRunner;
         }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -30,7 +31,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 // If update expression is specified, create an update delegate based on that
                 if (!(updateExpression.Body is MemberInitExpression entityUpdater))
-                    throw new ArgumentException("updater must be an Initialiser of the TEntity type", nameof(updateExpression));
+                    throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.ArgumentMustBeAnInitialiserOfTheTEntityType, "updater"), nameof(updateExpression));
 
                 var properties = entityUpdater.Bindings.Select(b => b.Member).OfType<PropertyInfo>();
                 var updateFunc = updateExpression.Compile();

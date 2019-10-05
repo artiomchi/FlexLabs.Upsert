@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
@@ -100,7 +101,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (updater != null)
             {
                 if (!(updater.Body is MemberInitExpression entityUpdater))
-                    throw new ArgumentException("updater must be an Initialiser of the TEntity type", nameof(updater));
+                    throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.UpdaterMustBeAnInitialiserOfTheTEntityType, nameof(updater)), nameof(updater));
 
                 updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
                 foreach (MemberAssignment binding in entityUpdater.Bindings)
@@ -137,7 +138,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, useExpressionCompiler);
                 if (!(updateConditionValue is KnownExpression updateConditionExp))
-                    throw new InvalidOperationException("The update condition must be a comparison expression");
+                    throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
                 updateConditionExpression = updateConditionExp;
 
                 foreach (var valProperty in updateConditionExpression.GetPropertyValues())
@@ -350,9 +351,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, noUpdate, useExpressionCompiler);
             var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
 #if EFCORE3
-            return await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments);
+            return await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments).ConfigureAwait(false);
 #else
-            return await dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, dbArguments);
+            return await dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, dbArguments).ConfigureAwait(false);
 #endif
         }
 

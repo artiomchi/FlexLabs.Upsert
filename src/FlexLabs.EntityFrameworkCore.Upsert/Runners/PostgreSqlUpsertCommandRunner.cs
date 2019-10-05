@@ -36,8 +36,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 result.Append("UPDATE SET ");
                 result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
-            if (updateCondition != null)
-                result.Append($" WHERE {ExpandExpression(updateCondition)}");
+                if (updateCondition != null)
+                    result.Append($" WHERE {ExpandExpression(updateCondition)}");
             }
             else
             {
