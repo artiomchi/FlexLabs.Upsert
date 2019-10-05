@@ -306,23 +306,23 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <returns>A string containing the operator</returns>
         protected virtual string GetSimpleOperator(ExpressionType expressionType)
         {
-            switch (expressionType)
+            return expressionType switch
             {
-                case ExpressionType.Add: return "+";
-                case ExpressionType.And: return "&";
-                case ExpressionType.Divide: return "/";
-                case ExpressionType.Modulo: return "%";
-                case ExpressionType.Multiply: return "*";
-                case ExpressionType.Or: return "|";
-                case ExpressionType.Subtract: return "-";
-                case ExpressionType.LessThan: return "<";
-                case ExpressionType.LessThanOrEqual: return "<=";
-                case ExpressionType.GreaterThan: return ">";
-                case ExpressionType.GreaterThanOrEqual: return ">=";
-                case ExpressionType.Equal: return "=";
-                case ExpressionType.NotEqual: return "!=";
-                default: throw new InvalidOperationException($"{expressionType} is not a simple arithmetic operation");
-            }
+                ExpressionType.Add => "+",
+                ExpressionType.And => "&",
+                ExpressionType.Divide => "/",
+                ExpressionType.Modulo => "%",
+                ExpressionType.Multiply => "*",
+                ExpressionType.Or => "|",
+                ExpressionType.Subtract => "-",
+                ExpressionType.LessThan => "<",
+                ExpressionType.LessThanOrEqual => "<=",
+                ExpressionType.GreaterThan => ">",
+                ExpressionType.GreaterThanOrEqual => ">=",
+                ExpressionType.Equal => "=",
+                ExpressionType.NotEqual => "!=",
+                _ => throw new InvalidOperationException($"{expressionType} is not a simple arithmetic operation"),
+            };
         }
 
         /// <inheritdoc/>
@@ -330,12 +330,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             Expression<Func<TEntity, TEntity, TEntity>> updateExpression, Expression<Func<TEntity, TEntity, bool>> updateCondition, bool noUpdate, bool useExpressionCompiler)
         {
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-            using (var dbCommand = dbContext.Database.GetDbConnection().CreateCommand())
-            {
-                var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, noUpdate, useExpressionCompiler);
-                var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
-                return dbContext.Database.ExecuteSqlCommand(sqlCommand, dbArguments);
-            }
+            using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
+            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, noUpdate, useExpressionCompiler);
+            var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
+#if EFCORE3
+            return dbContext.Database.ExecuteSqlRaw(sqlCommand, dbArguments);
+#else
+            return dbContext.Database.ExecuteSqlCommand(sqlCommand, dbArguments);
+#endif
         }
 
         /// <inheritdoc/>
@@ -344,12 +346,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             CancellationToken cancellationToken)
         {
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-            using (var dbCommand = dbContext.Database.GetDbConnection().CreateCommand())
-            {
-                var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, noUpdate, useExpressionCompiler);
-                var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
-                return await dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, dbArguments);
-            }
+            using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
+            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, noUpdate, useExpressionCompiler);
+            var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
+#if EFCORE3
+            return await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments);
+#else
+            return await dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, dbArguments);
+#endif
         }
 
         private object PrepareDbCommandArgument(DbCommand dbCommand, IRelationalTypeMappingSource relationalTypeMappingSource, ConstantValue constantValue)
