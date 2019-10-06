@@ -15,6 +15,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// </summary>
         /// <param name="entityType">The entity type of the table</param>
         /// <returns>null</returns>
-        protected override string GetSchema(IEntityType entityType) => null;
+        protected override string? GetSchema(IEntityType entityType) => null;
     }
 }

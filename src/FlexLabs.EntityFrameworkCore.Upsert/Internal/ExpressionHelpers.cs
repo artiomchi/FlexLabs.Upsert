@@ -3,41 +3,32 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {
-    /// <summary>
-    /// Expression helper classe that is used to deconstruct expression trees
-    /// </summary>
-    public static class ExpressionHelpers
+    internal static class ExpressionHelpers
     {
-        /// <summary>
-        /// Attempt to get the value of the expression
-        /// </summary>
-        /// <param name="expression">The expression we're processing</param>
-        /// <param name="container">The original lambda expression/func that contained this expression</param>
-        /// <param name="useExpressionCompiler">Allows enabling the fallback expression compiler</param>
-        /// <returns>An</returns>
-        public static object GetValue<TSource>(this Expression expression, LambdaExpression container, bool useExpressionCompiler = false)
-            => GetValueInternal<TSource>(expression, container, useExpressionCompiler, false);
+        public static object GetValue<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty> propertyFinder, bool useExpressionCompiler = false)
+            => GetValueInternal<TSource>(expression, container, propertyFinder, useExpressionCompiler, false);
 
-        private static object GetValueInternal<TSource>(this Expression expression, LambdaExpression container, bool useExpressionCompiler, bool nested)
+        private static object GetValueInternal<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty> propertyFinder, bool useExpressionCompiler, bool nested)
         {
             switch (expression.NodeType)
             {
                 case ExpressionType.Call:
                     {
                         var methodExp = (MethodCallExpression)expression;
-                        var context = methodExp.Object?.GetValueInternal<TSource>(container, useExpressionCompiler, true);
-                        var arguments = methodExp.Arguments.Select(a => a.GetValueInternal<TSource>(container, useExpressionCompiler, true)).ToArray();
+                        var context = methodExp.Object?.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, true);
+                        var arguments = methodExp.Arguments.Select(a => a.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, true)).ToArray();
                         return methodExp.Method.Invoke(context, arguments);
                     }
 
                 case ExpressionType.Coalesce:
                     {
                         var coalesceExp = (BinaryExpression)expression;
-                        var left = coalesceExp.Left.GetValueInternal<TSource>(container, useExpressionCompiler, nested);
-                        var right = coalesceExp.Right.GetValueInternal<TSource>(container, useExpressionCompiler, nested);
+                        var left = coalesceExp.Left.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, nested);
+                        var right = coalesceExp.Right.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, nested);
 
                         if (left == null)
                             return right;
@@ -55,9 +46,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                 case ExpressionType.Conditional:
                     {
                         var conditionalExp = (ConditionalExpression)expression;
-                        var ifTrue = conditionalExp.IfTrue.GetValueInternal<TSource>(container, useExpressionCompiler, nested);
-                        var ifFalse = conditionalExp.IfFalse.GetValueInternal<TSource>(container, useExpressionCompiler, nested);
-                        var conditionExp = conditionalExp.Test.GetValueInternal<TSource>(container, useExpressionCompiler, nested);
+                        var ifTrue = conditionalExp.IfTrue.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, nested);
+                        var ifFalse = conditionalExp.IfFalse.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, nested);
+                        var conditionExp = conditionalExp.Test.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, nested);
 
                         if (!(conditionExp is IKnownValue knownCondition))
                             knownCondition = new ConstantValue(conditionExp);
@@ -78,9 +69,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                     {
                         var convertExp = (UnaryExpression)expression;
                         if (!nested)
-                            return convertExp.Operand.GetValueInternal<TSource>(container, useExpressionCompiler, nested);
+                            return convertExp.Operand.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, nested);
 
-                        var value = convertExp.Operand.GetValueInternal<TSource>(container, useExpressionCompiler, true);
+                        var value = convertExp.Operand.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, true);
                         return Convert.ChangeType(value, convertExp.Type, CultureInfo.InvariantCulture);
                     }
 
@@ -90,16 +81,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                         switch (memberExp.Member)
                         {
                             case FieldInfo fInfo:
-                                return fInfo.GetValue(memberExp.Expression?.GetValueInternal<TSource>(container, useExpressionCompiler, true));
+                                return fInfo.GetValue(memberExp.Expression?.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, true));
 
                             case PropertyInfo pInfo:
                                 if (!nested && memberExp.Expression?.NodeType == ExpressionType.Parameter && typeof(TSource).Equals(memberExp.Expression.Type))
                                 {
                                     var isLeftParam = memberExp.Expression.Equals(container.Parameters[0]);
                                     if (isLeftParam || memberExp.Expression.Equals(container.Parameters[1]))
-                                        return new PropertyValue(pInfo.Name, isLeftParam);
+                                        return new PropertyValue(pInfo.Name, isLeftParam, propertyFinder(pInfo.Name));
                                 }
-                                return pInfo.GetValue(memberExp.Expression?.GetValueInternal<TSource>(container, useExpressionCompiler, true));
+                                return pInfo.GetValue(memberExp.Expression?.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, true));
 
                             default:
                                 throw new UnsupportedExpressionException(expression);
@@ -111,7 +102,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                         var arrayExp = (NewArrayExpression)expression;
                         var result = Array.CreateInstance(arrayExp.Type.GetElementType(), arrayExp.Expressions.Count);
                         for (int i = 0; i < arrayExp.Expressions.Count; i++)
-                            result.SetValue(arrayExp.Expressions[i].GetValueInternal<TSource>(container, useExpressionCompiler, true), i);
+                            result.SetValue(arrayExp.Expressions[i].GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, true), i);
                         return result;
                     }
 
@@ -134,13 +125,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                         var exp = (BinaryExpression)expression;
                         if (!nested)
                         {
-                            var leftArg = exp.Left.GetValueInternal<TSource>(container, useExpressionCompiler, false);
+                            var leftArg = exp.Left.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, false);
                             if (!(leftArg is IKnownValue leftArgKnown))
                                 if (leftArg is KnownExpression leftArgExp)
                                     leftArgKnown = leftArgExp.Value1;
                                 else
                                     leftArgKnown = new ConstantValue(leftArg);
-                            var rightArg = exp.Right.GetValueInternal<TSource>(container, useExpressionCompiler, false);
+                            var rightArg = exp.Right.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, false);
                             if (!(rightArg is IKnownValue rightArgKnown))
                                 if (rightArg is KnownExpression rightArgExp)
                                     rightArgKnown = rightArgExp.Value1;
@@ -151,7 +142,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                                 return new KnownExpression(exp.NodeType, leftArgKnown, rightArgKnown);
                         }
                         if (exp.Method != null)
-                            return exp.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null, new[] { exp.Left.GetValueInternal<TSource>(container, useExpressionCompiler, true), exp.Right.GetValueInternal<TSource>(container, useExpressionCompiler, true) }, CultureInfo.InvariantCulture);
+                            return exp.Method.Invoke(
+                                null,
+                                BindingFlags.Static | BindingFlags.Public,
+                                null,
+                                new[] {
+                                    exp.Left.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, true),
+                                    exp.Right.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, true)
+                                },
+                                CultureInfo.InvariantCulture);
 
                         break;
                     }

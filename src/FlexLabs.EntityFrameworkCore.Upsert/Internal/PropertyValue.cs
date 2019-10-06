@@ -14,10 +14,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// </summary>
         /// <param name="propertyName">The property that is accessed in the expression</param>
         /// <param name="isLeftParameter">true if the property belongs to the first parameter to the expression. otherwise false</param>
-        public PropertyValue(string propertyName, bool isLeftParameter)
+        /// <param name="property">Entity Framework model property class, that contains model metadata</param>
+        public PropertyValue(string propertyName, bool isLeftParameter, IProperty property)
         {
             PropertyName = propertyName;
             IsLeftParameter = isLeftParameter;
+            Property = property;
         }
 
         /// <summary>
@@ -33,7 +35,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <summary>
         /// An instance of the model property class, that contains model metadata
         /// </summary>
-        public IProperty Property { get; set; }
+        public IProperty Property { get; }
 
         /// <inheritdoc/>
         public IEnumerable<ConstantValue> GetConstantValues()

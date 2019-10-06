@@ -2,6 +2,7 @@ using System;
 using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
@@ -33,6 +34,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             return property;
         }
 
+        private IProperty NoProperty(string propertyName) => default;
+
         [Fact]
         public void ExpressionHelpersTests_Constant()
         {
@@ -42,7 +45,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             Assert.Equal(1, expValue);
         }
@@ -57,7 +60,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             Assert.Equal(value, expValue);
         }
@@ -72,7 +75,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             Assert.Equal(value.Num1, expValue);
         }
@@ -87,7 +90,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             Assert.Equal(value.Trim(), expValue);
         }
@@ -103,7 +106,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             Assert.Equal(value1 + ", " + value2, expValue);
         }
@@ -117,7 +120,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var knownValue = IsKnownExpression(expValue, ExpressionType.Add);
             IsPropertyValue(knownValue.Value1, "Num1", true);
@@ -133,7 +136,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var knownValue = IsKnownExpression(expValue, ExpressionType.Add);
             IsConstantValue(knownValue.Value1, 1);
@@ -149,7 +152,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var knownValue = IsKnownExpression(expValue, ExpressionType.Subtract);
             IsPropertyValue(knownValue.Value1, "Num1", true);
@@ -165,7 +168,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var knownValue = IsKnownExpression(expValue, ExpressionType.Multiply);
             IsPropertyValue(knownValue.Value1, "Num1", true);
@@ -181,7 +184,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var knownValue = IsKnownExpression(expValue, ExpressionType.Divide);
             IsPropertyValue(knownValue.Value1, "Num1", true);
@@ -197,7 +200,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var knownValue = IsKnownExpression(expValue, ExpressionType.Modulo);
             IsPropertyValue(knownValue.Value1, "Num1", true);
@@ -213,7 +216,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var knownValue = IsKnownExpression(expValue, ExpressionType.Or);
             IsPropertyValue(knownValue.Value1, "Num1", true);
@@ -229,7 +232,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var knownValue = IsKnownExpression(expValue, ExpressionType.And);
             IsPropertyValue(knownValue.Value1, "Num1", true);
@@ -245,7 +248,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             IsPropertyValue(expValue, "Num1", true);
         }
@@ -259,7 +262,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             IsPropertyValue(expValue, "Num2", true);
         }
@@ -273,7 +276,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             IsPropertyValue(expValue, "Num1", true);
         }
@@ -287,7 +290,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             IsPropertyValue(expValue, "Num1", false);
         }
@@ -301,7 +304,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var updated = Assert.IsType<DateTime>(expValue);
             Assert.True(updated > DateTime.Now.AddMinutes(-1));
@@ -319,7 +322,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var num = Assert.IsType<int>(expValue);
             Assert.Equal(value, num);
@@ -336,7 +339,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var num = Assert.IsType<int>(expValue);
             Assert.Equal(value.Value, num);
@@ -353,7 +356,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var num = Assert.IsType<int>(expValue);
             Assert.Equal(value, num);
@@ -370,7 +373,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var num = Assert.IsType<int>(expValue);
             Assert.Equal(value.Value, num);
@@ -388,10 +391,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             Assert.Throws<UnsupportedExpressionException>(() =>
             {
-                memberAssig.GetValue<TestEntity>(exp);
+                memberAssig.GetValue<TestEntity>(exp, NoProperty);
             });
 
-            var expValue = memberAssig.GetValue<TestEntity>(exp, useExpressionCompiler: true);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty, useExpressionCompiler: true);
 
             var num1 = Assert.IsType<int>(expValue);
             Assert.Equal(input << 4, num1);
@@ -406,7 +409,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var expression = IsKnownExpression(expValue, ExpressionType.Add);
             var exp1 = IsKnownExpression(expression.Value1, ExpressionType.Add);
@@ -424,7 +427,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var expression = IsKnownExpression(expValue, ExpressionType.Add);
             var exp1 = IsKnownExpression(expression.Value1, ExpressionType.Add);
@@ -442,7 +445,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var expression = IsKnownExpression(expValue, ExpressionType.Add);
             var exp1 = IsKnownExpression(expression.Value2, ExpressionType.Add);
@@ -460,7 +463,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var expression = IsKnownExpression(expValue, ExpressionType.Add);
             var exp1 = IsKnownExpression(expression.Value2, ExpressionType.Multiply);
@@ -478,7 +481,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var expression = IsKnownExpression(expValue, ExpressionType.Multiply);
             var exp1 = IsKnownExpression(expression.Value1, ExpressionType.Add);
@@ -496,7 +499,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var expression = IsKnownExpression(expValue, ExpressionType.Add);
             var exp1 = IsKnownExpression(expression.Value2, ExpressionType.Multiply);
@@ -514,7 +517,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var condExpr = IsKnownExpression(expValue, ExpressionType.Conditional);
             var testExp = IsKnownExpression(condExpr.Value3, ExpressionType.LessThan);
@@ -537,7 +540,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var condExpr = IsKnownExpression(expValue, ExpressionType.Conditional);
             var testExp = IsKnownExpression(condExpr.Value3, ExpressionType.NotEqual);
@@ -556,7 +559,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            var expValue = memberAssig.GetValue<TestEntity>(exp);
+            var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
             var condExpr = IsKnownExpression(expValue, ExpressionType.Conditional);
             var testExp = IsKnownExpression(condExpr.Value3, ExpressionType.NotEqual);
@@ -572,7 +575,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             Expression<Func<TestEntity, TestEntity, bool>> exp = (e1, e2)
                 => e1.Num1 != e2.Num1 && e1.Text1 != e2.Text1;
 
-            var expValue = exp.Body.GetValue<TestEntity>(exp);
+            var expValue = exp.Body.GetValue<TestEntity>(exp, NoProperty);
 
             var orElseExp = IsKnownExpression(expValue, ExpressionType.AndAlso);
             var leftExp = IsKnownExpression(orElseExp.Value1, ExpressionType.NotEqual);
@@ -589,7 +592,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             Expression<Func<TestEntity, TestEntity, bool>> exp = (e1, e2)
                 => e1.Num1 != e2.Num1 || e1.Text1 != e2.Text1;
 
-            var expValue = exp.Body.GetValue<TestEntity>(exp);
+            var expValue = exp.Body.GetValue<TestEntity>(exp, NoProperty);
 
             var orElseExp = IsKnownExpression(expValue, ExpressionType.OrElse);
             var leftExp = IsKnownExpression(orElseExp.Value1, ExpressionType.NotEqual);

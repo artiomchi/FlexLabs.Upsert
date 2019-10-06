@@ -9,7 +9,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
     /// </summary>
     public class UnsupportedExpressionException : Exception
     {
-        private UnsupportedExpressionException(string message, string helpLink = null)
+        private UnsupportedExpressionException(string message, string? helpLink = null)
             : base(message)
         {
             HelpLink = helpLink;

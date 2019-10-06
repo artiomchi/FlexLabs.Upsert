@@ -23,9 +23,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         private readonly DbContext _dbContext;
         private readonly IEntityType _entityType;
         private readonly ICollection<TEntity> _entities;
-        private Expression<Func<TEntity, object>> _matchExpression = null;
-        private Expression<Func<TEntity, TEntity, TEntity>> _updateExpression = null;
-        private Expression<Func<TEntity, TEntity, bool>> _updateCondition = null;
+        private Expression<Func<TEntity, object>>? _matchExpression = null;
+        private Expression<Func<TEntity, TEntity, TEntity>>? _updateExpression = null;
+        private Expression<Func<TEntity, TEntity, bool>>? _updateCondition = null;
         private bool _noUpdate = false, _useExpressionCompiler = false;
 
         /// <summary>

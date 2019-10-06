@@ -30,8 +30,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="updateCondition">The expression that tests whether existing entities should be updated</param>
         /// <returns>A fully formed database query</returns>
         public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql)>> entities,
-            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions,
-            KnownExpression updateCondition);
+            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
+            KnownExpression? updateCondition);
         /// <summary>
         /// Escape the name of the table/column/schema in a given database language
         /// </summary>
@@ -55,7 +55,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// </summary>
         /// <param name="entityType">The entity type of the table</param>
         /// <returns>The escaped schema name of the table, followed by a '.'. If the table has no schema - returns null</returns>
-        protected virtual string GetSchema(IEntityType entityType)
+        protected virtual string? GetSchema(IEntityType entityType)
         {
             var schema = entityType.GetSchema();
             return schema != null
@@ -71,22 +71,22 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <summary>
         /// Prefix used to reference source dataset columns
         /// </summary>
-        protected abstract string SourcePrefix { get; }
+        protected abstract string? SourcePrefix { get; }
         /// <summary>
         /// Suffix used when referencing source dataset columns
         /// </summary>
-        protected virtual string SourceSuffix => null;
+        protected virtual string? SourceSuffix => null;
         /// <summary>
         /// Prefix used to reference target table columns
         /// </summary>
-        protected abstract string TargetPrefix { get; }
+        protected abstract string? TargetPrefix { get; }
         /// <summary>
         /// Suffix used when referencing target table columns
         /// </summary>
-        protected virtual string TargetSuffix => null;
+        protected virtual string? TargetSuffix => null;
 
         private (string SqlCommand, IEnumerable<ConstantValue> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
-            Expression<Func<TEntity, object>> match, Expression<Func<TEntity, TEntity, TEntity>> updater, Expression<Func<TEntity, TEntity, bool>> updateCondition,
+            Expression<Func<TEntity, object>>? match, Expression<Func<TEntity, TEntity, TEntity>>? updater, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
             bool noUpdate, bool useExpressionCompiler)
         {
             var joinColumns = ProcessMatchExpression(entityType, match);
@@ -97,7 +97,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .Where(p => p.PropertyInfo != null)
                 .ToArray();
 
-            List<(IProperty Property, IKnownValue Value)> updateExpressions = null;
+            List<(IProperty Property, IKnownValue Value)>? updateExpressions = null;
             if (updater != null)
             {
                 if (!(updater.Body is MemberInitExpression entityUpdater))
@@ -110,12 +110,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     if (property == null)
                         throw new InvalidOperationException("Unknown property " + binding.Member.Name);
 
-                    var value = binding.Expression.GetValue<TEntity>(updater, useExpressionCompiler);
+                    var value = binding.Expression.GetValue<TEntity>(updater, entityType.FindProperty, useExpressionCompiler);
                     if (!(value is IKnownValue knownVal))
                         knownVal = new ConstantValue(value, property);
-
-                    foreach (var valProperty in knownVal.GetPropertyValues())
-                        valProperty.Property = entityType.FindProperty(valProperty.PropertyName);
 
                     updateExpressions.Add((property, knownVal));
                 }
@@ -128,21 +125,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnName()))
                         continue;
 
-                    var propertyAccess = new PropertyValue(property.Name, false) { Property = property };
+                    var propertyAccess = new PropertyValue(property.Name, false, property);
                     updateExpressions.Add((property, propertyAccess));
                 }
             }
 
-            KnownExpression updateConditionExpression = null;
+            KnownExpression? updateConditionExpression = null;
             if (updateCondition != null)
             {
-                var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, useExpressionCompiler);
+                var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, entityType.FindProperty, useExpressionCompiler);
                 if (!(updateConditionValue is KnownExpression updateConditionExp))
                     throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
                 updateConditionExpression = updateConditionExp;
-
-                foreach (var valProperty in updateConditionExpression.GetPropertyValues())
-                    valProperty.Property = entityType.FindProperty(valProperty.PropertyName);
             }
 
             var newEntities = entities
@@ -151,7 +145,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     {
                         var columnName = p.GetColumnName();
                         var rawValue = p.PropertyInfo.GetValue(e);
-                        string defaultSql = null;
+                        string? defaultSql = null;
                         if (rawValue == null)
                         {
                             if (p.GetDefaultValue() != null)
@@ -185,7 +179,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="value">The KnownValue that has to be converted to database language</param>
         /// <param name="expandLeftColumn">Override the way the table column names are rendered</param>
         /// <returns>A string containing the expression converted to database language</returns>
-        protected virtual string ExpandValue(IKnownValue value, Func<string, string> expandLeftColumn = null)
+        protected virtual string ExpandValue(IKnownValue value, Func<string, string>? expandLeftColumn = null)
         {
             switch (value)
             {
@@ -215,8 +209,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="expression">The KnownExpression that has to be converted to database language</param>
         /// <param name="expandLeftColumn">Override the way the table column names are rendered</param>
         /// <returns>A string containing the expression converted to database language</returns>
-        protected virtual string ExpandExpression(KnownExpression expression, Func<string, string> expandLeftColumn = null)
+        protected virtual string ExpandExpression(KnownExpression expression, Func<string, string>? expandLeftColumn = null)
         {
+            if (expression == null)
+                throw new ArgumentNullException(nameof(expression));
+
             switch (expression.ExpressionType)
             {
                 case ExpressionType.Add:
@@ -232,7 +229,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 case ExpressionType.GreaterThanOrEqual:
                     {
                         var left = ExpandValue(expression.Value1, expandLeftColumn);
-                        var right = ExpandValue(expression.Value2, expandLeftColumn);
+                        var right = ExpandValue(expression.Value2!, expandLeftColumn);
                         var op = GetSimpleOperator(expression.ExpressionType);
                         return $"{left} {op} {right}";
                     }
@@ -244,11 +241,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         var value2Null = expression.Value2 is ConstantValue constant2 && constant2.Value == null;
                         if (value1Null || value2Null)
                         {
-                            return IsNullExpression(value2Null ? expression.Value1 : expression.Value2, expression.ExpressionType == ExpressionType.NotEqual);
+                            return IsNullExpression(value2Null ? expression.Value1! : expression.Value2!, expression.ExpressionType == ExpressionType.NotEqual);
                         }
 
                         var left = ExpandValue(expression.Value1, expandLeftColumn);
-                        var right = ExpandValue(expression.Value2, expandLeftColumn);
+                        var right = ExpandValue(expression.Value2!, expandLeftColumn);
                         var op = GetSimpleOperator(expression.ExpressionType);
                         return $"{left} {op} {right}";
                     }
@@ -256,15 +253,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 case ExpressionType.Coalesce:
                     {
                         var left = ExpandValue(expression.Value1, expandLeftColumn);
-                        var right = ExpandValue(expression.Value2, expandLeftColumn);
+                        var right = ExpandValue(expression.Value2!, expandLeftColumn);
                         return $"COALESCE({left}, {right})";
                     }
 
                 case ExpressionType.Conditional:
                     {
                         var ifTrue = ExpandValue(expression.Value1, expandLeftColumn);
-                        var ifFalse = ExpandValue(expression.Value2, expandLeftColumn);
-                        var test = ExpandValue(expression.Value3, expandLeftColumn);
+                        var ifFalse = ExpandValue(expression.Value2!, expandLeftColumn);
+                        var test = ExpandValue(expression.Value3!, expandLeftColumn);
                         return $"CASE WHEN {test} THEN {ifTrue} ELSE {ifFalse} END";
                     }
 
@@ -279,7 +276,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     {
                         var exp = expression.ExpressionType == ExpressionType.AndAlso ? "AND" : "OR";
                         var left = ExpandValue(expression.Value1, expandLeftColumn);
-                        var right = ExpandValue(expression.Value2, expandLeftColumn);
+                        var right = ExpandValue(expression.Value2!, expandLeftColumn);
                         return $"{left} {exp} {right}";
                     }
 
@@ -327,9 +324,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         /// <inheritdoc/>
-        public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, Expression<Func<TEntity, TEntity, bool>> updateCondition, bool noUpdate, bool useExpressionCompiler)
+        public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, bool noUpdate, bool useExpressionCompiler)
         {
+            if (dbContext == null)
+                throw new ArgumentNullException(nameof(dbContext));
+            if (entityType == null)
+                throw new ArgumentNullException(nameof(entityType));
+
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
             using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
             var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, noUpdate, useExpressionCompiler);
@@ -342,10 +344,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         /// <inheritdoc/>
-        public override async Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, Expression<Func<TEntity, TEntity, bool>> updateCondition, bool noUpdate, bool useExpressionCompiler,
+        public override async Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, bool noUpdate, bool useExpressionCompiler,
             CancellationToken cancellationToken)
         {
+            if (dbContext == null)
+                throw new ArgumentNullException(nameof(dbContext));
+            if (entityType == null)
+                throw new ArgumentNullException(nameof(entityType));
+
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
             using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
             var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, noUpdate, useExpressionCompiler);
@@ -359,7 +366,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         private object PrepareDbCommandArgument(DbCommand dbCommand, IRelationalTypeMappingSource relationalTypeMappingSource, ConstantValue constantValue)
         {
-            RelationalTypeMapping relationalTypeMapping = null;
+            RelationalTypeMapping? relationalTypeMapping = null;
 
             if (constantValue.Property != null)
             {

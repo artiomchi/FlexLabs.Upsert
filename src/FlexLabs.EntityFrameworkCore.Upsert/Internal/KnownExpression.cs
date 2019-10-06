@@ -61,18 +61,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <summary>
         /// The value used in the expression
         /// </summary>
-        public IKnownValue Value2 { get; }
+        public IKnownValue? Value2 { get; }
 
         /// <summary>
         /// The value used in the expression
         /// </summary>
-        public IKnownValue Value3 { get; }
+        public IKnownValue? Value3 { get; }
 
         private IEnumerable<IKnownValue> GetValues()
         {
-            yield return Value1;
-            yield return Value2;
-            yield return Value3;
+            if (Value1 != null)
+                yield return Value1;
+            if (Value2 != null)
+                yield return Value2;
+            if (Value3 != null)
+                yield return Value3;
         }
 
         /// <inheritdoc/>

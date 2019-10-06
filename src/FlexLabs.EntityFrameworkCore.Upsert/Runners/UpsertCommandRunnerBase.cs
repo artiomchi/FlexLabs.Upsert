@@ -20,13 +20,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public abstract bool Supports(string name);
 
         /// <inheritdoc/>
-        public abstract int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, Expression<Func<TEntity, TEntity, bool>> updateCondition, bool noUpdate, bool useExpressionCompiler)
+        public abstract int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, bool noUpdate, bool useExpressionCompiler)
             where TEntity : class;
 
         /// <inheritdoc/>
-        public abstract Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>> matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>> updateExpression, Expression<Func<TEntity, TEntity, bool>> updateCondition, bool noUpdate, bool useExpressionCompiler,
+        public abstract Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, bool noUpdate, bool useExpressionCompiler,
             CancellationToken cancellationToken) where TEntity : class;
 
         /// <summary>
@@ -36,8 +36,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="entityType">Metadata type of the entity being upserted</param>
         /// <param name="matchExpression">The match expression provided by the user</param>
         /// <returns>A list of model properties used to match entities</returns>
-        protected static List<IProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>> matchExpression)
+        protected static List<IProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>>? matchExpression)
         {
+            if (entityType == null)
+                throw new ArgumentNullException(nameof(entityType));
+
             List<IProperty> joinColumns;
             if (matchExpression is null)
             {

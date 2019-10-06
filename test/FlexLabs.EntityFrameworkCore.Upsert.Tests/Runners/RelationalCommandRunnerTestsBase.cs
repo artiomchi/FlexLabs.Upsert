@@ -132,7 +132,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             };
             var updates = new[]
             {
-                ("Name", (IKnownValue)new PropertyValue("Name", false) { Property = new MockProperty("Name") })
+                ("Name", (IKnownValue)new PropertyValue("Name", false, new MockProperty("Name")))
             };
 
             var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
@@ -153,7 +153,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             };
             var updates = new[]
             {
-                ("Name", (IKnownValue)new PropertyValue("Name", false) { Property = new MockProperty("Name2") })
+                ("Name", (IKnownValue)new PropertyValue("Name", false, new MockProperty("Name2")))
             };
 
             var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
@@ -175,7 +175,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             var updates = new[]
             {
                 ("Status", (IKnownValue)new KnownExpression(ExpressionType.Add,
-                    new PropertyValue("Status", true) { Property = new MockProperty("Status") },
+                    new PropertyValue("Status", true, new MockProperty("Status")),
                     new ConstantValue(1) { ArgumentIndex = 2 }))
             };
 
@@ -198,7 +198,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             var updates = new[]
             {
                 ("Status", (IKnownValue)new KnownExpression(ExpressionType.Coalesce,
-                    new PropertyValue("Status", true) { Property = new MockProperty("Status") },
+                    new PropertyValue("Status", true, new MockProperty("Status")),
                     new ConstantValue(1) { ArgumentIndex = 2 }))
             };
 
@@ -222,9 +222,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             {
                 ("Status", (IKnownValue)new KnownExpression(ExpressionType.Multiply,
                     new KnownExpression(ExpressionType.Add,
-                        new PropertyValue("Status", true) { Property = new MockProperty("Status") },
+                        new PropertyValue("Status", true, new MockProperty("Status")),
                         new ConstantValue(1) { ArgumentIndex = 2 }),
-                    new PropertyValue("Status", false) { Property = new MockProperty("Status") }))
+                    new PropertyValue("Status", false, new MockProperty("Status"))))
             };
 
             var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
@@ -246,10 +246,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             var updates = new[]
             {
                 ("Status", (IKnownValue)new KnownExpression(ExpressionType.Add,
-                    new PropertyValue("Status", true) { Property = new MockProperty("Status") },
+                    new PropertyValue("Status", true, new MockProperty("Status")),
                     new KnownExpression(ExpressionType.Multiply,
                         new ConstantValue(1) { ArgumentIndex = 2 },
-                        new PropertyValue("Status", false) { Property = new MockProperty("Status") })))
+                        new PropertyValue("Status", false, new MockProperty("Status")))))
             };
 
             var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
@@ -272,7 +272,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             {
                 ("Name", (IKnownValue)new ConstantValue("newValue") { ArgumentIndex = 2 })
             };
-            var condition = new KnownExpression(ExpressionType.GreaterThan, new PropertyValue("Counter", true) { Property = new MockProperty("Counter") }, new ConstantValue(12) { ArgumentIndex = 3 });
+            var condition = new KnownExpression(ExpressionType.GreaterThan, new PropertyValue("Counter", true, new MockProperty("Counter")), new ConstantValue(12) { ArgumentIndex = 3 });
 
             var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, condition);
 
@@ -295,8 +295,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 ("Name", (IKnownValue)new ConstantValue("newValue") { ArgumentIndex = 2 })
             };
             var condition = new KnownExpression(ExpressionType.AndAlso,
-                new KnownExpression(ExpressionType.GreaterThan, new PropertyValue("Counter", true) { Property = new MockProperty("Counter") }, new ConstantValue(12) { ArgumentIndex = 3 }),
-                new KnownExpression(ExpressionType.NotEqual, new PropertyValue("Status", true) { Property = new MockProperty("Status") }, new PropertyValue("Status", false) { Property = new MockProperty("Status") }));
+                new KnownExpression(ExpressionType.GreaterThan, new PropertyValue("Counter", true, new MockProperty("Counter")), new ConstantValue(12) { ArgumentIndex = 3 }),
+                new KnownExpression(ExpressionType.NotEqual, new PropertyValue("Status", true, new MockProperty("Status")), new PropertyValue("Status", false, new MockProperty("Status"))));
 
             var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, condition);
 
@@ -318,7 +318,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             {
                 ("Name", (IKnownValue)new ConstantValue("newValue") { ArgumentIndex = 2 })
             };
-            var condition = new KnownExpression(ExpressionType.NotEqual, new PropertyValue("Counter", true) { Property = new MockProperty("Counter") }, new ConstantValue(null) { ArgumentIndex = 3 });
+            var condition = new KnownExpression(ExpressionType.NotEqual, new PropertyValue("Counter", true, new MockProperty("Counter")), new ConstantValue(null) { ArgumentIndex = 3 });
 
             var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, condition);
 
