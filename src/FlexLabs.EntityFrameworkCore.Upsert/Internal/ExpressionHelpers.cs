@@ -7,8 +7,19 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {
-    internal static class ExpressionHelpers
+    /// <summary>
+    /// Expression helper classe that is used to deconstruct expression trees
+    /// </summary>
+    public static class ExpressionHelpers
     {
+        /// <summary>
+        /// Attempt to get the value of the expression
+        /// </summary>
+        /// <param name="expression">The expression we're processing</param>
+        /// <param name="container">The original lambda expression/func that contained this expression</param>
+        /// <param name="propertyFinder">Delegate used to find the EF Property class from a property name</param>
+        /// <param name="useExpressionCompiler">Allows enabling the fallback expression compiler</param>
+        /// <returns>An</returns>
         public static object GetValue<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty> propertyFinder, bool useExpressionCompiler = false)
             => GetValueInternal<TSource>(expression, container, propertyFinder, useExpressionCompiler, false);
 
