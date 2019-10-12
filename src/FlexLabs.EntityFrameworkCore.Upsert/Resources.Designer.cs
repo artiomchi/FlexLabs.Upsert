@@ -106,6 +106,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The TEntity type must be mapped in your DbContext..
+        /// </summary>
+        internal static string EntityTypeMustBeMappedInDbContext {
+            get {
+                return ResourceManager.GetString("EntityTypeMustBeMappedInDbContext", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Match columns have to be properties of the TEntity class.
         /// </summary>
         internal static string MatchColumnsHaveToBePropertiesOfTheTEntityClass {
