@@ -21,12 +21,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         /// <inheritdoc/>
         public abstract int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, bool noUpdate, bool useExpressionCompiler)
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
             where TEntity : class;
 
         /// <inheritdoc/>
         public abstract Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, bool noUpdate, bool useExpressionCompiler,
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
             CancellationToken cancellationToken) where TEntity : class;
 
         /// <summary>
@@ -35,8 +35,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <typeparam name="TEntity">Type of the entity being upserted</typeparam>
         /// <param name="entityType">Metadata type of the entity being upserted</param>
         /// <param name="matchExpression">The match expression provided by the user</param>
+        /// <param name="queryOptions">Options for the current query that will affect it's behaviour</param>
         /// <returns>A list of model properties used to match entities</returns>
-        protected static List<IProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>>? matchExpression)
+        protected static List<IProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>>? matchExpression, RunnerQueryOptions queryOptions)
         {
             if (entityType == null)
                 throw new ArgumentNullException(nameof(entityType));
@@ -80,7 +81,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.ArgumentMustBeAnAnonymousObjectInitialiser, "match"), nameof(matchExpression));
             }
 
-            if (joinColumns.All(p => p.ValueGenerated != ValueGenerated.Never))
+            if (!queryOptions.AllowIdentityMatch && joinColumns.Any(p => p.ValueGenerated != ValueGenerated.Never))
                 throw new InvalidMatchColumnsException();
 
             return joinColumns;

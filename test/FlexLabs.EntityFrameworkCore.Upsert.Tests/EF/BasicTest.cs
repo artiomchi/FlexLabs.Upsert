@@ -295,30 +295,91 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
         [Theory]
         [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_InvalidMatchColumn_NoOn(TestDbContext.DbDriver driver)
+        public void Upsert_IdentityKey_NoOn_InvalidMatchColumn(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
             using var dbContext = new TestDbContext(_dataContexts[driver]);
 
+            var newCountry = new Country
+            {
+                Name = "Germany",
+                ISO = "DE",
+                Created = _now,
+                Updated = _now,
+            };
+
             Assert.Throws<InvalidMatchColumnsException>(() =>
             {
-                dbContext.Countries.Upsert(new Country()).Run();
+                dbContext.Countries.Upsert(newCountry).Run();
             });
         }
 
         [Theory]
         [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_InvalidMatchColumn_ExplicitOn(TestDbContext.DbDriver driver)
+        public void Upsert_IdentityKey_ExplicitOn_InvalidMatchColumn(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
             using var dbContext = new TestDbContext(_dataContexts[driver]);
 
+            var newCountry = new Country
+            {
+                Name = "Germany",
+                ISO = "DE",
+                Created = _now,
+                Updated = _now,
+            };
+
             Assert.Throws<InvalidMatchColumnsException>(() =>
             {
-                dbContext.Countries.Upsert(new Country())
+                dbContext.Countries.Upsert(newCountry)
                     .On(c => c.ID)
                     .Run();
             });
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_IdentityKey_NoOn_AllowWithOverride(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using var dbContext = new TestDbContext(_dataContexts[driver]);
+
+            var newCountry = new Country
+            {
+                Name = "Germany",
+                ISO = "DE",
+                Created = _now,
+                Updated = _now,
+            };
+
+            dbContext.Countries.Upsert(newCountry)
+                .AllowIdentityMatch()
+                .Run();
+
+            Assert.Equal(2, dbContext.Countries.Count());
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_IdentityKey_ExplicitOn_AllowWithOverride(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using var dbContext = new TestDbContext(_dataContexts[driver]);
+
+            var newCountry = new Country
+            {
+                Name = "Germany",
+                ISO = "DE",
+                Created = _now,
+                Updated = _now,
+            };
+
+            dbContext.Countries.Upsert(newCountry)
+                .On(c => c.ID)
+                .AllowIdentityMatch()
+                .Run();
+
+            Assert.Equal(2, dbContext.Countries.Count());
         }
 
         [Theory]

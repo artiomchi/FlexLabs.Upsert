@@ -29,7 +29,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="updateExpressions">The expressions that represent update commands for matched entities</param>
         /// <param name="updateCondition">The expression that tests whether existing entities should be updated</param>
         /// <returns>A fully formed database query</returns>
-        public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql)>> entities,
+        public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
             ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
             KnownExpression? updateCondition);
         /// <summary>
@@ -87,13 +87,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         private (string SqlCommand, IEnumerable<ConstantValue> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
             Expression<Func<TEntity, object>>? match, Expression<Func<TEntity, TEntity, TEntity>>? updater, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
-            bool noUpdate, bool useExpressionCompiler)
+            RunnerQueryOptions queryOptions)
         {
-            var joinColumns = ProcessMatchExpression(entityType, match);
+            var joinColumns = ProcessMatchExpression(entityType, match, queryOptions);
             var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnName(), c.IsColumnNullable())).ToArray();
 
             var properties = entityType.GetProperties()
-                .Where(p => p.ValueGenerated == ValueGenerated.Never || p.GetAfterSaveBehavior() == PropertySaveBehavior.Save)
+                .Where(p => queryOptions.AllowIdentityMatch || p.ValueGenerated == ValueGenerated.Never || p.GetAfterSaveBehavior() == PropertySaveBehavior.Save)
                 .Where(p => p.PropertyInfo != null)
                 .ToArray();
 
@@ -110,14 +110,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     if (property == null)
                         throw new InvalidOperationException("Unknown property " + binding.Member.Name);
 
-                    var value = binding.Expression.GetValue<TEntity>(updater, entityType.FindProperty, useExpressionCompiler);
+                    var value = binding.Expression.GetValue<TEntity>(updater, entityType.FindProperty, queryOptions.UseExpressionCompiler);
                     if (!(value is IKnownValue knownVal))
                         knownVal = new ConstantValue(value, property);
 
                     updateExpressions.Add((property, knownVal));
                 }
             }
-            else if (!noUpdate)
+            else if (!queryOptions.NoUpdate)
             {
                 updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
                 foreach (var property in properties)
@@ -133,7 +133,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             KnownExpression? updateConditionExpression = null;
             if (updateCondition != null)
             {
-                var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, entityType.FindProperty, useExpressionCompiler);
+                var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, entityType.FindProperty, queryOptions.UseExpressionCompiler);
                 if (!(updateConditionValue is KnownExpression updateConditionExp))
                     throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
                 updateConditionExpression = updateConditionExp;
@@ -154,9 +154,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                                 defaultSql = p.GetDefaultValueSql();
                         }
                         var value = new ConstantValue(rawValue, p);
-                        return (columnName, value, defaultSql);
+                        var allowInserts = p.ValueGenerated == ValueGenerated.Never || p.GetAfterSaveBehavior() == PropertySaveBehavior.Save;
+                        return (columnName, value, defaultSql, allowInserts);
                     })
-                    .ToArray() as ICollection<(string ColumnName, ConstantValue Value, string DefaultSql)>)
+                    .ToArray() as ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>)
                 .ToArray();
 
             var arguments = newEntities.SelectMany(e => e.Select(p => p.Value)).ToList();
@@ -325,7 +326,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         /// <inheritdoc/>
         public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, bool noUpdate, bool useExpressionCompiler)
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
         {
             if (dbContext == null)
                 throw new ArgumentNullException(nameof(dbContext));
@@ -334,7 +335,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
             using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, noUpdate, useExpressionCompiler);
+            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
             var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
 #if EFCORE3
             return dbContext.Database.ExecuteSqlRaw(sqlCommand, dbArguments);
@@ -345,7 +346,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         /// <inheritdoc/>
         public override async Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, bool noUpdate, bool useExpressionCompiler,
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
             CancellationToken cancellationToken)
         {
             if (dbContext == null)
@@ -355,7 +356,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
             using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, noUpdate, useExpressionCompiler);
+            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
             var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
 #if EFCORE3
             return await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments).ConfigureAwait(false);
