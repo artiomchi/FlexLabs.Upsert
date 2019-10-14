@@ -207,27 +207,29 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         {
             using var dbContext = new TestDbContext(_dataContexts[driver]);
 
-            dbContext.TestEntities.RemoveRange(dbContext.TestEntities);
-            dbContext.Countries.RemoveRange(dbContext.Countries);
-            dbContext.DashTable.RemoveRange(dbContext.DashTable);
-            dbContext.Statuses.RemoveRange(dbContext.Statuses);
-            dbContext.SchemaTable.RemoveRange(dbContext.SchemaTable);
-            dbContext.PageVisits.RemoveRange(dbContext.PageVisits);
-            dbContext.Books.RemoveRange(dbContext.Books);
-            dbContext.GuidKeysAutoGen.RemoveRange(dbContext.GuidKeysAutoGen);
-            dbContext.GuidKeys.RemoveRange(dbContext.GuidKeys);
-            dbContext.StringKeysAutoGen.RemoveRange(dbContext.StringKeysAutoGen);
-            dbContext.StringKeys.RemoveRange(dbContext.StringKeys);
-            dbContext.KeyOnlies.RemoveRange(dbContext.KeyOnlies);
-            dbContext.NullableCompositeKeys.RemoveRange(dbContext.NullableCompositeKeys);
+            dbContext.RemoveRange(dbContext.Books);
+            dbContext.RemoveRange(dbContext.Countries);
+            dbContext.RemoveRange(dbContext.DashTable);
+            dbContext.RemoveRange(dbContext.GuidKeys);
+            dbContext.RemoveRange(dbContext.GuidKeysAutoGen);
+            dbContext.RemoveRange(dbContext.JsonDatas);
+            dbContext.RemoveRange(dbContext.KeyOnlies);
+            dbContext.RemoveRange(dbContext.NullableCompositeKeys);
+            dbContext.RemoveRange(dbContext.NullableRequireds);
+            dbContext.RemoveRange(dbContext.PageVisits);
+            dbContext.RemoveRange(dbContext.SchemaTable);
+            dbContext.RemoveRange(dbContext.Statuses);
+            dbContext.RemoveRange(dbContext.StringKeys);
+            dbContext.RemoveRange(dbContext.StringKeysAutoGen);
+            dbContext.RemoveRange(dbContext.TestEntities);
 
-            dbContext.Countries.Add(_dbCountry);
-            dbContext.PageVisits.Add(_dbVisitOld);
-            dbContext.PageVisits.Add(_dbVisit);
-            dbContext.Statuses.Add(_dbStatus);
-            dbContext.Books.Add(_dbBook);
-            dbContext.NullableCompositeKeys.Add(_nullableKey1);
-            dbContext.NullableCompositeKeys.Add(_nullableKey2);
+            dbContext.Add(_dbCountry);
+            dbContext.Add(_dbVisitOld);
+            dbContext.Add(_dbVisit);
+            dbContext.Add(_dbStatus);
+            dbContext.Add(_dbBook);
+            dbContext.Add(_nullableKey1);
+            dbContext.Add(_nullableKey2);
             dbContext.SaveChanges();
         }
 
