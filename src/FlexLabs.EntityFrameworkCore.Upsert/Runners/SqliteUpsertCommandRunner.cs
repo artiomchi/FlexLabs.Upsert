@@ -9,6 +9,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     {
         /// <inheritdoc/>
         public override bool Supports(string name) => name == "Microsoft.EntityFrameworkCore.Sqlite";
+        /// <inheritdoc/>
+        protected override int? MaxQueryParams => 999;
 
         /// <summary>
         /// Sqlite doesn't support table schemas, so this method returns null

@@ -84,8 +84,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// Suffix used when referencing target table columns
         /// </summary>
         protected virtual string? TargetSuffix => null;
+        /// <summary>
+        /// The maximum number of parameters that the db engine allows to be passed to a query
+        /// </summary>
+        protected virtual int? MaxQueryParams => null;
 
-        private (string SqlCommand, IEnumerable<ConstantValue> Arguments) PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
+        private IEnumerable<(string SqlCommand, IEnumerable<ConstantValue> Arguments)> PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
             Expression<Func<TEntity, object>>? match, Expression<Func<TEntity, TEntity, TEntity>>? updater, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
             RunnerQueryOptions queryOptions)
         {
@@ -160,18 +164,34 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     .ToArray() as ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>)
                 .ToArray();
 
-            var arguments = newEntities.SelectMany(e => e.Select(p => p.Value)).ToList();
-            if (updateExpressions != null)
-                arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues()));
-            int i = 0;
-            foreach (var arg in arguments)
-                arg.ArgumentIndex = i++;
+            var entitiesProcessed = 0;
+            var singleEntityArguments = newEntities[0].Count;
+            while (entitiesProcessed < newEntities.Length)
+            {
+                var arguments = new List<ConstantValue>();
+                if (updateExpressions != null)
+                    arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues()));
 
-            var columnUpdateExpressions = updateExpressions?.Count > 0
-                ? updateExpressions.Select(x => (x.Property.GetColumnName(), x.Value)).ToArray()
-                : null;
-            var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities, joinColumnNames, columnUpdateExpressions, updateConditionExpression);
-            return (sqlCommand, arguments);
+                var entitiesHere = 0;
+                do
+                {
+                    arguments.AddRange(newEntities[entitiesProcessed].Select(p => p.Value));
+                    entitiesProcessed++;
+                    entitiesHere++;
+                }
+                while (entitiesProcessed < newEntities.Length &&
+                    (MaxQueryParams == null || arguments.Count + singleEntityArguments < MaxQueryParams));
+
+                int i = 0;
+                foreach (var arg in arguments)
+                    arg.ArgumentIndex = i++;
+
+                var columnUpdateExpressions = updateExpressions?.Count > 0
+                    ? updateExpressions.Select(x => (x.Property.GetColumnName(), x.Value)).ToArray()
+                    : null;
+                var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression);
+                yield return (sqlCommand, arguments);
+            }
         }
 
         /// <summary>
@@ -334,14 +354,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 throw new ArgumentNullException(nameof(entityType));
 
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-            using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
-            var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
+            var commands = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
+
+            int result = 0;
+            foreach (var (sqlCommand, arguments) in commands)
+            {
+                using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
+                var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
 #if EFCORE3
-            return dbContext.Database.ExecuteSqlRaw(sqlCommand, dbArguments);
+                return dbContext.Database.ExecuteSqlRaw(sqlCommand, dbArguments);
 #else
-            return dbContext.Database.ExecuteSqlCommand(sqlCommand, dbArguments);
+                result = dbContext.Database.ExecuteSqlCommand(sqlCommand, dbArguments);
 #endif
+            }
+            return result;
         }
 
         /// <inheritdoc/>
@@ -355,14 +381,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 throw new ArgumentNullException(nameof(entityType));
 
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-            using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
-            var (sqlCommand, arguments) = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
-            var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
+            var commands = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
+
+            int result = 0;
+            foreach (var (sqlCommand, arguments) in commands)
+            {
+                using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
+                var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
 #if EFCORE3
-            return await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments).ConfigureAwait(false);
+                return await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments);
 #else
-            return await dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, dbArguments).ConfigureAwait(false);
+                result = await dbContext.Database.ExecuteSqlCommandAsync(sqlCommand, dbArguments);
 #endif
+            }
+            return result;
         }
 
         private object PrepareDbCommandArgument(DbCommand dbCommand, IRelationalTypeMappingSource relationalTypeMappingSource, ConstantValue constantValue)

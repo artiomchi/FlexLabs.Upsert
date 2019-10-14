@@ -1962,5 +1962,25 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     ("B"),
                     (entity.Text)));
         }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_100k_Insert_MultiQuery(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using var dbContext = new TestDbContext(_dataContexts[driver]);
+
+            var newEntities = Enumerable.Range(1, 100_000)
+                .Select(i => new NullableRequired
+                {
+                    ID = i,
+                    Text = i.ToString(),
+                });
+            dbContext.NullableRequireds.UpsertRange(newEntities)
+                .On(c => c.ID)
+                .Run();
+
+            Assert.Equal(100_000, dbContext.NullableRequireds.Count());
+        }
     }
 }
