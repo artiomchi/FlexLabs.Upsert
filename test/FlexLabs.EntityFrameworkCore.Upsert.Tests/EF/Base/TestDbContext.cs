@@ -78,7 +78,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
                     options.UseInMemoryDatabase(connectionString);
                     break;
                 case DbDriver.Sqlite:
-#if !EFCORE3
+#if SQLITE_LEGACY
                     // If we are on Windows platform, we can copy Sqlite 3.24.0 binary to the output directory.
                     // The dynamic libraries in the current execution path will load first.
                     if (Environment.OSVersion.Platform == PlatformID.Win32NT)

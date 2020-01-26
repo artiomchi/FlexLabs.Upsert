@@ -21,6 +21,7 @@ Also supports injecting sql command generators to add support for other provider
     <VersionPrefix>3.1.0</VersionPrefix>
     <PackageReleaseNotes>
 v3.1.0
+- Referencing EF Core 3.1 only, due to internal namespace changes and compatibility issues with .NET Full Framework
 + Nulable type metadata
 + Adding support for upserting by identity column
 + Splitting the request into multiple queries if the query parameter limit is reached
@@ -48,25 +49,16 @@ v2.2.0:
     <PostBuildEvent>signtool.exe sign /n "$(SignCertificateName)" /fd sha256 /tr "http://timestamp.digicert.com" /td sha256 FlexLabs.EntityFrameworkCore.Upsert.dll</PostBuildEvent>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <EFCoreVersion>2.1.0</EFCoreVersion>
-  </PropertyGroup>
-  
-  <PropertyGroup Condition="'$(TargetFramework)'=='netstandard2.1'">
-    <DefineConstants>$(DefineConstants);EFCORE3</DefineConstants>
-    <EFCoreVersion>3.0.0</EFCoreVersion>
-  </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.6">
+    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.8">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EFCoreVersion)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="3.1.0" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)'=='Release'">
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta2-19270-01" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>

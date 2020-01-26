@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
+using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 {
@@ -22,8 +24,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             DatabaseEngines = new List<TestDbContext.DbDriver>
             {
                 TestDbContext.DbDriver.InMemory,
-                TestDbContext.DbDriver.Sqlite,
                 TestDbContext.DbDriver.MSSQL,
+#if !NOSQLITE
+                TestDbContext.DbDriver.Sqlite,
+#endif
             };
             if (IsAppVeyor || RunLocalDockerTests)
                 DatabaseEngines.AddRange(new[]
@@ -56,11 +60,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             private static readonly string AppVeyor_SqlServer_Connection = $"Server=(local)\\SQL2017;Database={Username};User Id=sa;Password={Password}";
             private static readonly string AppVeyor_MySql_Connection = $"Server=localhost;Port=3306;Database={Username};Uid=root;Pwd={Password}";
 
+            private readonly IMessageSink _diagnosticMessageSink;
             private readonly IDictionary<TestDbContext.DbDriver, Process> _processes;
-            public IDictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>> _dataContexts;
+            public readonly IDictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>> _dataContexts;
 
-            public Contexts()
+            public Contexts(IMessageSink diagnosticMessageSink)
             {
+                _diagnosticMessageSink = diagnosticMessageSink;
                 _processes = new Dictionary<TestDbContext.DbDriver, Process>();
                 _dataContexts = new Dictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>>();
 
@@ -102,7 +108,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 {
                     bool isSuccess = false;
                     TestDbContext context = null;
-                    Console.WriteLine("Connecting to " + driver);
+                    _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Connecting to {0}", driver));
                     try
                     {
                         context = new TestDbContext(options);
@@ -110,12 +116,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                         context.Database.EnsureCreated();
                         _dataContexts[driver] = options;
                         isSuccess = true;
-                        Console.WriteLine(" - Connection Successful!");
+                        _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Connection to {0} Successful!", driver));
                         break;
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine(" - EXCEPTION: " + ex.Message);
+                        _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Connecting to {0} failed! Error: {1}", driver, ex.GetBaseException().Message));
                         System.Threading.Thread.Sleep(1000);
                         continue;
                     }
