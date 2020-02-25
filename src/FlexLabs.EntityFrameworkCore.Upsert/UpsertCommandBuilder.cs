@@ -33,6 +33,25 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// </summary>
         /// <param name="dbContext">The data context that will be used to upsert entities</param>
         /// <param name="entities">The collection of entities to be upserted</param>
+        /// <param name="type">The anonymous type of the DbSet to be upserted</param>
+        internal UpsertCommandBuilder(DbContext dbContext, ICollection<TEntity> entities, Type type)
+        {
+            _dbContext = dbContext;
+            _entities = entities;
+
+            _entityType = dbContext.GetService<IModel>().FindEntityType(type);
+
+            if (_entityType == null)
+            {
+                throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
+            }
+        }
+
+        /// <summary>
+        /// Initialise an instance of the UpsertCommandBuilder
+        /// </summary>
+        /// <param name="dbContext">The data context that will be used to upsert entities</param>
+        /// <param name="entities">The collection of entities to be upserted</param>
         internal UpsertCommandBuilder(DbContext dbContext, ICollection<TEntity> entities)
         {
             _dbContext = dbContext;
@@ -43,8 +62,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             if (_entityType == null)
             {
                 throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
-            }
-        }
+            }        }
 
         /// <summary>
         /// Specifies which columns will be used to find matching entities between the collection passed and the ones stored in the database
