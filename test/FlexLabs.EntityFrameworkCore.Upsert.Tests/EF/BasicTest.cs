@@ -163,6 +163,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ISO = "AU",
             Created = new DateTime(1970, 1, 1),
         };
+        readonly Parent _dbParent = new Parent
+        {
+            ParentName = "Parent",
+            Child = new Child
+            {
+                ChildName = "Child",
+            },
+        };
         readonly PageVisit _dbVisitOld = new PageVisit
         {
             UserID = 1,
@@ -228,6 +236,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.RemoveRange(dbContext.StringKeys);
             dbContext.RemoveRange(dbContext.StringKeysAutoGen);
             dbContext.RemoveRange(dbContext.TestEntities);
+            dbContext.RemoveRange(dbContext.Parents);
 
             dbContext.Add(_dbCountry);
             dbContext.Add(_dbVisitOld);
@@ -236,6 +245,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.Add(_dbBook);
             dbContext.Add(_nullableKey1);
             dbContext.Add(_nullableKey2);
+            dbContext.Add(_dbParent);
             dbContext.SaveChanges();
         }
 
@@ -1989,6 +1999,126 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .Run();
 
             Assert.Equal(100_000, dbContext.NullableRequireds.Count());
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_Owned_Entity(TestDbContext.DbDriver driver)
+        {
+            if (driver == TestDbContext.DbDriver.InMemory)
+            {
+                // NOTE: Owned entities are not yet supported for InMemory.
+                return;
+            }
+
+            ResetDb(driver);
+            using var dbContext = new TestDbContext(_dataContexts[driver]);
+
+            var newParent = new Parent
+            {
+                ParentName = "Parent",
+                Child = new Child
+                {
+                    ChildName = "Someone else",
+                },
+                Counter = 3,
+            };
+
+            dbContext.Parents.Upsert(newParent)
+                .On(p => p.ParentName)
+                .Run();
+
+            Assert.Collection(dbContext.Parents.OrderBy(p => p.ParentName),
+                parent =>
+                {
+                    Assert.Equal(newParent.ParentName, parent.ParentName);
+                    Assert.Equal(newParent.Child.ChildName, parent.Child.ChildName);
+                    Assert.Equal(newParent.Counter, parent.Counter);
+                    Assert.Equal(3, parent.Counter);
+                });
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_Owned_Entity_WhenMatched(TestDbContext.DbDriver driver)
+        {
+            if (driver == TestDbContext.DbDriver.InMemory)
+            {
+                // NOTE: Owned entities are not yet supported for InMemory.
+                return;
+            }
+
+            ResetDb(driver);
+            using var dbContext = new TestDbContext(_dataContexts[driver]);
+
+            var newParent = new Parent
+            {
+                ParentName = "Parent",
+                Child = new Child
+                {
+                    ChildName = "Someone else",
+                },
+            };
+
+            dbContext.Parents.Upsert(newParent)
+                .On(p => p.ParentName)
+                .WhenMatched(p => new Parent
+                {
+                    Counter = p.Counter + 1,
+                    Child = new Child
+                    {
+                        ChildName = "Not me",
+                    },
+                })
+                .Run();
+
+            Assert.Collection(dbContext.Parents.OrderBy(p => p.ParentName),
+                parent =>
+                {
+                    Assert.Equal(newParent.ParentName, parent.ParentName);
+                    Assert.NotEqual(newParent.Child.ChildName, parent.Child.ChildName);
+                    Assert.NotEqual(newParent.Counter, parent.Counter);
+                    Assert.Equal(1, parent.Counter);
+                    Assert.Equal("Not me", parent.Child.ChildName);
+                });
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_Owned_Entity_NoUpdate(TestDbContext.DbDriver driver)
+        {
+            if (driver == TestDbContext.DbDriver.InMemory)
+            {
+                // NOTE: Owned entities are not yet supported for InMemory.
+                return;
+            }
+
+            ResetDb(driver);
+            using var dbContext = new TestDbContext(_dataContexts[driver]);
+
+            var newParent = new Parent
+            {
+                ParentName = "Parent",
+                Child = new Child
+                {
+                    ChildName = "Someone else",
+                },
+                Counter = 3,
+            };
+
+            dbContext.Parents.Upsert(newParent)
+                .On(p => p.ParentName)
+                .NoUpdate()
+                .Run();
+
+            Assert.Collection(dbContext.Parents.OrderBy(p => p.ParentName),
+                parent =>
+                {
+                    Assert.Equal(newParent.ParentName, parent.ParentName);
+                    Assert.NotEqual(newParent.Child.ChildName, parent.Child.ChildName);
+                    Assert.NotEqual(newParent.Counter, parent.Counter);
+                    Assert.Equal(0, parent.Counter);
+                });
         }
     }
 }

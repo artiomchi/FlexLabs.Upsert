@@ -28,6 +28,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
             modelBuilder.Entity<SchemaTable>().HasIndex(t => t.Name).IsUnique();
             modelBuilder.Entity<KeyOnly>().HasKey(t => new { t.ID1, t.ID2 });
             modelBuilder.Entity<NullableCompositeKey>().HasIndex(t => new { t.ID1, t.ID2 }).IsUnique().HasFilter(null);
+            modelBuilder.Entity<Parent>().OwnsOne(c => c.Child);
 
             if (dbProvider.Name == "Npgsql.EntityFrameworkCore.PostgreSQL")
                 modelBuilder.Entity<JsonData>().Property(j => j.Data).HasColumnType("jsonb");
@@ -50,6 +51,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DbSet<StringKey> StringKeys { get; set; }
         public DbSet<StringKeyAutoGen> StringKeysAutoGen { get; set; }
         public DbSet<TestEntity> TestEntities { get; set; }
+        public DbSet<Parent> Parents { get; set; }
 
         public enum DbDriver
         {
