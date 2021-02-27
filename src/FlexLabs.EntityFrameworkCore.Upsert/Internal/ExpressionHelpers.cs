@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {
     /// <summary>
-    /// Expression helper classe that is used to deconstruct expression trees
+    /// Expression helper class that is used to deconstruct expression trees
     /// </summary>
     public static class ExpressionHelpers
     {
@@ -20,10 +20,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <param name="propertyFinder">Delegate used to find the EF Property class from a property name</param>
         /// <param name="useExpressionCompiler">Allows enabling the fallback expression compiler</param>
         /// <returns>An</returns>
-        public static object GetValue<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty> propertyFinder, bool useExpressionCompiler = false)
+        public static object? GetValue<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty> propertyFinder, bool useExpressionCompiler = false)
             => GetValueInternal<TSource>(expression, container, propertyFinder, useExpressionCompiler, false);
 
-        private static object GetValueInternal<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty> propertyFinder, bool useExpressionCompiler, bool nested)
+        private static object? GetValueInternal<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty> propertyFinder, bool useExpressionCompiler, bool nested)
         {
             switch (expression.NodeType)
             {
@@ -111,7 +111,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                 case ExpressionType.NewArrayInit:
                     {
                         var arrayExp = (NewArrayExpression)expression;
-                        var result = Array.CreateInstance(arrayExp.Type.GetElementType(), arrayExp.Expressions.Count);
+                        var result = Array.CreateInstance(arrayExp.Type.GetElementType()!, arrayExp.Expressions.Count);
                         for (int i = 0; i < arrayExp.Expressions.Count; i++)
                             result.SetValue(arrayExp.Expressions[i].GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, true), i);
                         return result;

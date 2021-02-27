@@ -59,7 +59,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 {
                     foreach (var prop in properties)
                     {
-                        var property = entityType.FindProperty(prop.Name);
+                        var property = entityType.FindProperty(prop!.Name);
                         prop.SetValue(dbEntity, prop.GetValue(newEntity) ?? property.GetDefaultValue());
                     }
                 };
@@ -107,7 +107,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     .ToArray();
 
             // If we're resorting to matching on PKs, we'll have to load them manually
-            object[] getPKs(TEntity entity)
+            object?[] getPKs(TEntity entity)
             {
                 return entityType.FindPrimaryKey()
                     .Properties
