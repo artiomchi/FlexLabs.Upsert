@@ -9,13 +9,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
     internal class MockProperty : IProperty
     {
         private readonly string _name;
+        private readonly IAnnotation _nameAnnotation;
 
         public MockProperty(string name)
         {
             _name = name;
+            _nameAnnotation = new MockAnnotation(name);
         }
 
         public object this[string name] => _name;
+        public IAnnotation FindAnnotation(string name) => name == "Relational:ColumnName" ? _nameAnnotation : null;
+        public IEnumerable<IAnnotation> GetAnnotations() => new[] { _nameAnnotation };
 
         public IEntityType DeclaringEntityType => throw new NotImplementedException();
 
@@ -46,15 +50,5 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
         public PropertyInfo PropertyInfo => throw new NotImplementedException();
 
         public FieldInfo FieldInfo => throw new NotImplementedException();
-
-        public IAnnotation FindAnnotation(string name)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerable<IAnnotation> GetAnnotations()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

@@ -72,7 +72,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
                     options.UseSqlServer(connectionString);
                     break;
                 case DbDriver.MySQL:
+#if NET5_0
+                    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+#else
                     options.UseMySql(connectionString);
+#endif
                     break;
                 case DbDriver.InMemory:
                     options.UseInMemoryDatabase(connectionString);

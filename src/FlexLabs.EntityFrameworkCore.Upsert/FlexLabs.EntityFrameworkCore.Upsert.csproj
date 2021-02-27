@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <NeutralLanguage>en</NeutralLanguage>
     <Nullable>enable</Nullable>
@@ -38,6 +38,11 @@ v2.2.0:
 + Null value handling in generated SQL
 ! Patched MySQL syntax for columns that haven't been updated but may be present in expressions
     </PackageReleaseNotes>
+    <EFCoreVersion>3.1.0</EFCoreVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net5.0'">
+    <EFCoreVersion>5.0.0</EFCoreVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
@@ -54,7 +59,7 @@ v2.2.0:
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="3.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EFCoreVersion)" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)'=='Release'">
