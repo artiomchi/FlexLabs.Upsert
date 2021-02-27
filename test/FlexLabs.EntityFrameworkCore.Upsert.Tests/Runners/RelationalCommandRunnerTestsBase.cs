@@ -152,9 +152,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
         public void SqlSyntaxRunner_Update_Source()
         {
             _dbContext.Upsert(new TestEntity())
-                .WhenMatched((en, ed) => new TestEntity
+                .WhenMatched((ed, en) => new TestEntity
                 {
-                    Name = ed.Name
+                    Name = en.Name
                 })
                 .Run();
 
@@ -200,9 +200,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
         public void SqlSyntaxRunner_Update_BinaryAddMultiply()
         {
             _dbContext.Upsert(new TestEntity())
-                .WhenMatched((en, ed) => new TestEntity
+                .WhenMatched((ed, en) => new TestEntity
                 {
-                    Total = (en.Total + 5) * ed.Total
+                    Total = (ed.Total + 5) * en.Total
                 })
                 .Run();
 
@@ -216,9 +216,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
         public void SqlSyntaxRunner_Update_BinaryAddMultiplyGroup()
         {
             _dbContext.Upsert(new TestEntity())
-                .WhenMatched((en, ed) => new TestEntity
+                .WhenMatched((ed, en) => new TestEntity
                 {
-                    Total = en.Total + 3 * ed.Total
+                    Total = ed.Total + 3 * en.Total
                 })
                 .Run();
 

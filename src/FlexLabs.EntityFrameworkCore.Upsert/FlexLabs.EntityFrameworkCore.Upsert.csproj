@@ -6,6 +6,7 @@
     <NeutralLanguage>en</NeutralLanguage>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     <Authors>Artiom Chilaru</Authors>
     <Company>Artiom Chilaru</Company>
     <Description>Adds basic support for "Upsert" operations to EF Core.
@@ -18,8 +19,13 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>3.1.0</VersionPrefix>
+    <VersionPrefix>4.0.0</VersionPrefix>
     <PackageReleaseNotes>
+v4.0.0
++ Adding support for .NET 5 and EF Core 5
+! Patched support for constants in the update condition
+! Run and RunAsync will not return all rows affected when command was split into multiple batches, not just the last batch's row count
+
 v3.1.0
 - Referencing EF Core 3.1 only, due to internal namespace changes and compatibility issues with .NET Full Framework
 + Nulable type metadata
@@ -29,10 +35,10 @@ v3.1.0
 v3.0.0
 * EF Core 3 support
 
-v2.2.1:      
+v2.2.1:
 + Support for more expressions (Bitwise AND and bitwise OR)
 
-v2.2.0:      
+v2.2.0:
 + Support for more expressions (AND and OR)
 + Support for default column values and expressions
 + Null value handling in generated SQL
