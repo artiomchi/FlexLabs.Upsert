@@ -100,7 +100,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         {
             if (matchExpression != null)
                 return entities.AsQueryable()
-                    .GroupJoin(dbContext.Set<TEntity>(), matchExpression, matchExpression, (newEntity, dbEntity) => new { newEntity, dbEntity })
+                    .GroupJoin(dbContext.Set<TEntity>().ToList(), matchExpression, matchExpression, (newEntity, dbEntity) => new { newEntity, dbEntity })
                     .SelectMany(x => x.dbEntity.DefaultIfEmpty(), (x, dbEntity) => new { dbEntity, x.newEntity })
                     .AsEnumerable()
                     .Select(x => (x.dbEntity, x.newEntity))
