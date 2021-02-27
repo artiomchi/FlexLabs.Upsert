@@ -172,6 +172,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 if (updateExpressions != null)
                     arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues()));
 
+                if(updateConditionExpression != null)
+                    arguments.AddRange(updateConditionExpression.GetConstantValues().Where(c => c.Value != null));
+
                 var entitiesHere = 0;
                 do
                 {
