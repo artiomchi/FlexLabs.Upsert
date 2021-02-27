@@ -12,7 +12,7 @@
   <PropertyGroup Condition="'$(TargetFramework)'=='net48'">
     <DefineConstants>$(DefineConstants);NOSQLITE</DefineConstants>
   </PropertyGroup>
-  
+
   <PropertyGroup Condition="'$(TargetFramework)'=='net5.0'">
     <EFCoreVersion>5.0.2</EFCoreVersion>
     <EFCoreMySqlVersion>5.0.0-alpha.2</EFCoreMySqlVersion>
@@ -24,6 +24,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EFCoreVersion)" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.9.1" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(EFCoreVersion)" />
+    <PackageReference Include="NSubstitute" Version="4.2.2" />
+    <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.14" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="$(EFCoreMySqlVersion)" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
