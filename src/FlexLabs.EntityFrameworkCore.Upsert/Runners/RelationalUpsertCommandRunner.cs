@@ -365,7 +365,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
-                result = dbContext.Database.ExecuteSqlRaw(sqlCommand, dbArguments);
+                result += dbContext.Database.ExecuteSqlRaw(sqlCommand, dbArguments);
             }
             return result;
         }
@@ -388,7 +388,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
-                result = await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments, cancellationToken).ConfigureAwait(false);
+                result += await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments, cancellationToken).ConfigureAwait(false);
             }
             return result;
         }
