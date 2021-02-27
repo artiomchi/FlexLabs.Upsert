@@ -94,7 +94,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             RunnerQueryOptions queryOptions)
         {
             var joinColumns = ProcessMatchExpression(entityType, match, queryOptions);
-            var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnName(), c.IsColumnNullable())).ToArray();
+            var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnBaseName(), c.IsColumnNullable())).ToArray();
 
             var properties = entityType.GetProperties()
                 .Where(p => queryOptions.AllowIdentityMatch || p.ValueGenerated == ValueGenerated.Never || p.GetAfterSaveBehavior() == PropertySaveBehavior.Save)
@@ -126,7 +126,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
                 foreach (var property in properties)
                 {
-                    if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnName()))
+                    if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnBaseName()))
                         continue;
 
                     var propertyAccess = new PropertyValue(property.Name, false, property);
@@ -147,7 +147,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .Select(e => properties
                     .Select(p =>
                     {
-                        var columnName = p.GetColumnName();
+                        var columnName = p.GetColumnBaseName();
                         var rawValue = p.PropertyInfo.GetValue(e);
                         string? defaultSql = null;
                         if (rawValue == null)
@@ -191,7 +191,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     arg.ArgumentIndex = i++;
 
                 var columnUpdateExpressions = updateExpressions?.Count > 0
-                    ? updateExpressions.Select(x => (x.Property.GetColumnName(), x.Value)).ToArray()
+                    ? updateExpressions.Select(x => (x.Property.GetColumnBaseName(), x.Value)).ToArray()
                     : null;
                 var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression);
                 yield return (sqlCommand, arguments);
@@ -209,7 +209,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             switch (value)
             {
                 case PropertyValue prop:
-                    var columnName = prop.Property.GetColumnName();
+                    var columnName = prop.Property.GetColumnBaseName();
                     if (expandLeftColumn != null && prop.IsLeftParameter)
                         return expandLeftColumn(columnName);
 
