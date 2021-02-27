@@ -104,7 +104,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             List<(IProperty Property, IKnownValue Value)>? updateExpressions = null;
             if (updater != null)
             {
-                if (!(updater.Body is MemberInitExpression entityUpdater))
+                if (updater.Body is not MemberInitExpression entityUpdater)
                     throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.UpdaterMustBeAnInitialiserOfTheTEntityType, nameof(updater)), nameof(updater));
 
                 updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
@@ -115,7 +115,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         throw new InvalidOperationException("Unknown property " + binding.Member.Name);
 
                     var value = binding.Expression.GetValue<TEntity>(updater, entityType.FindProperty, queryOptions.UseExpressionCompiler);
-                    if (!(value is IKnownValue knownVal))
+                    if (value is not IKnownValue knownVal)
                         knownVal = new ConstantValue(value, property);
 
                     updateExpressions.Add((property, knownVal));
@@ -138,7 +138,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (updateCondition != null)
             {
                 var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, entityType.FindProperty, queryOptions.UseExpressionCompiler);
-                if (!(updateConditionValue is KnownExpression updateConditionExp))
+                if (updateConditionValue is not KnownExpression updateConditionExp)
                     throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
                 updateConditionExpression = updateConditionExp;
             }
@@ -384,7 +384,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
-                result = await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments).ConfigureAwait(false);
+                result = await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments, cancellationToken).ConfigureAwait(false);
             }
             return result;
         }

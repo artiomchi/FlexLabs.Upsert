@@ -9,24 +9,24 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
 {
     public class ExpressionHelpersTests
     {
-        private Expression GetMemberExpression(LambdaExpression expression)
+        private static Expression GetMemberExpression(LambdaExpression expression)
             => ((MemberAssignment)((MemberInitExpression)expression.Body).Bindings[0]).Expression;
 
-        private KnownExpression IsKnownExpression(object value, ExpressionType expressionType)
+        private static KnownExpression IsKnownExpression(object value, ExpressionType expressionType)
         {
             var expression = Assert.IsType<KnownExpression>(value);
             Assert.Equal(expressionType, expression.ExpressionType);
             return expression;
         }
 
-        private ConstantValue IsConstantValue(object value, object expectedValue)
+        private static ConstantValue IsConstantValue(object value, object expectedValue)
         {
             var constant = Assert.IsType<ConstantValue>(value);
             Assert.Equal(expectedValue, constant.Value);
             return constant;
         }
 
-        private PropertyValue IsPropertyValue(object value, string name, bool isLeftParam)
+        private static PropertyValue IsPropertyValue(object value, string name, bool isLeftParam)
         {
             var property = Assert.IsType<PropertyValue>(value);
             Assert.Equal(name, property.PropertyName);

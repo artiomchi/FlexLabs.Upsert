@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base;
 using Microsoft.EntityFrameworkCore;
@@ -40,7 +39,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         public static readonly List<TestDbContext.DbDriver> DatabaseEngines;
         public static IEnumerable<object[]> GetDatabaseEngines() => DatabaseEngines.Select(e => new object[] { e });
 
-        public class Contexts : IDisposable
+        public sealed class Contexts : IDisposable
         {
             private const string Postgres_ImageName = "flexlabs_upsert_test_postgres";
             private const string Postgres_Port = "25432";
@@ -96,7 +95,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 }
             }
 
-            [SuppressMessage("Code Quality", "IDE0068:Use recommended dispose pattern", Justification = "Data context should live beyond this method")]
             private void WaitForConnection(TestDbContext.DbDriver driver, string connectionString)
             {
                 if (!DatabaseEngines.Contains(driver))
@@ -248,7 +246,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.SaveChanges();
         }
 
-        private void AssertEqual(PageVisit expected, PageVisit actual)
+        private static void AssertEqual(PageVisit expected, PageVisit actual)
         {
             Assert.Equal(expected.UserID, actual.UserID);
             Assert.Equal(expected.Date, actual.Date);

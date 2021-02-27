@@ -39,7 +39,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append(string.Join(", ", entities.First().Where(e => e.AllowInserts).Select(e => EscapeName(e.ColumnName))));
             result.Append(") VALUES (");
             result.Append(string.Join(", ", entities.First().Where(e => e.AllowInserts).Select(e => EscapeName(e.ColumnName))));
-            result.Append(")");
+            result.Append(')');
             if (updateExpressions != null)
             {
                 result.Append(" WHEN MATCHED");
@@ -48,7 +48,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 result.Append(" THEN UPDATE SET ");
                 result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
             }
-            result.Append(";");
+            result.Append(';');
             return result.ToString();
         }
     }
