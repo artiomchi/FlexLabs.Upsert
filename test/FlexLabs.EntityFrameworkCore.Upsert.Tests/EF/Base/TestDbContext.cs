@@ -40,6 +40,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
                 modelBuilder.Entity<JsonData>().Property(j => j.Data).HasColumnType("jsonb");
             if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql
                 modelBuilder.Entity<NullableRequired>().Property(e => e.Text).HasDefaultValue("B");
+            if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql") // Can't have table schemas in MySql
+                modelBuilder.Entity<SchemaTable>().Metadata.SetSchema(null);
         }
 
         public DbSet<Book> Books { get; set; }

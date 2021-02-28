@@ -23,7 +23,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             DatabaseEngines = new List<TestDbContext.DbDriver>
             {
                 TestDbContext.DbDriver.InMemory,
-                TestDbContext.DbDriver.MSSQL,
+                TestDbContext.DbDriver.Postgres,
+                //TestDbContext.DbDriver.MySQL,
+                //TestDbContext.DbDriver.MSSQL,
 #if !NOSQLITE
                 TestDbContext.DbDriver.Sqlite,
 #endif
@@ -79,13 +81,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 }
                 else
                 {
-                    var lcow = DockerLCOW ? "--platform linux" : null;
-                    if (DatabaseEngines.Contains(TestDbContext.DbDriver.Postgres))
-                        _processes[TestDbContext.DbDriver.Postgres] = Process.Start("docker",
-                            $"run --name {Postgres_ImageName} {lcow} -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
-                    if (DatabaseEngines.Contains(TestDbContext.DbDriver.MySQL))
-                        _processes[TestDbContext.DbDriver.MySQL] = Process.Start("docker",
-                            $"run --name {MySql_ImageName} {lcow} -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
+                    //var lcow = DockerLCOW ? "--platform linux" : null;
+                    //if (DatabaseEngines.Contains(TestDbContext.DbDriver.Postgres))
+                    //    _processes[TestDbContext.DbDriver.Postgres] = Process.Start("docker",
+                    //        $"run --name {Postgres_ImageName} {lcow} -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
+                    //if (DatabaseEngines.Contains(TestDbContext.DbDriver.MySQL))
+                    //    _processes[TestDbContext.DbDriver.MySQL] = Process.Start("docker",
+                    //        $"run --name {MySql_ImageName} {lcow} -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
 
                     WaitForConnection(TestDbContext.DbDriver.Postgres, Postgres_Connection);
                     WaitForConnection(TestDbContext.DbDriver.MSSQL, SqlServer_Connection);
@@ -276,7 +278,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Assert.Empty(dbContext.SchemaTable);
             Assert.Empty(dbContext.DashTable);
             Assert.Collection(dbContext.Countries.OrderBy(c => c.ID), c => Assert.Equal("AU", c.ISO));
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 pv => Assert.Equal((_dbVisitOld.UserID, _dbVisitOld.Date), (pv.UserID, pv.Date)),
                 pv => Assert.Equal((_dbVisit.UserID, _dbVisit.Date), (pv.UserID, pv.Date))
             );
@@ -570,7 +572,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .On(PageVisit.MatchKey)
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit => AssertEqual(newVisit, visit));
         }
@@ -595,7 +597,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .On(pv => new { pv.UserID, pv.Date })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit => AssertEqual(newVisit, visit));
         }
@@ -625,7 +627,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit =>
                 {
@@ -665,7 +667,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit =>
                 {
@@ -704,7 +706,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit =>
                 {
@@ -743,7 +745,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit =>
                 {
@@ -782,7 +784,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit =>
                 {
@@ -819,7 +821,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit =>
                 {
@@ -858,7 +860,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit =>
                 {
@@ -897,7 +899,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit =>
                 {
@@ -936,7 +938,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit =>
                 {
@@ -975,7 +977,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit =>
                 {
@@ -1014,7 +1016,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit =>
                 {
@@ -1050,7 +1052,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit =>
                 {
@@ -1094,7 +1096,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit =>
                 {
@@ -1142,7 +1144,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit => AssertEqual(_dbVisitOld, visit),
                 visit => AssertEqual(_dbVisit, visit),
                 visit => AssertEqual(newVisit1, visit),
@@ -1182,7 +1184,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit =>
                 {
                     Assert.Equal(newVisit1.UserID, visit.UserID);
@@ -1238,7 +1240,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
                 visit =>
                 {
                     Assert.Equal(newVisit1.UserID, visit.UserID);

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using Microsoft.EntityFrameworkCore;
@@ -13,12 +9,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
 {
     public class ReplaceRunnerTests
     {
-        public class CustomSqlCommandRunner : RelationalUpsertCommandRunner
+        public class CustomSqliteCommandRunner : RelationalUpsertCommandRunner
         {
             protected override string SourcePrefix => null;
             protected override string TargetPrefix => null;
             protected override string EscapeName(string name) => name;
-            public override bool Supports(string name) => name == "Microsoft.EntityFrameworkCore.SqlServer";
+            public override bool Supports(string name) => name == "Microsoft.EntityFrameworkCore.Sqlite";
 
             public static int GenerateCalled;
             public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
@@ -44,32 +40,31 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
             public DbSet<TestEntity> Entities { get; set; }
         }
 
+#if !NOSQLITE
         [Fact]
-        public void Test()
+#endif
+        public void ReplaceRunner_FakeSqliteRunner()
         {
             var services = new ServiceCollection();
 
             services
                 .AddDbContext<TestContext>(builder => builder
-                    .UseSqlServer("Server=(localdb)\\MSSqlLocalDB;User=bad")
-                    .ReplaceUpsertCommandRunner<CustomSqlCommandRunner>());
+                    .UseSqlite("Data Source={Username}.db")
+                    .ReplaceUpsertCommandRunner<CustomSqliteCommandRunner>());
 
             var provider = services.BuildServiceProvider();
 
             using var context = provider.GetRequiredService<TestContext>();
 
-            CustomSqlCommandRunner.GenerateCalled = 0;
+            CustomSqliteCommandRunner.GenerateCalled = 0;
 
-            try
+            Assert.Throws<Microsoft.Data.Sqlite.SqliteException>(() =>
             {
                 context.Entities.Upsert(new TestEntity())
                     .On(e => e.Value)
                     .Run();
-            }
-            // Not a real connection string, so it should throw a sql exception, but we don't care about it here
-            catch (Microsoft.Data.SqlClient.SqlException) { }
-
-            Assert.True(CustomSqlCommandRunner.GenerateCalled > 0);
+            });
+            Assert.True(CustomSqliteCommandRunner.GenerateCalled > 0);
         }
     }
 }

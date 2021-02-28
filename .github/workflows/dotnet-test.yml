@@ -1,0 +1,44 @@
+name: .NET
+
+on:
+  push:
+    branches: [ test/* ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:alpine
+        ports:
+          - 25432:5432
+        env:
+          POSTGRES_DB: testuser
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: Password12!
+      mysql:
+        image: mysql
+        ports:
+          - 23306:3306
+        env:
+          MYSQL_DATABASE: testuser
+          MYSQL_USER: testuser
+          MYSQL_ROOT_PASSWORD: Password12!
+          MYSQL_PASSWORD: Password12!
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 5.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: dotnet test --no-build --verbosity normal --framework net5.0
