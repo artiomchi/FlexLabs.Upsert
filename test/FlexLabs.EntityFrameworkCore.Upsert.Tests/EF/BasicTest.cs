@@ -216,6 +216,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.RemoveRange(dbContext.DashTable);
             dbContext.RemoveRange(dbContext.GuidKeys);
             dbContext.RemoveRange(dbContext.GuidKeysAutoGen);
+            dbContext.RemoveRange(dbContext.JObjectDatas);
             dbContext.RemoveRange(dbContext.JsonDatas);
             dbContext.RemoveRange(dbContext.KeyOnlies);
             dbContext.RemoveRange(dbContext.NullableCompositeKeys);
@@ -1384,6 +1385,56 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Assert.Collection(dbContext.Books.OrderBy(b => b.ID),
                 b => AssertEqual(_dbBook, b),
                 b => AssertEqual(newBook, b));
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_JObjectData(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using var dbContext = new TestDbContext(_dataContexts[driver]);
+
+            var newJson = new JObjectData
+            {
+                Data = new JObject(new JProperty("hello", "world")),
+            };
+
+            dbContext.JObjectDatas.Upsert(newJson)
+                .Run();
+
+            var dbDatas = dbContext.JObjectDatas.OrderBy(j => j.ID).ToArray();
+            Assert.Collection(dbContext.JObjectDatas.OrderBy(j => j.ID),
+                j => Assert.True(JToken.DeepEquals(newJson.Data, j.Data)));
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_JObject_Update(TestDbContext.DbDriver driver)
+        {
+            var existingJson = new JObjectData
+            {
+                Data = new JObject(new JProperty("hello", "world")),
+            };
+
+            ResetDb(driver, existingJson);
+            using (var testContext = new TestDbContext(_dataContexts[driver]))
+            {
+                Assert.Collection(testContext.JObjectDatas.OrderBy(j => j.ID),
+                    j => Assert.True(JToken.DeepEquals(existingJson.Data, j.Data)));
+            }
+
+            using var dbContext = new TestDbContext(_dataContexts[driver]);
+
+            var updatedJson = new JObjectData
+            {
+                Data = new JObject(new JProperty("welcome", "world 2.0")),
+            };
+
+            dbContext.JObjectDatas.Upsert(updatedJson)
+                .Run();
+
+            Assert.Collection(dbContext.JObjectDatas.OrderBy(j => j.ID),
+                j => Assert.True(JToken.DeepEquals(updatedJson.Data, j.Data)));
         }
 
         [Theory]

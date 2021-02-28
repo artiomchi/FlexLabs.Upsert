@@ -3,6 +3,8 @@ using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
 {
@@ -24,6 +26,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
             modelBuilder.Entity<Book>().Property<DateTime?>("NonMappedColumn");
             modelBuilder.Entity<Country>().HasIndex(c => c.ISO).IsUnique();
             modelBuilder.Entity<DashTable>().HasIndex(t => t.DataSet).IsUnique();
+            modelBuilder.Entity<JObjectData>()
+                .Property(d => d.Data)
+                .HasConversion(
+                    v => JsonConvert.SerializeObject(v),
+                    v => JsonConvert.DeserializeObject<JObject>(v));
             modelBuilder.Entity<PageVisit>().HasIndex(pv => new { pv.UserID, pv.Date }).IsUnique();
             modelBuilder.Entity<SchemaTable>().HasIndex(t => t.Name).IsUnique();
             modelBuilder.Entity<KeyOnly>().HasKey(t => new { t.ID1, t.ID2 });
@@ -40,6 +47,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DbSet<DashTable> DashTable { get; set; }
         public DbSet<GuidKey> GuidKeys { get; set; }
         public DbSet<GuidKeyAutoGen> GuidKeysAutoGen { get; set; }
+        public DbSet<JObjectData> JObjectDatas { get; set; }
         public DbSet<JsonData> JsonDatas { get; set; }
         public DbSet<KeyOnly> KeyOnlies { get; set; }
         public DbSet<NullableCompositeKey> NullableCompositeKeys { get; set; }
