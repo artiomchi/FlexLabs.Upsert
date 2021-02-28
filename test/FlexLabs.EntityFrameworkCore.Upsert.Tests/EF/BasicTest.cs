@@ -551,6 +551,31 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
         [Theory]
         [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_PageVisit_PreComputedOn(TestDbContext.DbDriver driver)
+        {
+            ResetDb(driver);
+            using var dbContext = new TestDbContext(_dataContexts[driver]);
+
+            var newVisit = new PageVisit
+            {
+                UserID = 1,
+                Date = DateTime.Today,
+                Visits = 1,
+                FirstVisit = _now,
+                LastVisit = _now,
+            };
+
+            dbContext.PageVisits.Upsert(newVisit)
+                .On(PageVisit.MatchKey)
+                .Run();
+
+            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.ID),
+                visit => AssertEqual(_dbVisitOld, visit),
+                visit => AssertEqual(newVisit, visit));
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
         public void Upsert_PageVisit_Update_On(TestDbContext.DbDriver driver)
         {
             ResetDb(driver);
@@ -1292,8 +1317,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 DataSet = "test",
                 Updated = _now,
             })
-.On(x => x.DataSet)
-.Run();
+            .On(x => x.DataSet)
+            .Run();
 
             Assert.Collection(dbContext.DashTable.OrderBy(t => t.ID),
                 dt => Assert.Equal("test", dt.DataSet));
@@ -1378,6 +1403,36 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             Assert.Collection(dbContext.JsonDatas.OrderBy(j => j.ID),
                 j => Assert.True(JToken.DeepEquals(JObject.Parse(newJson.Data), JObject.Parse(j.Data))));
+        }
+
+        [Theory]
+        [MemberData(nameof(GetDatabaseEngines))]
+        public void Upsert_JsonData_Update(TestDbContext.DbDriver driver)
+        {
+            var existingJson = new JsonData
+            {
+                Data = JsonConvert.SerializeObject(new { hello = "world" }),
+            };
+
+            ResetDb(driver, existingJson);
+            using (var testContext = new TestDbContext(_dataContexts[driver]))
+            {
+                Assert.Collection(testContext.JsonDatas.OrderBy(j => j.ID),
+                    j => Assert.True(JToken.DeepEquals(JObject.Parse(existingJson.Data), JObject.Parse(j.Data))));
+            }
+
+            using var dbContext = new TestDbContext(_dataContexts[driver]);
+
+            var updatedJson = new JsonData
+            {
+                Data = JsonConvert.SerializeObject(new { welcome = "world 2.0" }),
+            };
+
+            dbContext.JsonDatas.Upsert(updatedJson)
+                .Run();
+
+            Assert.Collection(dbContext.JsonDatas.OrderBy(j => j.ID),
+                j => Assert.True(JToken.DeepEquals(JObject.Parse(updatedJson.Data), JObject.Parse(j.Data))));
         }
 
         [Theory]

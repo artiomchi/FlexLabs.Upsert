@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq.Expressions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
 {
@@ -40,6 +41,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
 
     public class PageVisit
     {
+        public static readonly Expression<Func<PageVisit, object>> MatchKey
+            = pv => new { pv.UserID, pv.Date };
+
         public int ID { get; set; }
         public int UserID { get; set; }
         public DateTime Date { get; set; }
