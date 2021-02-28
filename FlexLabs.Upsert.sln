@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29123.89
@@ -10,6 +10,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".solution", ".solution", "{
 		appveyor.yml = appveyor.yml
 		build.release.signed.bat = build.release.signed.bat
 		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "github-workflows", "github-workflows", "{3B24B110-DA69-4764-9EB3-E7E89695A6DC}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\dotnet-test.yml = .github\workflows\dotnet-test.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0DCBBEBD-A5B9-46F1-B9DE-F469447630F1}"
@@ -39,6 +44,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{3B24B110-DA69-4764-9EB3-E7E89695A6DC} = {8F601D76-FA75-4B32-AACB-559A63305223}
 		{E00DD739-30D8-4FE0-BFD4-99378BD4AD5F} = {0DCBBEBD-A5B9-46F1-B9DE-F469447630F1}
 		{DED725C1-78D6-4060-BC6D-72B6DF164E73} = {27DD4B6C-174D-436C-84F4-8706DF282194}
 	EndGlobalSection

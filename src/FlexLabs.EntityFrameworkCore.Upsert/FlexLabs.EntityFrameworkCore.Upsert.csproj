@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
@@ -6,7 +6,6 @@
     <NeutralLanguage>en</NeutralLanguage>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     <Authors>Artiom Chilaru</Authors>
     <Company>Artiom Chilaru</Company>
     <Description>Adds basic support for "Upsert" operations to EF Core.
@@ -25,6 +24,8 @@ v4.0.0
 + Adding support for .NET 5 and EF Core 5
 ! Patched support for constants in the update condition
 ! Run and RunAsync will not return all rows affected when command was split into multiple batches, not just the last batch's row count
+! Patching the extension method to replace/inject custom command runner
+! Removed old extension method on IServiceCollection, since it wasn't working anyway
 
 v3.1.0
 - Referencing EF Core 3.1 only, due to internal namespace changes and compatibility issues with .NET Full Framework
@@ -52,6 +53,8 @@ v2.2.0:
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <SignAssembly>True</SignAssembly>
