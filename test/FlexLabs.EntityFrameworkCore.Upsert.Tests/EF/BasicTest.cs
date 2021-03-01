@@ -24,8 +24,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             {
                 TestDbContext.DbDriver.InMemory,
                 TestDbContext.DbDriver.Postgres,
-                //TestDbContext.DbDriver.MySQL,
-                //TestDbContext.DbDriver.MSSQL,
+                TestDbContext.DbDriver.MySQL,
+                TestDbContext.DbDriver.MSSQL,
 #if !NOSQLITE
                 TestDbContext.DbDriver.Sqlite,
 #endif
@@ -43,10 +43,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
         public sealed class Contexts : IDisposable
         {
+            /* Docker commands for the test containers
+            docker run --name flexlabs_upsert_test_postgres -e POSTGRES_USER=testuser -e POSTGRES_PASSWORD=Password12! -e POSTGRES_DB=testuser -p 25432:5432 postgres:alpine
+            docker run --name flexlabs_upsert_test_mysql -e MYSQL_ROOT_PASSWORD=Password12! -e MYSQL_USER=testuser -e MYSQL_PASSWORD=Password12! -e MYSQL_DATABASE=testuser -p 23306:3306 mysql
+            docker run --name flexlabs_upsert_test_mssql -e ACCEPT_EULA=Y -e SA_PASSWORD=Password12! -p 21433:1433 -d mcr.microsoft.com/mssql/server
+            */
+
             private const string Postgres_ImageName = "flexlabs_upsert_test_postgres";
             private const string Postgres_Port = "25432";
             private static readonly string Postgres_Connection = $"Server=localhost;Port={Postgres_Port};Database={Username};Username={Username};Password={Password}";
-            private static readonly string SqlServer_Connection = $"Server=(localdb)\\MSSqlLocalDB;Integrated Security=SSPI;Initial Catalog=FlexLabsUpsertTests;";
+            private const string SqlServer_ImageName = "flexlabs_upsert_test_mssql";
+            private const string SqlServer_Port = "21433";
+            private static readonly string SqlServer_Connection = $"Server=localhost;Port={SqlServer_Port};User=sa;Password={Password};Initial Catalog=FlexLabsUpsertTests;";
             private const string MySql_ImageName = "flexlabs_upsert_test_mysql";
             private const string MySql_Port = "23306";
             private static readonly string MySql_Connection = $"Server=localhost;Port={MySql_Port};Database={Username};Uid=root;Pwd={Password}";

@@ -29,6 +29,13 @@ jobs:
           MYSQL_USER: testuser
           MYSQL_ROOT_PASSWORD: Password12!
           MYSQL_PASSWORD: Password12!
+      mssql:
+        image: mcr.microsoft.com/mssql/server
+        ports:
+          - 21433:1433
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: Password12!
 
     steps:
     - uses: actions/checkout@v2
