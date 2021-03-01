@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +14,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
     public class BasicTest : IClassFixture<BasicTest.Contexts>
     {
         private static bool IsAppVeyor => Environment.GetEnvironmentVariable("APPVEYOR") != null;
+        private static bool IsGitHub => Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != null;
         private const bool RunLocalDockerTests = false;
         private const bool DockerLCOW = true;
 
@@ -30,18 +30,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 TestDbContext.DbDriver.Sqlite,
 #endif
             };
-            if (IsAppVeyor || RunLocalDockerTests)
-                DatabaseEngines.AddRange(new[]
-                {
-                    TestDbContext.DbDriver.Postgres,
-                    //TestDbContext.DbDriver.MySQL,
-                });
         }
 
         public static readonly List<TestDbContext.DbDriver> DatabaseEngines;
         public static IEnumerable<object[]> GetDatabaseEngines() => DatabaseEngines.Select(e => new object[] { e });
 
-        public sealed class Contexts : IDisposable
+        public sealed class Contexts
         {
             /* Docker commands for the test containers
             docker run --name flexlabs_upsert_test_postgres -e POSTGRES_USER=testuser -e POSTGRES_PASSWORD=Password12! -e POSTGRES_DB=testuser -p 25432:5432 postgres:alpine
@@ -49,66 +43,55 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             docker run --name flexlabs_upsert_test_mssql -e ACCEPT_EULA=Y -e SA_PASSWORD=Password12! -p 21433:1433 -d mcr.microsoft.com/mssql/server
             */
 
-            private const string Postgres_ImageName = "flexlabs_upsert_test_postgres";
-            private const string Postgres_Port = "25432";
-            private static readonly string Postgres_Connection = $"Server=localhost;Port={Postgres_Port};Database={Username};Username={Username};Password={Password}";
-            private const string SqlServer_ImageName = "flexlabs_upsert_test_mssql";
-            private const string SqlServer_Port = "21433";
-            private static readonly string SqlServer_Connection = $"Server=localhost;Port={SqlServer_Port};User=sa;Password={Password};Initial Catalog=FlexLabsUpsertTests;";
-            private const string MySql_ImageName = "flexlabs_upsert_test_mysql";
-            private const string MySql_Port = "23306";
-            private static readonly string MySql_Connection = $"Server=localhost;Port={MySql_Port};Database={Username};Uid=root;Pwd={Password}";
-            private static readonly string InMemory_Connection = "Upsert_TestDbContext_Tests";
-
-            private static readonly string Sqlite_Connection = $"Data Source={Username}.db";
-
             private const string Username = "testuser";
             private const string Password = "Password12!";
 
-            private static readonly string AppVeyor_Postgres_Connection = $"Server=localhost;Port=5432;Database={Username};Username=postgres;Password={Password}";
-            private static readonly string AppVeyor_SqlServer_Connection = $"Server=(local)\\SQL2017;Database={Username};User Id=sa;Password={Password}";
-            private static readonly string AppVeyor_MySql_Connection = $"Server=localhost;Port=3306;Database={Username};Uid=root;Pwd={Password}";
+            private static readonly string ConnString_InMemory = "Upsert_TestDbContext_Tests";
+            private static readonly string ConnString_Sqlite = $"Data Source={Username}.db";
+
+            private static readonly string ConnString_Postgres_Docker = $"Server=localhost;Port=25432;Database={Username};Username={Username};Password={Password}";
+            private static readonly string ConnString_MySql_Docker = $"Server=localhost;Port=23306;Database={Username};Uid=root;Pwd={Password}";
+            private static readonly string ConnString_SqlServer_Docker = $"Server=localhost,21433;User=sa;Password={Password};Initial Catalog=FlexLabsUpsertTests;";
+
+            private static readonly string ConnString_Postgres_AppVeyor = $"Server=localhost;Port=5432;Database={Username};Username=postgres;Password={Password}";
+            private static readonly string ConnString_MySql_AppVeyor = $"Server=localhost;Port=3306;Database={Username};Uid=root;Pwd={Password}";
+            private static readonly string ConnString_SqlServer_AppVeyor = $"Server=(local)\\SQL2017;Database={Username};User Id=sa;Password={Password}";
+
+            private static readonly string ConnString_SqlServer_LocalDb = $"Server=(localdb)\\MSSqlLocalDB;Integrated Security=SSPI;Initial Catalog=FlexLabsUpsertTests;";
 
             private readonly IMessageSink _diagnosticMessageSink;
-            private readonly IDictionary<TestDbContext.DbDriver, Process> _processes;
             public readonly IDictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>> _dataContexts;
 
             public Contexts(IMessageSink diagnosticMessageSink)
             {
                 _diagnosticMessageSink = diagnosticMessageSink;
-                _processes = new Dictionary<TestDbContext.DbDriver, Process>();
                 _dataContexts = new Dictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>>();
 
-                if (IsAppVeyor)
-                {
-                    WaitForConnection(TestDbContext.DbDriver.Postgres, AppVeyor_Postgres_Connection);
-                    WaitForConnection(TestDbContext.DbDriver.MSSQL, AppVeyor_SqlServer_Connection);
-                    WaitForConnection(TestDbContext.DbDriver.MySQL, AppVeyor_MySql_Connection);
-                    WaitForConnection(TestDbContext.DbDriver.InMemory, InMemory_Connection);
-                    WaitForConnection(TestDbContext.DbDriver.Sqlite, Sqlite_Connection);
-                }
-                else
-                {
-                    //var lcow = DockerLCOW ? "--platform linux" : null;
-                    //if (DatabaseEngines.Contains(TestDbContext.DbDriver.Postgres))
-                    //    _processes[TestDbContext.DbDriver.Postgres] = Process.Start("docker",
-                    //        $"run --name {Postgres_ImageName} {lcow} -e POSTGRES_USER={Username} -e POSTGRES_PASSWORD={Password} -e POSTGRES_DB={Username} -p {Postgres_Port}:5432 postgres:alpine");
-                    //if (DatabaseEngines.Contains(TestDbContext.DbDriver.MySQL))
-                    //    _processes[TestDbContext.DbDriver.MySQL] = Process.Start("docker",
-                    //        $"run --name {MySql_ImageName} {lcow} -e MYSQL_ROOT_PASSWORD={Password} -e MYSQL_USER={Username} -e MYSQL_PASSWORD={Password} -e MYSQL_DATABASE={Username} -p {MySql_Port}:3306 mysql");
-
-                    WaitForConnection(TestDbContext.DbDriver.Postgres, Postgres_Connection);
-                    WaitForConnection(TestDbContext.DbDriver.MSSQL, SqlServer_Connection);
-                    WaitForConnection(TestDbContext.DbDriver.MySQL, MySql_Connection);
-                    WaitForConnection(TestDbContext.DbDriver.InMemory, InMemory_Connection);
-                    WaitForConnection(TestDbContext.DbDriver.Sqlite, Sqlite_Connection);
-                }
+                WaitForConnection(TestDbContext.DbDriver.InMemory);
+                WaitForConnection(TestDbContext.DbDriver.Sqlite);
+                WaitForConnection(TestDbContext.DbDriver.Postgres);
+                WaitForConnection(TestDbContext.DbDriver.MySQL);
+                WaitForConnection(TestDbContext.DbDriver.MSSQL);
             }
 
-            private void WaitForConnection(TestDbContext.DbDriver driver, string connectionString)
+            private void WaitForConnection(TestDbContext.DbDriver driver)
             {
                 if (!DatabaseEngines.Contains(driver))
                     return;
+
+                var connectionString = driver switch
+                {
+                    TestDbContext.DbDriver.InMemory => ConnString_InMemory,
+                    TestDbContext.DbDriver.Sqlite => ConnString_Sqlite,
+                    TestDbContext.DbDriver.Postgres when IsAppVeyor => ConnString_Postgres_AppVeyor,
+                    TestDbContext.DbDriver.Postgres => ConnString_Postgres_Docker,
+                    TestDbContext.DbDriver.MySQL when IsAppVeyor => ConnString_MySql_AppVeyor,
+                    TestDbContext.DbDriver.MySQL => ConnString_MySql_Docker,
+                    TestDbContext.DbDriver.MSSQL when IsAppVeyor => ConnString_SqlServer_AppVeyor,
+                    TestDbContext.DbDriver.MSSQL when IsGitHub => ConnString_SqlServer_Docker,
+                    TestDbContext.DbDriver.MSSQL => ConnString_SqlServer_LocalDb,
+                    _ => throw new ArgumentException("Can't get a connection string for driver " + driver)
+                };
 
                 var options = TestDbContext.Configure(connectionString, driver);
                 var startTime = DateTime.Now;
@@ -138,28 +121,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                         if (!isSuccess)
                             context?.Dispose();
                     }
-                }
-            }
-
-            public void Dispose()
-            {
-                foreach (var context in _processes.Values)
-                    context.Dispose();
-
-                if (!IsAppVeyor)
-                {
-                    //using (var processRm = Process.Start("docker", $"rm -f {Postgres_ImageName}"))
-                    //{
-                    //    processRm.WaitForExit();
-                    //}
-                    //using (var processRm = Process.Start("docker", $"rm -f {SqlServer_ImageName}"))
-                    //{
-                    //    processRm.WaitForExit();
-                    //}
-                    //using (var processRm = Process.Start("docker", $"rm -f {MySql_ImageName}"))
-                    //{
-                    //    processRm.WaitForExit();
-                    //}
                 }
             }
         }
