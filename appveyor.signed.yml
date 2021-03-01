@@ -7,7 +7,7 @@ skip_tags: true
 
 services:
  - mssql2017
- #- mysql
+ - mysql
  - postgresql101
 
 environment:
