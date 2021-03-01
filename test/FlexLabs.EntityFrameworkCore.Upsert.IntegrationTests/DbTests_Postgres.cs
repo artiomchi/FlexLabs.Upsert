@@ -1,0 +1,21 @@
+﻿using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
+using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
+using Xunit;
+using Xunit.Abstractions;
+
+namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
+{
+    public class DbTests_Postgres : BasicTest, IClassFixture<DbTests_Postgres.DatabaseInitializer>
+    {
+        public sealed class DatabaseInitializer : DatabaseInitializerFixture
+        {
+            public DatabaseInitializer(IMessageSink diagnosticMessageSink)
+                : base(diagnosticMessageSink, DbDriver.Postgres)
+            { }
+        }
+
+        public DbTests_Postgres(DatabaseInitializer contexts)
+            : base(contexts)
+        { }
+    }
+}

@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq.Expressions;
 using Newtonsoft.Json.Linq;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
+namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
 {
     public class Book
     {

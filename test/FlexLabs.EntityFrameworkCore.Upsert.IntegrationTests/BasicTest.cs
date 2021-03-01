@@ -1,131 +1,23 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base;
+using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests;
+using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
-using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 {
-    public class BasicTest : IClassFixture<BasicTest.Contexts>
+    public abstract class BasicTest
     {
-        private static bool IsAppVeyor => Environment.GetEnvironmentVariable("APPVEYOR") != null;
-        private static bool IsGitHub => Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != null;
-        private const bool RunLocalDockerTests = false;
-        private const bool DockerLCOW = true;
+        private readonly DatabaseInitializerFixture _fixture;
 
-        static BasicTest()
+        public BasicTest(DatabaseInitializerFixture fixture)
         {
-            DatabaseEngines = new List<TestDbContext.DbDriver>
-            {
-                TestDbContext.DbDriver.InMemory,
-                TestDbContext.DbDriver.Postgres,
-                TestDbContext.DbDriver.MySQL,
-                TestDbContext.DbDriver.MSSQL,
-#if !NOSQLITE
-                TestDbContext.DbDriver.Sqlite,
-#endif
-            };
+            _fixture = fixture;
         }
 
-        public static readonly List<TestDbContext.DbDriver> DatabaseEngines;
-        public static IEnumerable<object[]> GetDatabaseEngines() => DatabaseEngines.Select(e => new object[] { e });
-
-        public sealed class Contexts
-        {
-            /* Docker commands for the test containers
-            docker run --name flexlabs_upsert_test_postgres -e POSTGRES_USER=testuser -e POSTGRES_PASSWORD=Password12! -e POSTGRES_DB=testuser -p 25432:5432 postgres:alpine
-            docker run --name flexlabs_upsert_test_mysql -e MYSQL_ROOT_PASSWORD=Password12! -e MYSQL_USER=testuser -e MYSQL_PASSWORD=Password12! -e MYSQL_DATABASE=testuser -p 23306:3306 mysql
-            docker run --name flexlabs_upsert_test_mssql -e ACCEPT_EULA=Y -e SA_PASSWORD=Password12! -p 21433:1433 -d mcr.microsoft.com/mssql/server
-            */
-
-            private const string Username = "testuser";
-            private const string Password = "Password12!";
-
-            private static readonly string ConnString_InMemory = "Upsert_TestDbContext_Tests";
-            private static readonly string ConnString_Sqlite = $"Data Source={Username}.db";
-
-            private static readonly string ConnString_Postgres_Docker = $"Server=localhost;Port=25432;Database={Username};Username={Username};Password={Password}";
-            private static readonly string ConnString_MySql_Docker = $"Server=localhost;Port=23306;Database={Username};Uid=root;Pwd={Password}";
-            private static readonly string ConnString_SqlServer_Docker = $"Server=localhost,21433;User=sa;Password={Password};Initial Catalog=FlexLabsUpsertTests;";
-
-            private static readonly string ConnString_Postgres_AppVeyor = $"Server=localhost;Port=5432;Database={Username};Username=postgres;Password={Password}";
-            private static readonly string ConnString_MySql_AppVeyor = $"Server=localhost;Port=3306;Database={Username};Uid=root;Pwd={Password}";
-            private static readonly string ConnString_SqlServer_AppVeyor = $"Server=(local)\\SQL2017;Database={Username};User Id=sa;Password={Password}";
-
-            private static readonly string ConnString_SqlServer_LocalDb = $"Server=(localdb)\\MSSqlLocalDB;Integrated Security=SSPI;Initial Catalog=FlexLabsUpsertTests;";
-
-            private readonly IMessageSink _diagnosticMessageSink;
-            public readonly IDictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>> _dataContexts;
-
-            public Contexts(IMessageSink diagnosticMessageSink)
-            {
-                _diagnosticMessageSink = diagnosticMessageSink;
-                _dataContexts = new Dictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>>();
-
-                WaitForConnection(TestDbContext.DbDriver.InMemory);
-                WaitForConnection(TestDbContext.DbDriver.Sqlite);
-                WaitForConnection(TestDbContext.DbDriver.Postgres);
-                WaitForConnection(TestDbContext.DbDriver.MySQL);
-                WaitForConnection(TestDbContext.DbDriver.MSSQL);
-            }
-
-            private void WaitForConnection(TestDbContext.DbDriver driver)
-            {
-                if (!DatabaseEngines.Contains(driver))
-                    return;
-
-                var connectionString = driver switch
-                {
-                    TestDbContext.DbDriver.InMemory => ConnString_InMemory,
-                    TestDbContext.DbDriver.Sqlite => ConnString_Sqlite,
-                    TestDbContext.DbDriver.Postgres when IsAppVeyor => ConnString_Postgres_AppVeyor,
-                    TestDbContext.DbDriver.Postgres => ConnString_Postgres_Docker,
-                    TestDbContext.DbDriver.MySQL when IsAppVeyor => ConnString_MySql_AppVeyor,
-                    TestDbContext.DbDriver.MySQL => ConnString_MySql_Docker,
-                    TestDbContext.DbDriver.MSSQL when IsAppVeyor => ConnString_SqlServer_AppVeyor,
-                    TestDbContext.DbDriver.MSSQL when IsGitHub => ConnString_SqlServer_Docker,
-                    TestDbContext.DbDriver.MSSQL => ConnString_SqlServer_LocalDb,
-                    _ => throw new ArgumentException("Can't get a connection string for driver " + driver)
-                };
-
-                var options = TestDbContext.Configure(connectionString, driver);
-                var startTime = DateTime.Now;
-                while (DateTime.Now.Subtract(startTime) < TimeSpan.FromSeconds(200))
-                {
-                    bool isSuccess = false;
-                    TestDbContext context = null;
-                    _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Connecting to {0}", driver));
-                    try
-                    {
-                        context = new TestDbContext(options);
-                        context.Database.EnsureDeleted();
-                        context.Database.EnsureCreated();
-                        _dataContexts[driver] = options;
-                        isSuccess = true;
-                        _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Connection to {0} Successful!", driver));
-                        break;
-                    }
-                    catch (Exception ex)
-                    {
-                        _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Connecting to {0} failed! Error: {1}", driver, ex.GetBaseException().Message));
-                        System.Threading.Thread.Sleep(1000);
-                        continue;
-                    }
-                    finally
-                    {
-                        if (!isSuccess)
-                            context?.Dispose();
-                    }
-                }
-            }
-        }
-
-        private readonly IDictionary<TestDbContext.DbDriver, DbContextOptions<TestDbContext>> _dataContexts;
         readonly Country _dbCountry = new Country
         {
             Name = "...loading...",
@@ -173,14 +65,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         };
         readonly DateTime _now = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
         readonly int _increment = 8;
-        public BasicTest(Contexts contexts)
-        {
-            _dataContexts = contexts._dataContexts;
-        }
 
-        private void ResetDb(TestDbContext.DbDriver driver)
+        private void ResetDb()
         {
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             dbContext.RemoveRange(dbContext.Books);
             dbContext.RemoveRange(dbContext.Countries);
@@ -209,10 +97,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.SaveChanges();
         }
 
-        private void ResetDb<TEntity>(TestDbContext.DbDriver driver, params TEntity[] seedValue)
+        private void ResetDb<TEntity>(params TEntity[] seedValue)
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             dbContext.AddRange(seedValue.Cast<object>());
             dbContext.SaveChanges();
@@ -237,12 +125,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             }
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_InitialDbState(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_InitialDbState()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             Assert.Empty(dbContext.SchemaTable);
             Assert.Empty(dbContext.DashTable);
@@ -253,12 +140,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             );
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_EFCore_KeyAutoGen(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_EFCore_KeyAutoGen()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             dbContext.GuidKeysAutoGen.Add(new GuidKeyAutoGen { Name = "test" });
             dbContext.StringKeysAutoGen.Add(new StringKeyAutoGen { Name = "test" });
@@ -271,12 +157,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 e => Assert.NotEmpty(e.ID));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_IdentityKey_NoOn_InvalidMatchColumn(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_IdentityKey_NoOn_InvalidMatchColumn()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newCountry = new Country
             {
@@ -292,12 +177,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_IdentityKey_ExplicitOn_InvalidMatchColumn(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_IdentityKey_ExplicitOn_InvalidMatchColumn()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newCountry = new Country
             {
@@ -315,12 +199,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_IdentityKey_NoOn_AllowWithOverride(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_IdentityKey_NoOn_AllowWithOverride()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newCountry = new Country
             {
@@ -337,12 +220,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Assert.Equal(2, dbContext.Countries.Count());
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_IdentityKey_ExplicitOn_AllowWithOverride(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_IdentityKey_ExplicitOn_AllowWithOverride()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newCountry = new Country
             {
@@ -360,12 +242,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Assert.Equal(2, dbContext.Countries.Count());
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_Country_Update_On(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_Country_Update_On()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newCountry = new Country
             {
@@ -385,12 +266,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     (country.ISO, country.Name, country.Created, country.Updated)));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_Country_Update_On_NoUpdate(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_Country_Update_On_NoUpdate()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newCountry = new Country
             {
@@ -418,12 +298,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_Country_Update_On_WhenMatched_Values(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_Country_Update_On_WhenMatched_Values()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newCountry = new Country
             {
@@ -453,12 +332,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_Country_Update_On_WhenMatched_Constants(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_Country_Update_On_WhenMatched_Constants()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newCountry = new Country
             {
@@ -488,12 +366,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_Country_Insert_On_WhenMatched(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_Country_Insert_On_WhenMatched()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newCountry = new Country
             {
@@ -521,12 +398,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     (country.ISO, country.Name, country.Created, country.Updated)));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_PreComputedOn(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_PreComputedOn()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -546,12 +422,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 visit => AssertEqual(newVisit, visit));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_On(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_Update_On()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -571,12 +446,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 visit => AssertEqual(newVisit, visit));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_On_WhenMatched_ValueAdd(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueAdd()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -610,12 +484,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_On_WhenMatched_ValueAdd_FromVar(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueAdd_FromVar()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -650,12 +523,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_On_WhenMatched_ValueAdd_FromField(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueAdd_FromField()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -689,12 +561,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_On_WhenMatched_FromSource_ValueAdd(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_Update_On_WhenMatched_FromSource_ValueAdd()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -728,12 +599,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_On_WhenMatched_FromSource_ColumnAdd(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_Update_On_WhenMatched_FromSource_ColumnAdd()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -765,12 +635,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_On_WhenMatched_ValueAdd_Reversed(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueAdd_Reversed()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -804,12 +673,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_On_WhenMatched_ValueSubtract(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueSubtract()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -843,12 +711,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_On_WhenMatched_ValueMultiply(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueMultiply()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -882,12 +749,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_On_WhenMatched_ValueBitwiseOr(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueBitwiseOr()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -921,12 +787,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_On_WhenMatched_ValueBitwiseAnd(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueBitwiseAnd()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -960,12 +825,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_On_WhenMatched_ValueDivide(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueDivide()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -996,12 +860,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_PageVisit_Update_On_WhenMatched_ValueModulo(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_PageVisit_Update_On_WhenMatched_ValueModulo()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit = new PageVisit
             {
@@ -1032,12 +895,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void UpsertRange_PageVisit_Update_On_WhenMatched(TestDbContext.DbDriver driver)
+        [Fact]
+        public void UpsertRange_PageVisit_Update_On_WhenMatched()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit1 = new PageVisit
             {
@@ -1080,12 +942,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 visit => AssertEqual(newVisit2, visit));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void UpsertRange_PageVisit_Update_On_WhenMatched_MultipleInsert(TestDbContext.DbDriver driver)
+        [Fact]
+        public void UpsertRange_PageVisit_Update_On_WhenMatched_MultipleInsert()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit1 = new PageVisit
             {
@@ -1120,12 +981,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 visit => AssertEqual(newVisit2, visit));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void UpsertRange_PageVisit_Update_On_WhenMatched_MultipleUpdate(TestDbContext.DbDriver driver)
+        [Fact]
+        public void UpsertRange_PageVisit_Update_On_WhenMatched_MultipleUpdate()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit1 = new PageVisit
             {
@@ -1176,12 +1036,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void UpsertRange_PageVisit_Update_On_WhenMatched_MultipleUpdate_FromSource(TestDbContext.DbDriver driver)
+        [Fact]
+        public void UpsertRange_PageVisit_Update_On_WhenMatched_MultipleUpdate_FromSource()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newVisit1 = new PageVisit
             {
@@ -1232,12 +1091,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_Status_Update_AutoMatched_New(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_Status_Update_AutoMatched_New()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newStatus = new Status
             {
@@ -1257,12 +1115,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     (status.ID, status.Name, status.LastChecked)));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_Status_Update_AutoMatched_Existing(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_Status_Update_AutoMatched_Existing()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newStatus = new Status
             {
@@ -1277,12 +1134,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 status => Assert.Equal((newStatus.Name, newStatus.LastChecked), (status.Name, status.LastChecked)));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_DashedTable(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_DashedTable()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             dbContext.DashTable.Upsert(new DashTable
             {
@@ -1296,12 +1152,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 dt => Assert.Equal("test", dt.DataSet));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_SchemaTable(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_SchemaTable()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             dbContext.SchemaTable.Upsert(new SchemaTable
             {
@@ -1315,12 +1170,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 st => Assert.Equal(1, st.Name));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_Book_On_Update(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_Book_On_Update()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newBook = new Book
             {
@@ -1336,12 +1190,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 b => AssertEqual(newBook, b));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_Book_On_Insert(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_Book_On_Insert()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newBook = new Book
             {
@@ -1358,12 +1211,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 b => AssertEqual(newBook, b));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_JObjectData(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_JObjectData()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newJson = new JObjectData
             {
@@ -1378,23 +1230,22 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 j => Assert.True(JToken.DeepEquals(newJson.Data, j.Data)));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_JObject_Update(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_JObject_Update()
         {
             var existingJson = new JObjectData
             {
                 Data = new JObject(new JProperty("hello", "world")),
             };
 
-            ResetDb(driver, existingJson);
-            using (var testContext = new TestDbContext(_dataContexts[driver]))
+            ResetDb(existingJson);
+            using (var testContext = new TestDbContext(_fixture.DataContextOptions))
             {
                 Assert.Collection(testContext.JObjectDatas.OrderBy(j => j.ID),
                     j => Assert.True(JToken.DeepEquals(existingJson.Data, j.Data)));
             }
 
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var updatedJson = new JObjectData
             {
@@ -1408,12 +1259,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 j => Assert.True(JToken.DeepEquals(updatedJson.Data, j.Data)));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_JsonData(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_JsonData()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newJson = new JsonData
             {
@@ -1427,23 +1277,22 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 j => Assert.True(JToken.DeepEquals(JObject.Parse(newJson.Data), JObject.Parse(j.Data))));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_JsonData_Update(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_JsonData_Update()
         {
             var existingJson = new JsonData
             {
                 Data = JsonConvert.SerializeObject(new { hello = "world" }),
             };
 
-            ResetDb(driver, existingJson);
-            using (var testContext = new TestDbContext(_dataContexts[driver]))
+            ResetDb(existingJson);
+            using (var testContext = new TestDbContext(_fixture.DataContextOptions))
             {
                 Assert.Collection(testContext.JsonDatas.OrderBy(j => j.ID),
                     j => Assert.True(JToken.DeepEquals(JObject.Parse(existingJson.Data), JObject.Parse(j.Data))));
             }
 
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var updatedJson = new JsonData
             {
@@ -1457,12 +1306,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 j => Assert.True(JToken.DeepEquals(JObject.Parse(updatedJson.Data), JObject.Parse(j.Data))));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_GuidKey_AutoGenThrows(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_GuidKey_AutoGenThrows()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             Assert.Throws<InvalidMatchColumnsException>(delegate
             {
@@ -1477,12 +1325,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_StringKey_AutoGenThrows(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_StringKey_AutoGenThrows()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             Assert.Throws<InvalidMatchColumnsException>(delegate
             {
@@ -1497,12 +1344,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             });
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_GuidKey(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_GuidKey()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new GuidKey
             {
@@ -1517,12 +1363,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 j => Assert.Equal(newItem.ID, j.ID));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_StringKey(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_StringKey()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new StringKey
             {
@@ -1537,12 +1382,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 j => Assert.Equal(newItem.ID, j.ID));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_KeyOnly(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_KeyOnly()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new KeyOnly
             {
@@ -1557,15 +1401,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 j => Assert.Equal((newItem.ID1, newItem.ID2), (j.ID1, j.ID2)));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_NullableKeys(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_NullableKeys()
         {
-            if (driver == TestDbContext.DbDriver.MySQL || driver == TestDbContext.DbDriver.Postgres || driver == TestDbContext.DbDriver.Sqlite)
+            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Postgres || _fixture.DbDriver == DbDriver.Sqlite)
                 return;
 
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem1 = new NullableCompositeKey
             {
@@ -1592,12 +1435,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             );
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_CompositeExpression_New(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_CompositeExpression_New()
         {
-            ResetDb(driver);
-            using var dbContex = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1619,9 +1461,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 e => Assert.Equal((newItem.Num1, newItem.Num2, newItem.Text1, newItem.Text2), (e.Num1, e.Num2, e.Text1, e.Text2)));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_CompositeExpression_Update(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_CompositeExpression_Update()
         {
             var dbItem = new TestEntity
             {
@@ -1631,8 +1472,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "world",
             };
 
-            ResetDb(driver, dbItem);
-            using var dbContex = new TestDbContext(_dataContexts[driver]);
+            ResetDb(dbItem);
+            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1665,12 +1506,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     )));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_ConditionalExpression_New(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_ConditionalExpression_New()
         {
-            ResetDb(driver);
-            using var dbContex = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1692,9 +1532,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 e => Assert.Equal((newItem.Num1, newItem.Num2, newItem.Text1, newItem.Text2), (e.Num1, e.Num2, e.Text1, e.Text2)));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_ConditionalExpression_UpdateTrue(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_ConditionalExpression_UpdateTrue()
         {
             var dbItem = new TestEntity
             {
@@ -1704,8 +1543,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "world",
             };
 
-            ResetDb(driver, dbItem);
-            using var dbContex = new TestDbContext(_dataContexts[driver]);
+            ResetDb(dbItem);
+            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1738,9 +1577,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     )));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_ConditionalExpression_UpdateFalse(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_ConditionalExpression_UpdateFalse()
         {
             var dbItem = new TestEntity
             {
@@ -1750,8 +1588,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "world",
             };
 
-            ResetDb(driver, dbItem);
-            using var dbContex = new TestDbContext(_dataContexts[driver]);
+            ResetDb(dbItem);
+            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1784,9 +1622,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     )));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_UpdateCondition_Constant(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_UpdateCondition_Constant()
         {
             var dbItem = new TestEntity
             {
@@ -1796,8 +1633,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "world",
             };
 
-            ResetDb(driver, dbItem);
-            using var dbContex = new TestDbContext(_dataContexts[driver]);
+            ResetDb(dbItem);
+            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1831,12 +1668,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     )));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_UpdateCondition_New(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_UpdateCondition_New()
         {
-            ResetDb(driver);
-            using var dbContex = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1859,12 +1695,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 e => Assert.Equal((newItem.Num1, newItem.Num2, newItem.Text1, newItem.Text2), (e.Num1, e.Num2, e.Text1, e.Text2)));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_UpdateCondition_New_AutoUpdate(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_UpdateCondition_New_AutoUpdate()
         {
-            ResetDb(driver);
-            using var dbContex = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1883,9 +1718,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 e => Assert.Equal((newItem.Num1, newItem.Num2, newItem.Text1, newItem.Text2), (e.Num1, e.Num2, e.Text1, e.Text2)));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_UpdateCondition_Update(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_UpdateCondition_Update()
         {
             var dbItem = new TestEntity
             {
@@ -1895,8 +1729,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "world",
             };
 
-            ResetDb(driver, dbItem);
-            using var dbContex = new TestDbContext(_dataContexts[driver]);
+            ResetDb(dbItem);
+            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1930,9 +1764,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     )));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_UpdateCondition_AutoUpdate(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_UpdateCondition_AutoUpdate()
         {
             var dbItem = new TestEntity
             {
@@ -1942,8 +1775,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "world",
             };
 
-            ResetDb(driver, dbItem);
-            using var dbContex = new TestDbContext(_dataContexts[driver]);
+            ResetDb(dbItem);
+            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1973,9 +1806,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     )));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_UpdateCondition_NoUpdate(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_UpdateCondition_NoUpdate()
         {
             var dbItem = new TestEntity
             {
@@ -1985,8 +1817,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "world",
             };
 
-            ResetDb(driver, dbItem);
-            using var dbContex = new TestDbContext(_dataContexts[driver]);
+            ResetDb(dbItem);
+            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -2016,9 +1848,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     )));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_UpdateCondition_NullCheck(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_UpdateCondition_NullCheck()
         {
             var dbItem1 = new TestEntity
             {
@@ -2033,8 +1864,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text1 = null
             };
 
-            ResetDb(driver, dbItem1, dbItem2);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb(dbItem1, dbItem2);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             dbContext.TestEntities.UpsertRange(dbItem1, dbItem2)
                 .On(j => j.Num1)
@@ -2068,15 +1899,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     )));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_NullableRequired_Insert(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_NullableRequired_Insert()
         {
-            if (driver == TestDbContext.DbDriver.MySQL)
+            if (_fixture.DbDriver == DbDriver.MySQL)
                 return; // Default values on text columns not supported in MySQL
 
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newEntity = new NullableRequired
             {
@@ -2093,12 +1923,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     (entity.Text)));
         }
 
-        [Theory]
-        [MemberData(nameof(GetDatabaseEngines))]
-        public void Upsert_100k_Insert_MultiQuery(TestDbContext.DbDriver driver)
+        [Fact]
+        public void Upsert_100k_Insert_MultiQuery()
         {
-            ResetDb(driver);
-            using var dbContext = new TestDbContext(_dataContexts[driver]);
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newEntities = Enumerable.Range(1, 100_000)
                 .Select(i => new NullableRequired
