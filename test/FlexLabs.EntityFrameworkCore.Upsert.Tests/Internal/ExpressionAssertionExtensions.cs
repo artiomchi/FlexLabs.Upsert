@@ -17,7 +17,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             return result;
         }
 
-        public static AndWhichConstraint<ObjectAssertions, KnownExpression> HaveKnownExpression(this AndWhichConstraint<ObjectAssertions, KnownExpression> assertions, Func<KnownExpression, IKnownValue?> property, ExpressionType expressionType,
+        public static AndWhichConstraint<ObjectAssertions, KnownExpression> HaveKnownExpression(this AndWhichConstraint<ObjectAssertions, KnownExpression> assertions, Func<KnownExpression, IKnownValue> property, ExpressionType expressionType,
             Action<AndWhichConstraint<ObjectAssertions, KnownExpression>> and = null)
         {
             var expressionConstraint = property(assertions.Subject).Should().BeKnownExpression(expressionType);
@@ -25,13 +25,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             return assertions;
         }
 
-        public static AndWhichConstraint<ObjectAssertions, KnownExpression> HavePropertyValue(this AndWhichConstraint<ObjectAssertions, KnownExpression> assertions, Func<KnownExpression, IKnownValue?> property, string name, bool isLeftParam)
+        public static AndWhichConstraint<ObjectAssertions, KnownExpression> HavePropertyValue(this AndWhichConstraint<ObjectAssertions, KnownExpression> assertions, Func<KnownExpression, IKnownValue> property, string name, bool isLeftParam)
         {
             property(assertions.Subject).Should().BePropertyValue(name, isLeftParam);
             return assertions;
         }
 
-        public static AndWhichConstraint<ObjectAssertions, KnownExpression> HaveConstantValue(this AndWhichConstraint<ObjectAssertions, KnownExpression> assertions, Func<KnownExpression, IKnownValue?> property, object expectedValue)
+        public static AndWhichConstraint<ObjectAssertions, KnownExpression> HaveConstantValue(this AndWhichConstraint<ObjectAssertions, KnownExpression> assertions, Func<KnownExpression, IKnownValue> property, object expectedValue)
         {
             property(assertions.Subject).Should().BeConstantValue(expectedValue);
             return assertions;

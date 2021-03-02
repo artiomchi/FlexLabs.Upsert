@@ -15,7 +15,7 @@ before_build:
 - ps: dotnet restore -v Minimal
 
 build_script:
-- ps: dotnet build -c $Env:CONFIGURATION
+- ps: dotnet build --no-restore -c $Env:CONFIGURATION
 
 test_script:
-- ps: dotnet test -c $Env:CONFIGURATION
+- ps: dotnet test --no-build -c $Env:CONFIGURATION

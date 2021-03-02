@@ -9,6 +9,10 @@
     <EFCoreMySqlVersion>3.1.0</EFCoreMySqlVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(CORE_ONLY)'!=''">
+    <TargetFrameworks>netcoreapp2.1;netcoreapp3.1;net5.0</TargetFrameworks>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(TargetFramework)'=='net48'">
     <DefineConstants>$(DefineConstants);NOSQLITE</DefineConstants>
   </PropertyGroup>
