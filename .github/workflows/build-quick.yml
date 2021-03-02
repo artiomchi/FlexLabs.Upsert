@@ -1,0 +1,15 @@
+name: .NET Quick Build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore /p:CORE_ONLY=true
+    - name: Test
+      run: dotnet test ./test/FlexLabs.EntityFrameworkCore.Upsert.Tests --no-build /p:CORE_ONLY=true --verbosity normal

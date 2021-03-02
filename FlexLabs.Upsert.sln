@@ -7,12 +7,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".solution", ".solution", "{
 		.editorconfig = .editorconfig
 		appveyor.signed.yml = appveyor.signed.yml
 		appveyor.yml = appveyor.yml
+		build.release.signed.bat = build.release.signed.bat
 		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "github-workflows", "github-workflows", "{3B24B110-DA69-4764-9EB3-E7E89695A6DC}"
 	ProjectSection(SolutionItems) = preProject
-		.github\workflows\dotnet-test.yml = .github\workflows\dotnet-test.yml
+		.github\workflows\build-full.yml = .github\workflows\build-full.yml
+		.github\workflows\build-quick.yml = .github\workflows\build-quick.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0DCBBEBD-A5B9-46F1-B9DE-F469447630F1}"

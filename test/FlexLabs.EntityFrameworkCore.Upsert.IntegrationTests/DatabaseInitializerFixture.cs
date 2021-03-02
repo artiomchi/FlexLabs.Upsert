@@ -16,11 +16,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 
         private static bool IsAppVeyor => Environment.GetEnvironmentVariable("APPVEYOR") != null;
         private static bool IsGitHub => Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != null;
+        private const bool IsGitHubLocalPostgres =
+#if POSTGRES_ONLY
+            true;
+#else
+            false;
+#endif
         private const string Username = "testuser";
         private const string Password = "Password12!";
 
         private static readonly string ConnString_InMemory = "Upsert_TestDbContext_Tests";
         private static readonly string ConnString_Sqlite = $"Data Source={Username}.db";
+
+        private static readonly string ConnString_Postgres_GitHub = $"Server=localhost;Port=5432;Database={Username};Username=postgres;Password=root";
 
         private static readonly string ConnString_Postgres_Docker = $"Server=localhost;Port=25432;Database={Username};Username={Username};Password={Password}";
         private static readonly string ConnString_MySql_Docker = $"Server=localhost;Port=23306;Database={Username};Uid=root;Pwd={Password}";
@@ -46,6 +54,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
                 DbDriver.InMemory => ConnString_InMemory,
                 DbDriver.Sqlite => ConnString_Sqlite,
                 DbDriver.Postgres when IsAppVeyor => ConnString_Postgres_AppVeyor,
+                DbDriver.Postgres when IsGitHub && IsGitHubLocalPostgres => ConnString_Postgres_GitHub,
                 DbDriver.Postgres => ConnString_Postgres_Docker,
                 DbDriver.MySQL when IsAppVeyor => ConnString_MySql_AppVeyor,
                 DbDriver.MySQL => ConnString_MySql_Docker,

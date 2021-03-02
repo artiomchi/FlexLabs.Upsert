@@ -1,16 +1,10 @@
-name: .NET
+name: .NET Full Build
 
-on:
-  push:
-    branches: [ test/* ]
-  pull_request:
-    branches: [ develop ]
+on: [push, pull_request]
 
 jobs:
-  build:
-
+  build-ubuntu:
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:alpine
@@ -36,14 +30,26 @@ jobs:
         env:
           ACCEPT_EULA: Y
           SA_PASSWORD: Password12!
-
     steps:
     - uses: actions/checkout@v2
-    - name: .NET info
-      run: dotnet --info
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
       run: dotnet build --no-restore /p:CORE_ONLY=true
     - name: Test
       run: dotnet test --no-build /p:CORE_ONLY=true --verbosity normal
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Enable Postgres
+      run: sc config postgresql-x64-13 start= demand
+    - name: Start Postgres
+      run: net start postgresql-x64-13
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore /p:POSTGRES_ONLY=true
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
