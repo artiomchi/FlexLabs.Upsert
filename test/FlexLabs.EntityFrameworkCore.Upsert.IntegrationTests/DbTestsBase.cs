@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
+using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -9,11 +10,11 @@ using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 {
-    public abstract class BasicTest
+    public abstract class DbTestsBase
     {
         private readonly DatabaseInitializerFixture _fixture;
 
-        public BasicTest(DatabaseInitializerFixture fixture)
+        public DbTestsBase(DatabaseInitializerFixture fixture)
         {
             _fixture = fixture;
         }
@@ -108,21 +109,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
         private static void AssertEqual(PageVisit expected, PageVisit actual)
         {
-            Assert.Equal(expected.UserID, actual.UserID);
-            Assert.Equal(expected.Date, actual.Date);
-            Assert.Equal(expected.Visits, actual.Visits);
-            Assert.Equal(expected.FirstVisit, actual.FirstVisit);
-            Assert.Equal(expected.LastVisit, actual.LastVisit);
+            actual.UserID.Should().Be(expected.UserID);
+            actual.Date.Should().Be(expected.Date);
+            actual.Visits.Should().Be(expected.Visits);
+            actual.FirstVisit.Should().Be(expected.FirstVisit);
+            actual.LastVisit.Should().Be(expected.LastVisit);
         }
 
         private static void AssertEqual(Book expected, Book actual)
         {
-            Assert.Equal(expected.Name, actual.Name);
-            Assert.Equal(expected.Genres.Length, actual.Genres.Length);
-            for (var i = 0; i < expected.Genres.Length; i++)
-            {
-                Assert.Equal(expected.Genres[i], actual.Genres[i]);
-            }
+            actual.Name.Should().Be(expected.Name);
+            actual.Genres.Should().Equal(expected.Genres);
         }
 
         [Fact]
@@ -131,13 +128,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
-            Assert.Empty(dbContext.SchemaTable);
-            Assert.Empty(dbContext.DashTable);
-            Assert.Collection(dbContext.Countries.OrderBy(c => c.ID), c => Assert.Equal("AU", c.ISO));
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                pv => Assert.Equal((_dbVisitOld.UserID, _dbVisitOld.Date), (pv.UserID, pv.Date)),
-                pv => Assert.Equal((_dbVisit.UserID, _dbVisit.Date), (pv.UserID, pv.Date))
-            );
+            dbContext.SchemaTable.Should().BeEmpty();
+            dbContext.DashTable.Should().BeEmpty();
+            dbContext.Countries.OrderBy(c => c.ID).Should().OnlyContain(a => a.ISO == "AU");
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                pv => pv.Should().MatchModel(_dbVisitOld),
+                pv => pv.Should().MatchModel(_dbVisit));
         }
 
         [Fact]
@@ -151,10 +147,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.SaveChanges();
 
             // Ensuring EFCore generates empty values for Guid and string keys
-            Assert.Collection(dbContext.GuidKeysAutoGen,
-                e => Assert.NotEqual(Guid.Empty, e.ID));
-            Assert.Collection(dbContext.StringKeysAutoGen,
-                e => Assert.NotEmpty(e.ID));
+            dbContext.GuidKeysAutoGen.Should().OnlyContain(e => e.ID != default);
+            dbContext.StringKeysAutoGen.Should().OnlyContain(e => !string.IsNullOrEmpty(e.ID));
         }
 
         [Fact]
@@ -171,10 +165,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Updated = _now,
             };
 
-            Assert.Throws<InvalidMatchColumnsException>(() =>
-            {
-                dbContext.Countries.Upsert(newCountry).Run();
-            });
+            Action action = () => dbContext.Countries.Upsert(newCountry).Run();
+            action.Should().Throw<InvalidMatchColumnsException>();
         }
 
         [Fact]
@@ -191,12 +183,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Updated = _now,
             };
 
-            Assert.Throws<InvalidMatchColumnsException>(() =>
-            {
-                dbContext.Countries.Upsert(newCountry)
-                    .On(c => c.ID)
-                    .Run();
-            });
+            Action action = () => dbContext.Countries.Upsert(newCountry)
+                .On(c => c.ID)
+                .Run();
+            action.Should().Throw<InvalidMatchColumnsException>();
         }
 
         [Fact]
@@ -217,7 +207,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .AllowIdentityMatch()
                 .Run();
 
-            Assert.Equal(2, dbContext.Countries.Count());
+            dbContext.Countries.Should().HaveCount(2);
         }
 
         [Fact]
@@ -239,7 +229,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .AllowIdentityMatch()
                 .Run();
 
-            Assert.Equal(2, dbContext.Countries.Count());
+            dbContext.Countries.Should().HaveCount(2);
         }
 
         [Fact]
@@ -260,10 +250,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .On(c => c.ISO)
                 .Run();
 
-            Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
-                country => Assert.Equal(
-                    (newCountry.ISO, newCountry.Name, newCountry.Created, newCountry.Updated),
-                    (country.ISO, country.Name, country.Created, country.Updated)));
+            dbContext.Countries.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                country => country.Should().MatchModel(newCountry));
         }
 
         [Fact]
@@ -285,17 +273,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .NoUpdate()
                 .Run();
 
-            Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
-                country =>
-                {
-                    Assert.Equal(newCountry.ISO, country.ISO);
-                    Assert.NotEqual(newCountry.Name, country.Name);
-                    Assert.NotEqual(newCountry.Created, country.Created);
-                    Assert.NotEqual(newCountry.Updated, country.Updated);
-                    Assert.Equal(_dbCountry.Name, country.Name);
-                    Assert.Equal(_dbCountry.Created, country.Created);
-                    Assert.Equal(_dbCountry.Updated, country.Updated);
-                });
+            dbContext.Countries.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                country => country.Should().MatchModel(_dbCountry));
         }
 
         [Fact]
@@ -321,15 +300,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
-                country =>
-                {
-                    Assert.Equal(newCountry.ISO, country.ISO);
-                    Assert.Equal(newCountry.Name, country.Name);
-                    Assert.NotEqual(newCountry.Created, country.Created);
-                    Assert.Equal(_dbCountry.Created, country.Created);
-                    Assert.Equal(newCountry.Updated, country.Updated);
-                });
+            dbContext.Countries.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                country => country.Should().MatchModel(newCountry, compareCreated: false)
+                    .Subject.Created.Should().Be(_dbCountry.Created));
         }
 
         [Fact]
@@ -355,15 +328,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
-                country =>
-                {
-                    Assert.Equal(newCountry.ISO, country.ISO);
-                    Assert.Equal(newCountry.Name, country.Name);
-                    Assert.NotEqual(newCountry.Created, country.Created);
-                    Assert.Equal(_dbCountry.Created, country.Created);
-                    Assert.Equal(newCountry.Updated, country.Updated);
-                });
+            dbContext.Countries.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                country => country.Should().MatchModel(newCountry, compareCreated: false)
+                    .Subject.Created.Should().Be(_dbCountry.Created));
         }
 
         [Fact]
@@ -389,13 +356,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.Countries.OrderBy(c => c.ID),
-                country => Assert.Equal(
-                    (_dbCountry.ISO, _dbCountry.Name, _dbCountry.Created, _dbCountry.Updated),
-                    (country.ISO, country.Name, country.Created, country.Updated)),
-                country => Assert.Equal(
-                    (newCountry.ISO, newCountry.Name, newCountry.Created, newCountry.Updated),
-                    (country.ISO, country.Name, country.Created, country.Updated)));
+            dbContext.Countries.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                country => country.Should().MatchModel(_dbCountry),
+                country => country.Should().MatchModel(newCountry));
         }
 
         [Fact]
@@ -417,9 +380,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .On(PageVisit.MatchKey)
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit => AssertEqual(newVisit, visit));
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit));
         }
 
         [Fact]
@@ -441,9 +404,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .On(pv => new { pv.UserID, pv.Date })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit => AssertEqual(newVisit, visit));
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit));
         }
 
         [Fact]
@@ -470,18 +433,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit =>
-                {
-                    Assert.Equal(newVisit.UserID, visit.UserID);
-                    Assert.Equal(newVisit.Date, visit.Date);
-                    Assert.NotEqual(newVisit.Visits, visit.Visits);
-                    Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
-                    Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
         }
 
         [Fact]
@@ -509,18 +463,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit =>
-                {
-                    Assert.Equal(newVisit.UserID, visit.UserID);
-                    Assert.Equal(newVisit.Date, visit.Date);
-                    Assert.NotEqual(newVisit.Visits, visit.Visits);
-                    Assert.Equal(_dbVisit.Visits + increment, visit.Visits);
-                    Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + increment));
         }
 
         [Fact]
@@ -547,18 +492,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit =>
-                {
-                    Assert.Equal(newVisit.UserID, visit.UserID);
-                    Assert.Equal(newVisit.Date, visit.Date);
-                    Assert.NotEqual(newVisit.Visits, visit.Visits);
-                    Assert.Equal(_dbVisit.Visits + _increment, visit.Visits);
-                    Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + _increment));
         }
 
         [Fact]
@@ -585,18 +521,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit =>
-                {
-                    Assert.Equal(newVisit.UserID, visit.UserID);
-                    Assert.Equal(newVisit.Date, visit.Date);
-                    Assert.NotEqual(newVisit.Visits, visit.Visits);
-                    Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
-                    Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
         }
 
         [Fact]
@@ -623,16 +550,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit =>
-                {
-                    Assert.NotEqual(newVisit.Visits, visit.Visits);
-                    Assert.Equal(_dbVisit.Visits + newVisit.Visits, visit.Visits);
-                    Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + newVisit.Visits));
         }
 
         [Fact]
@@ -659,18 +579,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit =>
-                {
-                    Assert.Equal(newVisit.UserID, visit.UserID);
-                    Assert.Equal(newVisit.Date, visit.Date);
-                    Assert.NotEqual(newVisit.Visits, visit.Visits);
-                    Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
-                    Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
         }
 
         [Fact]
@@ -697,18 +608,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit =>
-                {
-                    Assert.Equal(newVisit.UserID, visit.UserID);
-                    Assert.Equal(newVisit.Date, visit.Date);
-                    Assert.NotEqual(newVisit.Visits, visit.Visits);
-                    Assert.Equal(_dbVisit.Visits - 2, visit.Visits);
-                    Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits - 2));
         }
 
         [Fact]
@@ -735,18 +637,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit =>
-                {
-                    Assert.Equal(newVisit.UserID, visit.UserID);
-                    Assert.Equal(newVisit.Date, visit.Date);
-                    Assert.NotEqual(newVisit.Visits, visit.Visits);
-                    Assert.Equal(_dbVisit.Visits * 3, visit.Visits);
-                    Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits * 3));
         }
 
         [Fact]
@@ -773,18 +666,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit =>
-                {
-                    Assert.Equal(newVisit.UserID, visit.UserID);
-                    Assert.Equal(newVisit.Date, visit.Date);
-                    Assert.NotEqual(newVisit.Visits, visit.Visits);
-                    Assert.Equal(_dbVisit.Visits | 3, visit.Visits);
-                    Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits | 3));
         }
 
         [Fact]
@@ -811,18 +695,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit =>
-                {
-                    Assert.Equal(newVisit.UserID, visit.UserID);
-                    Assert.Equal(newVisit.Date, visit.Date);
-                    Assert.NotEqual(newVisit.Visits, visit.Visits);
-                    Assert.Equal(_dbVisit.Visits & 3, visit.Visits);
-                    Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits & 3));
         }
 
         [Fact]
@@ -849,15 +724,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit =>
-                {
-                    Assert.Equal(_dbVisit.Visits / 4, visit.Visits);
-                    Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits / 4));
         }
 
         [Fact]
@@ -884,15 +753,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit =>
-                {
-                    Assert.Equal(_dbVisit.Visits % 4, visit.Visits);
-                    Assert.NotEqual(newVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits % 4));
         }
 
         [Fact]
@@ -927,19 +790,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit =>
-                {
-                    Assert.Equal(newVisit1.UserID, visit.UserID);
-                    Assert.Equal(newVisit1.Date, visit.Date);
-                    Assert.NotEqual(newVisit1.Visits, visit.Visits);
-                    Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
-                    Assert.NotEqual(newVisit1.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit1.LastVisit, visit.LastVisit);
-                },
-                visit => AssertEqual(newVisit2, visit));
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(newVisit1, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1),
+                visit => visit.Should().MatchModel(newVisit2));
         }
 
         [Fact]
@@ -974,11 +828,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit => AssertEqual(_dbVisitOld, visit),
-                visit => AssertEqual(_dbVisit, visit),
-                visit => AssertEqual(newVisit1, visit),
-                visit => AssertEqual(newVisit2, visit));
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(_dbVisitOld),
+                visit => visit.Should().MatchModel(_dbVisit),
+                visit => visit.Should().MatchModel(newVisit1),
+                visit => visit.Should().MatchModel(newVisit2));
         }
 
         [Fact]
@@ -1013,27 +867,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit =>
-                {
-                    Assert.Equal(newVisit1.UserID, visit.UserID);
-                    Assert.Equal(newVisit1.Date, visit.Date);
-                    Assert.NotEqual(newVisit1.Visits, visit.Visits);
-                    Assert.Equal(_dbVisitOld.Visits + 1, visit.Visits);
-                    Assert.NotEqual(newVisit1.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisitOld.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit1.LastVisit, visit.LastVisit);
-                },
-                visit =>
-                {
-                    Assert.Equal(newVisit2.UserID, visit.UserID);
-                    Assert.Equal(newVisit2.Date, visit.Date);
-                    Assert.NotEqual(newVisit2.Visits, visit.Visits);
-                    Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
-                    Assert.NotEqual(newVisit2.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit2.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(newVisit1, compareFirstVisit: false, expectedVisits: _dbVisitOld.Visits + 1),
+                visit => visit.Should().MatchModel(newVisit2, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
         }
 
         [Fact]
@@ -1068,27 +904,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.PageVisits.OrderBy(c => c.Date),
-                visit =>
-                {
-                    Assert.Equal(newVisit1.UserID, visit.UserID);
-                    Assert.Equal(newVisit1.Date, visit.Date);
-                    Assert.NotEqual(newVisit1.Visits, visit.Visits);
-                    Assert.Equal(_dbVisitOld.Visits + 1, visit.Visits);
-                    Assert.NotEqual(newVisit1.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisitOld.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit1.LastVisit, visit.LastVisit);
-                },
-                visit =>
-                {
-                    Assert.Equal(newVisit2.UserID, visit.UserID);
-                    Assert.Equal(newVisit2.Date, visit.Date);
-                    Assert.NotEqual(newVisit2.Visits, visit.Visits);
-                    Assert.Equal(_dbVisit.Visits + 1, visit.Visits);
-                    Assert.NotEqual(newVisit2.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(_dbVisit.FirstVisit, visit.FirstVisit);
-                    Assert.Equal(newVisit2.LastVisit, visit.LastVisit);
-                });
+            dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(newVisit1, compareFirstVisit: false, expectedVisits: _dbVisitOld.Visits + 1),
+                visit => visit.Should().MatchModel(newVisit2, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
         }
 
         [Fact]
@@ -1106,13 +924,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.Statuses.Upsert(newStatus).Run();
 
-            Assert.Collection(dbContext.Statuses.OrderBy(s => s.ID),
-                status => Assert.Equal(
-                    (_dbStatus.ID, _dbStatus.Name, _dbStatus.LastChecked),
-                    (status.ID, status.Name, status.LastChecked)),
-                status => Assert.Equal(
-                    (newStatus.ID, newStatus.Name, newStatus.LastChecked),
-                    (status.ID, status.Name, status.LastChecked)));
+            dbContext.Statuses.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                status => status.Should().MatchModel(_dbStatus),
+                status => status.Should().MatchModel(newStatus));
         }
 
         [Fact]
@@ -1130,8 +944,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.Statuses.Upsert(newStatus).Run();
 
-            Assert.Collection(dbContext.Statuses,
-                status => Assert.Equal((newStatus.Name, newStatus.LastChecked), (status.Name, status.LastChecked)));
+            dbContext.Statuses.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                status => status.Should().MatchModel(newStatus));
         }
 
         [Fact]
@@ -1140,16 +954,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
-            dbContext.DashTable.Upsert(new DashTable
+            var newRecord = new DashTable
             {
                 DataSet = "test",
                 Updated = _now,
-            })
-            .On(x => x.DataSet)
-            .Run();
+            };
 
-            Assert.Collection(dbContext.DashTable.OrderBy(t => t.ID),
-                dt => Assert.Equal("test", dt.DataSet));
+            dbContext.DashTable.Upsert(newRecord)
+                .On(x => x.DataSet)
+                .Run();
+
+            dbContext.DashTable.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                r => r.DataSet.Should().Be(newRecord.DataSet));
         }
 
         [Fact]
@@ -1158,16 +974,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
-            dbContext.SchemaTable.Upsert(new SchemaTable
+            var newRecord = new SchemaTable
             {
                 Name = 1,
                 Updated = _now,
-            })
-.On(x => x.Name)
-.Run();
+            };
 
-            Assert.Collection(dbContext.SchemaTable.OrderBy(t => t.ID),
-                st => Assert.Equal(1, st.Name));
+            dbContext.SchemaTable.Upsert(newRecord)
+                .On(x => x.Name)
+                .Run();
+
+            dbContext.SchemaTable.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                r => r.Name.Should().Be(newRecord.Name));
         }
 
         [Fact]
@@ -1186,8 +1004,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .On(b => b.Name)
                 .Run();
 
-            Assert.Collection(dbContext.Books,
-                b => AssertEqual(newBook, b));
+            dbContext.Books.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                book => book.Should().MatchModel(newBook));
         }
 
         [Fact]
@@ -1206,9 +1024,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .On(p => p.Name)
                 .Run();
 
-            Assert.Collection(dbContext.Books.OrderBy(b => b.ID),
-                b => AssertEqual(_dbBook, b),
-                b => AssertEqual(newBook, b));
+            dbContext.Books.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                book => book.Should().MatchModel(_dbBook),
+                book => book.Should().MatchModel(newBook));
         }
 
         [Fact]
@@ -1225,9 +1043,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.JObjectDatas.Upsert(newJson)
                 .Run();
 
-            var dbDatas = dbContext.JObjectDatas.OrderBy(j => j.ID).ToArray();
-            Assert.Collection(dbContext.JObjectDatas.OrderBy(j => j.ID),
-                j => Assert.True(JToken.DeepEquals(newJson.Data, j.Data)));
+            dbContext.JObjectDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                j => JToken.DeepEquals(newJson.Data, j.Data).Should().BeTrue());
         }
 
         [Fact]
@@ -1241,8 +1058,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ResetDb(existingJson);
             using (var testContext = new TestDbContext(_fixture.DataContextOptions))
             {
-                Assert.Collection(testContext.JObjectDatas.OrderBy(j => j.ID),
-                    j => Assert.True(JToken.DeepEquals(existingJson.Data, j.Data)));
+                testContext.JObjectDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                    j => JToken.DeepEquals(existingJson.Data, j.Data).Should().BeTrue());
             }
 
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -1255,8 +1072,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.JObjectDatas.Upsert(updatedJson)
                 .Run();
 
-            Assert.Collection(dbContext.JObjectDatas.OrderBy(j => j.ID),
-                j => Assert.True(JToken.DeepEquals(updatedJson.Data, j.Data)));
+            dbContext.JObjectDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                j => JToken.DeepEquals(updatedJson.Data, j.Data).Should().BeTrue());
         }
 
         [Fact]
@@ -1273,8 +1090,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.JsonDatas.Upsert(newJson)
                 .Run();
 
-            Assert.Collection(dbContext.JsonDatas.OrderBy(j => j.ID),
-                j => Assert.True(JToken.DeepEquals(JObject.Parse(newJson.Data), JObject.Parse(j.Data))));
+            dbContext.JsonDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                j => JToken.DeepEquals(JObject.Parse(newJson.Data), JObject.Parse(j.Data)).Should().BeTrue());
         }
 
         [Fact]
@@ -1288,8 +1105,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ResetDb(existingJson);
             using (var testContext = new TestDbContext(_fixture.DataContextOptions))
             {
-                Assert.Collection(testContext.JsonDatas.OrderBy(j => j.ID),
-                    j => Assert.True(JToken.DeepEquals(JObject.Parse(existingJson.Data), JObject.Parse(j.Data))));
+                testContext.JsonDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                    j => JToken.DeepEquals(JObject.Parse(existingJson.Data), JObject.Parse(j.Data)).Should().BeTrue());
             }
 
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -1302,8 +1119,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.JsonDatas.Upsert(updatedJson)
                 .Run();
 
-            Assert.Collection(dbContext.JsonDatas.OrderBy(j => j.ID),
-                j => Assert.True(JToken.DeepEquals(JObject.Parse(updatedJson.Data), JObject.Parse(j.Data))));
+            dbContext.JsonDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                j => JToken.DeepEquals(JObject.Parse(updatedJson.Data), JObject.Parse(j.Data)).Should().BeTrue());
         }
 
         [Fact]
@@ -1312,17 +1129,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
-            Assert.Throws<InvalidMatchColumnsException>(delegate
+            var newItem = new GuidKeyAutoGen
             {
-                var newItem = new GuidKeyAutoGen
-                {
-                    ID = Guid.NewGuid(),
-                    Name = "test",
-                };
+                ID = Guid.NewGuid(),
+                Name = "test",
+            };
 
-                dbContext.GuidKeysAutoGen.Upsert(newItem)
+            Action action = () => dbContext.GuidKeysAutoGen.Upsert(newItem)
                 .Run();
-            });
+            action.Should().Throw<InvalidMatchColumnsException>();
         }
 
         [Fact]
@@ -1331,17 +1146,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
-            Assert.Throws<InvalidMatchColumnsException>(delegate
+            var newItem = new StringKeyAutoGen
             {
-                var newItem = new StringKeyAutoGen
-                {
-                    ID = Guid.NewGuid().ToString(),
-                    Name = "test",
-                };
+                ID = Guid.NewGuid().ToString(),
+                Name = "test",
+            };
 
-                dbContext.StringKeysAutoGen.Upsert(newItem)
+            Action action = () => dbContext.StringKeysAutoGen.Upsert(newItem)
                 .Run();
-            });
+            action.Should().Throw<InvalidMatchColumnsException>();
         }
 
         [Fact]
@@ -1359,8 +1172,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.GuidKeys.Upsert(newItem)
                 .Run();
 
-            Assert.Collection(dbContext.GuidKeys.OrderBy(j => j.ID),
-                j => Assert.Equal(newItem.ID, j.ID));
+            dbContext.GuidKeys.OrderBy(j => j.ID).Should().SatisfyRespectively(
+                k => k.ID.Should().Be(newItem.ID));
         }
 
         [Fact]
@@ -1378,8 +1191,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.StringKeys.Upsert(newItem)
                 .Run();
 
-            Assert.Collection(dbContext.StringKeys.OrderBy(j => j.ID),
-                j => Assert.Equal(newItem.ID, j.ID));
+            dbContext.StringKeys.OrderBy(j => j.ID).Should().SatisfyRespectively(
+                k => k.ID.Should().Be(newItem.ID));
         }
 
         [Fact]
@@ -1397,8 +1210,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.KeyOnlies.Upsert(newItem)
                 .Run();
 
-            Assert.Collection(dbContext.KeyOnlies.OrderBy(j => j.ID1),
-                j => Assert.Equal((newItem.ID1, newItem.ID2), (j.ID1, j.ID2)));
+            dbContext.KeyOnlies.OrderBy(j => j.ID1).Should().SatisfyRespectively(
+                k => (k.ID1, k.ID2).Should().Be((newItem.ID1, newItem.ID2)));
         }
 
         [Fact]
@@ -1427,19 +1240,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .On(j => new { j.ID1, j.ID2 })
                 .Run();
 
-            var dbValues = dbContext.NullableCompositeKeys.ToArray();
-            Assert.Collection(dbContext.NullableCompositeKeys.OrderBy(j => j.ID1).ThenBy(j => j.ID2),
-                j => Assert.Equal((1, null, "Fourth"), (j.ID1, j.ID2, j.Value)),
-                j => Assert.Equal((1, 2, "First"), (j.ID1, j.ID2, j.Value)),
-                j => Assert.Equal((1, 3, "Third"), (j.ID1, j.ID2, j.Value))
-            );
+            dbContext.NullableCompositeKeys.OrderBy(j => j.ID1).ThenBy(j => j.ID2).Should().SatisfyRespectively(
+                k => (k.ID1, k.ID2, k.Value).Should().Be((1, null, "Fourth")),
+                k => (k.ID1, k.ID2, k.Value).Should().Be((1, 2, "First")),
+                k => (k.ID1, k.ID2, k.Value).Should().Be((1, 3, "Third")));
         }
 
         [Fact]
         public void Upsert_CompositeExpression_New()
         {
             ResetDb();
-            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1449,7 +1260,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "world",
             };
 
-            dbContex.TestEntities.Upsert(newItem)
+            dbContext.TestEntities.Upsert(newItem)
                 .On(j => j.Num1)
                 .WhenMatched((je, jn) => new TestEntity
                 {
@@ -1457,8 +1268,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContex.TestEntities,
-                e => Assert.Equal((newItem.Num1, newItem.Num2, newItem.Text1, newItem.Text2), (e.Num1, e.Num2, e.Text1, e.Text2)));
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(newItem));
         }
 
         [Fact]
@@ -1473,7 +1284,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             };
 
             ResetDb(dbItem);
-            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1483,7 +1294,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "where",
             };
 
-            dbContex.TestEntities.Upsert(newItem)
+            dbContext.TestEntities.Upsert(newItem)
                 .On(j => j.Num1)
                 .WhenMatched((je, jn) => new TestEntity
                 {
@@ -1491,26 +1302,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContex.TestEntities,
-                e => Assert.Equal(
-                    (
-                    dbItem.Num1,
-                    dbItem.Num2 * 2 + newItem.Num2,
-                    dbItem.Text1,
-                    dbItem.Text2
-                    ), (
-                    e.Num1,
-                    e.Num2,
-                    e.Text1,
-                    e.Text2
-                    )));
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(dbItem, num2: dbItem.Num2 * 2 + newItem.Num2));
         }
 
         [Fact]
         public void Upsert_ConditionalExpression_New()
         {
             ResetDb();
-            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1520,7 +1320,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "world",
             };
 
-            dbContex.TestEntities.Upsert(newItem)
+            dbContext.TestEntities.Upsert(newItem)
                 .On(j => j.Num1)
                 .WhenMatched((je, jn) => new TestEntity
                 {
@@ -1528,8 +1328,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContex.TestEntities,
-                e => Assert.Equal((newItem.Num1, newItem.Num2, newItem.Text1, newItem.Text2), (e.Num1, e.Num2, e.Text1, e.Text2)));
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(newItem));
         }
 
         [Fact]
@@ -1544,7 +1344,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             };
 
             ResetDb(dbItem);
-            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1554,7 +1354,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "where",
             };
 
-            dbContex.TestEntities.Upsert(newItem)
+            dbContext.TestEntities.Upsert(newItem)
                 .On(j => j.Num1)
                 .WhenMatched((je, jn) => new TestEntity
                 {
@@ -1562,19 +1362,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContex.TestEntities,
-                e => Assert.Equal(
-                    (
-                    dbItem.Num1,
-                    dbItem.Num2 - newItem.Num2,
-                    dbItem.Text1,
-                    dbItem.Text2
-                    ), (
-                    e.Num1,
-                    e.Num2,
-                    e.Text1,
-                    e.Text2
-                    )));
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(dbItem, num2: dbItem.Num2 - newItem.Num2));
         }
 
         [Fact]
@@ -1589,7 +1378,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             };
 
             ResetDb(dbItem);
-            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1599,7 +1388,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "where",
             };
 
-            dbContex.TestEntities.Upsert(newItem)
+            dbContext.TestEntities.Upsert(newItem)
                 .On(j => j.Num1)
                 .WhenMatched((je, jn) => new TestEntity
                 {
@@ -1607,19 +1396,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContex.TestEntities,
-                e => Assert.Equal(
-                    (
-                    dbItem.Num1,
-                    0,
-                    dbItem.Text1,
-                    dbItem.Text2
-                    ), (
-                    e.Num1,
-                    e.Num2,
-                    e.Text1,
-                    e.Text2
-                    )));
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(dbItem, num2: 0));
         }
 
         [Fact]
@@ -1634,7 +1412,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             };
 
             ResetDb(dbItem);
-            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1644,7 +1422,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "where",
             };
 
-            dbContex.TestEntities.Upsert(newItem)
+            dbContext.TestEntities.Upsert(newItem)
                 .On(j => j.Num1)
                 .WhenMatched((e1, e2) => new TestEntity
                 {
@@ -1653,26 +1431,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .UpdateIf((ed, en) => en.Num2 == 2)
                 .Run();
 
-            Assert.Collection(dbContex.TestEntities,
-                e => Assert.Equal(
-                    (
-                    dbItem.Num1,
-                    newItem.Num2,
-                    dbItem.Text1,
-                    dbItem.Text2
-                    ), (
-                    e.Num1,
-                    e.Num2,
-                    e.Text1,
-                    e.Text2
-                    )));
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(dbItem, num2: newItem.Num2));
         }
 
         [Fact]
         public void Upsert_UpdateCondition_New()
         {
             ResetDb();
-            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1682,7 +1449,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "world",
             };
 
-            dbContex.TestEntities.Upsert(newItem)
+            dbContext.TestEntities.Upsert(newItem)
                 .On(j => j.Num1)
                 .WhenMatched((e1, e2) => new TestEntity
                 {
@@ -1691,15 +1458,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .UpdateIf((ed, en) => ed.Num2 != en.Num2)
                 .Run();
 
-            Assert.Collection(dbContex.TestEntities,
-                e => Assert.Equal((newItem.Num1, newItem.Num2, newItem.Text1, newItem.Text2), (e.Num1, e.Num2, e.Text1, e.Text2)));
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(newItem));
         }
 
         [Fact]
         public void Upsert_UpdateCondition_New_AutoUpdate()
         {
             ResetDb();
-            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1709,13 +1476,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "world",
             };
 
-            dbContex.TestEntities.Upsert(newItem)
+            dbContext.TestEntities.Upsert(newItem)
                 .On(j => j.Num1)
                 .UpdateIf((ed, en) => ed.Num2 != en.Num2)
                 .Run();
 
-            Assert.Collection(dbContex.TestEntities,
-                e => Assert.Equal((newItem.Num1, newItem.Num2, newItem.Text1, newItem.Text2), (e.Num1, e.Num2, e.Text1, e.Text2)));
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(newItem));
         }
 
         [Fact]
@@ -1730,7 +1497,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             };
 
             ResetDb(dbItem);
-            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1740,7 +1507,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "where",
             };
 
-            dbContex.TestEntities.Upsert(newItem)
+            dbContext.TestEntities.Upsert(newItem)
                 .On(j => j.Num1)
                 .WhenMatched((e1, e2) => new TestEntity
                 {
@@ -1749,19 +1516,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .UpdateIf((ed, en) => ed.Num2 != en.Num2 || ed.Text1 != en.Text1)
                 .Run();
 
-            Assert.Collection(dbContex.TestEntities,
-                e => Assert.Equal(
-                    (
-                    dbItem.Num1,
-                    newItem.Num2,
-                    dbItem.Text1,
-                    dbItem.Text2
-                    ), (
-                    e.Num1,
-                    e.Num2,
-                    e.Text1,
-                    e.Text2
-                    )));
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(dbItem, num2: newItem.Num2));
         }
 
         [Fact]
@@ -1776,7 +1532,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             };
 
             ResetDb(dbItem);
-            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1786,24 +1542,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "where",
             };
 
-            dbContex.TestEntities.Upsert(newItem)
+            dbContext.TestEntities.Upsert(newItem)
                 .On(j => j.Num1)
                 .UpdateIf((ed, en) => ed.Num2 != en.Num2)
                 .Run();
 
-            Assert.Collection(dbContex.TestEntities,
-                e => Assert.Equal(
-                    (
-                    newItem.Num1,
-                    newItem.Num2,
-                    newItem.Text1,
-                    newItem.Text2
-                    ), (
-                    e.Num1,
-                    e.Num2,
-                    e.Text1,
-                    e.Text2
-                    )));
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(newItem));
         }
 
         [Fact]
@@ -1818,7 +1563,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             };
 
             ResetDb(dbItem);
-            using var dbContex = new TestDbContext(_fixture.DataContextOptions);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var newItem = new TestEntity
             {
@@ -1828,24 +1573,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text2 = "where",
             };
 
-            dbContex.TestEntities.Upsert(newItem)
+            dbContext.TestEntities.Upsert(newItem)
                 .On(j => j.Num1)
                 .UpdateIf((ed, en) => ed.Num2 != en.Num2)
                 .Run();
 
-            Assert.Collection(dbContex.TestEntities,
-                e => Assert.Equal(
-                    (
-                    dbItem.Num1,
-                    dbItem.Num2,
-                    dbItem.Text1,
-                    dbItem.Text2
-                    ), (
-                    e.Num1,
-                    e.Num2,
-                    e.Text1,
-                    e.Text2
-                    )));
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(dbItem));
         }
 
         [Fact]
@@ -1876,27 +1610,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .UpdateIf(j => j.Text1 != null)
                 .Run();
 
-            Assert.Collection(dbContext.TestEntities.OrderBy(e => e.Num1).ToArray(),
-                e => Assert.Equal(
-                    (
-                    dbItem1.Num1,
-                    dbItem1.Num2 + 1,
-                    dbItem1.Text1
-                    ), (
-                    e.Num1,
-                    e.Num2,
-                    e.Text1
-                    )),
-                e => Assert.Equal(
-                    (
-                    dbItem2.Num1,
-                    dbItem2.Num2,
-                    dbItem2.Text1
-                    ), (
-                    e.Num1,
-                    e.Num2,
-                    e.Text1
-                    )));
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(dbItem1, num2: dbItem1.Num2 + 1),
+                test => test.Should().MatchModel(dbItem2));
         }
 
         [Fact]
@@ -1917,10 +1633,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .On(c => c.ID)
                 .Run();
 
-            Assert.Collection(dbContext.NullableRequireds.OrderBy(c => c.ID),
-                entity => Assert.Equal(
-                    ("B"),
-                    (entity.Text)));
+            dbContext.NullableRequireds.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                r => r.Text.Should().Be("B"));
         }
 
         [Fact]
@@ -1939,7 +1653,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .On(c => c.ID)
                 .Run();
 
-            Assert.Equal(100_000, dbContext.NullableRequireds.Count());
+            dbContext.NullableRequireds.Should().HaveCount(100_000);
         }
     }
 }

@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
-    public class DbTests_SqlServer : BasicTest, IClassFixture<DbTests_SqlServer.DatabaseInitializer>
+    public class DbTests_SqlServer : DbTestsBase, IClassFixture<DbTests_SqlServer.DatabaseInitializer>
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
         {

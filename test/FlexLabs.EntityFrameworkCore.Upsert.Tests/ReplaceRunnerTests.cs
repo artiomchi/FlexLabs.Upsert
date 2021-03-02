@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
+using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -58,13 +60,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
 
             CustomSqliteCommandRunner.GenerateCalled = 0;
 
-            Assert.Throws<Microsoft.Data.Sqlite.SqliteException>(() =>
-            {
-                context.Entities.Upsert(new TestEntity())
-                    .On(e => e.Value)
-                    .Run();
-            });
-            Assert.True(CustomSqliteCommandRunner.GenerateCalled > 0);
+            Action action = () => context.Entities.Upsert(new TestEntity())
+                .On(e => e.Value)
+                .Run();
+            action.Should().Throw<Microsoft.Data.Sqlite.SqliteException>();
+            CustomSqliteCommandRunner.GenerateCalled.Should().BeGreaterThan(0);
         }
     }
 }

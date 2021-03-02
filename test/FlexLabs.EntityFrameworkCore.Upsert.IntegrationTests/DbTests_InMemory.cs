@@ -7,7 +7,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
     [Trait("Category", "in-memory")]
     [Collection("InMemory")]
-    public class DbTests_InMemory : BasicTest, IClassFixture<DbTests_InMemory.DatabaseInitializer>
+    public class DbTests_InMemory : DbTestsBase, IClassFixture<DbTests_InMemory.DatabaseInitializer>
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
         {
