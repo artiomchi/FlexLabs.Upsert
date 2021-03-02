@@ -1,7 +1,7 @@
 using System;
 using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
-using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base;
+using FluentAssertions;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Xunit;
 
@@ -11,28 +11,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
     {
         private static Expression GetMemberExpression(LambdaExpression expression)
             => ((MemberAssignment)((MemberInitExpression)expression.Body).Bindings[0]).Expression;
-
-        private static KnownExpression IsKnownExpression(object value, ExpressionType expressionType)
-        {
-            var expression = Assert.IsType<KnownExpression>(value);
-            Assert.Equal(expressionType, expression.ExpressionType);
-            return expression;
-        }
-
-        private static ConstantValue IsConstantValue(object value, object expectedValue)
-        {
-            var constant = Assert.IsType<ConstantValue>(value);
-            Assert.Equal(expectedValue, constant.Value);
-            return constant;
-        }
-
-        private static PropertyValue IsPropertyValue(object value, string name, bool isLeftParam)
-        {
-            var property = Assert.IsType<PropertyValue>(value);
-            Assert.Equal(name, property.PropertyName);
-            Assert.Equal(isLeftParam, property.IsLeftParameter);
-            return property;
-        }
 
         private IProperty NoProperty(string propertyName) => default;
 
@@ -47,7 +25,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            Assert.Equal(1, expValue);
+            expValue.Should().Be(1);
         }
 
         [Fact]
@@ -62,7 +40,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            Assert.Equal(value, expValue);
+            expValue.Should().Be(value);
         }
 
         [Fact]
@@ -77,7 +55,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            Assert.Equal(value.Num1, expValue);
+            expValue.Should().Be(value.Num1);
         }
 
         [Fact]
@@ -92,7 +70,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            Assert.Equal(value.Trim(), expValue);
+            expValue.Should().Be(value.Trim());
         }
 
         [Fact]
@@ -108,7 +86,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            Assert.Equal(value1 + ", " + value2, expValue);
+            expValue.Should().Be(value1 + ", " + value2);
         }
 
         [Fact]
@@ -122,9 +100,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var knownValue = IsKnownExpression(expValue, ExpressionType.Add);
-            IsPropertyValue(knownValue.Value1, "Num1", true);
-            IsConstantValue(knownValue.Value2, 1);
+            expValue.Should().BeKnownExpression(ExpressionType.Add)
+                .HavePropertyValue(e => e.Value1, "Num1", true)
+                .HaveConstantValue(e => e.Value2, 1);
         }
 
         [Fact]
@@ -138,9 +116,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var knownValue = IsKnownExpression(expValue, ExpressionType.Add);
-            IsConstantValue(knownValue.Value1, 1);
-            IsPropertyValue(knownValue.Value2, "Num1", true);
+            expValue.Should().BeKnownExpression(ExpressionType.Add)
+               .HaveConstantValue(e => e.Value1, 1)
+               .HavePropertyValue(e => e.Value2, "Num1", true);
         }
 
         [Fact]
@@ -154,9 +132,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var knownValue = IsKnownExpression(expValue, ExpressionType.Subtract);
-            IsPropertyValue(knownValue.Value1, "Num1", true);
-            IsConstantValue(knownValue.Value2, 2);
+            expValue.Should().BeKnownExpression(ExpressionType.Subtract)
+               .HavePropertyValue(e => e.Value1, "Num1", true)
+               .HaveConstantValue(e => e.Value2, 2);
         }
 
         [Fact]
@@ -170,9 +148,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var knownValue = IsKnownExpression(expValue, ExpressionType.Multiply);
-            IsPropertyValue(knownValue.Value1, "Num1", true);
-            IsConstantValue(knownValue.Value2, 3);
+            expValue.Should().BeKnownExpression(ExpressionType.Multiply)
+                .HavePropertyValue(e => e.Value1, "Num1", true)
+                .HaveConstantValue(e => e.Value2, 3);
         }
 
         [Fact]
@@ -186,9 +164,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var knownValue = IsKnownExpression(expValue, ExpressionType.Divide);
-            IsPropertyValue(knownValue.Value1, "Num1", true);
-            IsConstantValue(knownValue.Value2, 4);
+            expValue.Should().BeKnownExpression(ExpressionType.Divide)
+                .HavePropertyValue(e => e.Value1, "Num1", true)
+                .HaveConstantValue(e => e.Value2, 4);
         }
 
         [Fact]
@@ -202,9 +180,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var knownValue = IsKnownExpression(expValue, ExpressionType.Modulo);
-            IsPropertyValue(knownValue.Value1, "Num1", true);
-            IsConstantValue(knownValue.Value2, 4);
+            expValue.Should().BeKnownExpression(ExpressionType.Modulo)
+                .HavePropertyValue(e => e.Value1, "Num1", true)
+                .HaveConstantValue(e => e.Value2, 4);
         }
 
         [Fact]
@@ -218,9 +196,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var knownValue = IsKnownExpression(expValue, ExpressionType.Or);
-            IsPropertyValue(knownValue.Value1, "Num1", true);
-            IsConstantValue(knownValue.Value2, 1);
+            expValue.Should().BeKnownExpression(ExpressionType.Or)
+                .HavePropertyValue(e => e.Value1, "Num1", true)
+                .HaveConstantValue(e => e.Value2, 1);
         }
 
         [Fact]
@@ -234,9 +212,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var knownValue = IsKnownExpression(expValue, ExpressionType.And);
-            IsPropertyValue(knownValue.Value1, "Num1", true);
-            IsConstantValue(knownValue.Value2, 1);
+            expValue.Should().BeKnownExpression(ExpressionType.And)
+                .HavePropertyValue(e => e.Value1, "Num1", true)
+                .HaveConstantValue(e => e.Value2, 1);
         }
 
         [Fact]
@@ -250,7 +228,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            IsPropertyValue(expValue, "Num1", true);
+            expValue.Should().BePropertyValue("Num1", true);
         }
 
         [Fact]
@@ -264,7 +242,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            IsPropertyValue(expValue, "Num2", true);
+            expValue.Should().BePropertyValue("Num2", true);
         }
 
         [Fact]
@@ -278,7 +256,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            IsPropertyValue(expValue, "Num1", true);
+            expValue.Should().BePropertyValue("Num1", true);
         }
 
         [Fact]
@@ -292,7 +270,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            IsPropertyValue(expValue, "Num1", false);
+            expValue.Should().BePropertyValue("Num1", false);
         }
 
         [Fact]
@@ -306,9 +284,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var updated = Assert.IsType<DateTime>(expValue);
-            Assert.True(updated > DateTime.Now.AddMinutes(-1));
-            Assert.True(updated < DateTime.Now.AddMinutes(1));
+            expValue.Should().BeOfType<DateTime>().Subject
+                .Should().BeBefore(DateTime.Now.AddMinutes(1))
+                .And.BeAfter(DateTime.Now.AddMinutes(-1));
         }
 
         [Fact]
@@ -324,8 +302,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var num = Assert.IsType<int>(expValue);
-            Assert.Equal(value, num);
+            expValue.Should().BeOfType<int>().And.Be(value);
         }
 
         [Fact]
@@ -341,8 +318,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var num = Assert.IsType<int>(expValue);
-            Assert.Equal(value.Value, num);
+            expValue.Should().BeOfType<int>().And.Be(value);
         }
 
         [Fact]
@@ -358,8 +334,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var num = Assert.IsType<int>(expValue);
-            Assert.Equal(value, num);
+            expValue.Should().BeOfType<int>().And.Be(value);
         }
 
         [Fact]
@@ -375,8 +350,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var num = Assert.IsType<int>(expValue);
-            Assert.Equal(value.Value, num);
+            expValue.Should().BeOfType<int>().And.Be(value);
         }
 
         [Fact]
@@ -389,15 +363,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             };
 
             var memberAssig = GetMemberExpression(exp);
-            Assert.Throws<UnsupportedExpressionException>(() =>
-            {
-                memberAssig.GetValue<TestEntity>(exp, NoProperty);
-            });
+            Action action = () => memberAssig.GetValue<TestEntity>(exp, NoProperty);
+            action.Should().Throw<UnsupportedExpressionException>();
 
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty, useExpressionCompiler: true);
 
-            var num1 = Assert.IsType<int>(expValue);
-            Assert.Equal(input << 4, num1);
+            expValue.Should().BeOfType<int>().And.Be(input << 4);
         }
 
         [Fact]
@@ -411,11 +382,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var expression = IsKnownExpression(expValue, ExpressionType.Add);
-            var exp1 = IsKnownExpression(expression.Value1, ExpressionType.Add);
-            IsPropertyValue(exp1.Value1, "Text1", true);
-            IsConstantValue(exp1.Value2, ".");
-            IsPropertyValue(expression.Value2, "Text2", false);
+            expValue.Should().BeKnownExpression(ExpressionType.Add)
+                .HaveKnownExpression(e => e.Value1, ExpressionType.Add, ke => ke
+                    .HavePropertyValue(e => e.Value1, "Text1", true)
+                    .HaveConstantValue(e => e.Value2, "."))
+                .HavePropertyValue(e => e.Value2, "Text2", false);
         }
 
         [Fact]
@@ -429,11 +400,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var expression = IsKnownExpression(expValue, ExpressionType.Add);
-            var exp1 = IsKnownExpression(expression.Value1, ExpressionType.Add);
-            IsPropertyValue(exp1.Value1, "Text1", true);
-            IsConstantValue(exp1.Value2, ".");
-            IsPropertyValue(expression.Value2, "Text2", false);
+            expValue.Should().BeKnownExpression(ExpressionType.Add)
+                .HaveKnownExpression(e => e.Value1, ExpressionType.Add, ke => ke
+                    .HavePropertyValue(e => e.Value1, "Text1", true)
+                    .HaveConstantValue(e => e.Value2, "."))
+                .HavePropertyValue(e => e.Value2, "Text2", false);
         }
 
         [Fact]
@@ -447,11 +418,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var expression = IsKnownExpression(expValue, ExpressionType.Add);
-            var exp1 = IsKnownExpression(expression.Value2, ExpressionType.Add);
-            IsPropertyValue(expression.Value1, "Text1", true);
-            IsConstantValue(exp1.Value1, ".");
-            IsPropertyValue(exp1.Value2, "Text2", false);
+            expValue.Should().BeKnownExpression(ExpressionType.Add)
+                .HavePropertyValue(e => e.Value1, "Text1", true)
+                .HaveKnownExpression(e => e.Value2, ExpressionType.Add, ke => ke
+                    .HaveConstantValue(e => e.Value1, ".")
+                    .HavePropertyValue(e => e.Value2, "Text2", false));
         }
 
         [Fact]
@@ -465,11 +436,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var expression = IsKnownExpression(expValue, ExpressionType.Add);
-            var exp1 = IsKnownExpression(expression.Value2, ExpressionType.Multiply);
-            IsPropertyValue(expression.Value1, "Num1", true);
-            IsConstantValue(exp1.Value1, 7);
-            IsPropertyValue(exp1.Value2, "Num2", false);
+            expValue.Should().BeKnownExpression(ExpressionType.Add)
+                .HavePropertyValue(e => e.Value1, "Num1", true)
+                .HaveKnownExpression(e => e.Value2, ExpressionType.Multiply, ke => ke
+                    .HaveConstantValue(e => e.Value1, 7)
+                    .HavePropertyValue(e => e.Value2, "Num2", false));
         }
 
         [Fact]
@@ -483,11 +454,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var expression = IsKnownExpression(expValue, ExpressionType.Multiply);
-            var exp1 = IsKnownExpression(expression.Value1, ExpressionType.Add);
-            IsPropertyValue(exp1.Value1, "Num1", true);
-            IsConstantValue(exp1.Value2, 7);
-            IsPropertyValue(expression.Value2, "Num2", false);
+            expValue.Should().BeKnownExpression(ExpressionType.Multiply)
+                .HaveKnownExpression(e => e.Value1, ExpressionType.Add, ke => ke
+                    .HavePropertyValue(e => e.Value1, "Num1", true)
+                    .HaveConstantValue(e => e.Value2, 7))
+                .HavePropertyValue(e => e.Value2, "Num2", false);
         }
 
         [Fact]
@@ -501,11 +472,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var expression = IsKnownExpression(expValue, ExpressionType.Add);
-            var exp1 = IsKnownExpression(expression.Value2, ExpressionType.Multiply);
-            IsPropertyValue(expression.Value1, "Num1", true);
-            IsConstantValue(exp1.Value1, 7);
-            IsPropertyValue(exp1.Value2, "Num2", false);
+            expValue.Should().BeKnownExpression(ExpressionType.Add)
+                .HavePropertyValue(e => e.Value1, "Num1", true)
+                .HaveKnownExpression(e => e.Value2, ExpressionType.Multiply, ke => ke
+                    .HaveConstantValue(e => e.Value1, 7)
+                    .HavePropertyValue(e => e.Value2, "Num2", false));
         }
 
         [Fact]
@@ -519,16 +490,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var condExpr = IsKnownExpression(expValue, ExpressionType.Conditional);
-            var testExp = IsKnownExpression(condExpr.Value3, ExpressionType.LessThan);
-            var testSumExp = IsKnownExpression(testExp.Value1, ExpressionType.Add);
-            IsPropertyValue(testSumExp.Value1, "Num1", true);
-            IsConstantValue(testSumExp.Value2, 7);
-            IsConstantValue(testExp.Value2, 0);
-            IsConstantValue(condExpr.Value1, 0);
-            var falseExp = IsKnownExpression(condExpr.Value2, ExpressionType.Add);
-            IsPropertyValue(falseExp.Value1, "Num1", true);
-            IsConstantValue(falseExp.Value2, 7);
+            expValue.Should().BeKnownExpression(ExpressionType.Conditional)
+                .HaveConstantValue(e => e.Value1, 0)
+                .HaveKnownExpression(e => e.Value2, ExpressionType.Add, ke => ke
+                    .HavePropertyValue(e => e.Value1, "Num1", true)
+                    .HaveConstantValue(e => e.Value2, 7))
+                .HaveKnownExpression(e => e.Value3, ExpressionType.LessThan, ke => ke
+                    .HaveKnownExpression(e => e.Value1, ExpressionType.Add, ke2 => ke2
+                        .HavePropertyValue(e => e.Value1, "Num1", true)
+                        .HaveConstantValue(e => e.Value2, 7))
+                    .HaveConstantValue(e => e.Value2, 0));
         }
 
         [Fact]
@@ -542,12 +513,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var condExpr = IsKnownExpression(expValue, ExpressionType.Conditional);
-            var testExp = IsKnownExpression(condExpr.Value3, ExpressionType.NotEqual);
-            IsPropertyValue(testExp.Value1, "Num1", true);
-            IsConstantValue(testExp.Value2, 4);
-            IsConstantValue(condExpr.Value1, 0);
-            IsConstantValue(condExpr.Value2, 1);
+            expValue.Should().BeKnownExpression(ExpressionType.Conditional)
+                .HaveConstantValue(e => e.Value1, 0)
+                .HaveConstantValue(e => e.Value2, 1)
+                .HaveKnownExpression(e => e.Value3, ExpressionType.NotEqual, ke => ke
+                    .HavePropertyValue(e => e.Value1, "Num1", true)
+                    .HaveConstantValue(e => e.Value2, 4));
         }
 
         [Fact]
@@ -561,12 +532,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var memberAssig = GetMemberExpression(exp);
             var expValue = memberAssig.GetValue<TestEntity>(exp, NoProperty);
 
-            var condExpr = IsKnownExpression(expValue, ExpressionType.Conditional);
-            var testExp = IsKnownExpression(condExpr.Value3, ExpressionType.NotEqual);
-            IsPropertyValue(testExp.Value1, "Text1", true);
-            IsConstantValue(testExp.Value2, null);
-            IsConstantValue(condExpr.Value1, 0);
-            IsConstantValue(condExpr.Value2, 1);
+            expValue.Should().BeKnownExpression(ExpressionType.Conditional)
+                .HaveConstantValue(e => e.Value1, 0)
+                .HaveConstantValue(e => e.Value2, 1)
+                .HaveKnownExpression(e => e.Value3, ExpressionType.NotEqual, ke => ke
+                    .HavePropertyValue(e => e.Value1, "Text1", true)
+                    .HaveConstantValue(e => e.Value2, null));
         }
 
         [Fact]
@@ -577,13 +548,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
 
             var expValue = exp.Body.GetValue<TestEntity>(exp, NoProperty);
 
-            var orElseExp = IsKnownExpression(expValue, ExpressionType.AndAlso);
-            var leftExp = IsKnownExpression(orElseExp.Value1, ExpressionType.NotEqual);
-            IsPropertyValue(leftExp.Value1, "Num1", true);
-            IsPropertyValue(leftExp.Value2, "Num1", false);
-            var rightExp = IsKnownExpression(orElseExp.Value2, ExpressionType.NotEqual);
-            IsPropertyValue(rightExp.Value1, "Text1", true);
-            IsPropertyValue(rightExp.Value2, "Text1", false);
+            expValue.Should().BeKnownExpression(ExpressionType.AndAlso)
+                .HaveKnownExpression(e => e.Value1, ExpressionType.NotEqual, ke => ke
+                    .HavePropertyValue(e => e.Value1, "Num1", true)
+                    .HavePropertyValue(e => e.Value2, "Num1", false))
+                .HaveKnownExpression(e => e.Value2, ExpressionType.NotEqual, ke => ke
+                    .HavePropertyValue(e => e.Value1, "Text1", true)
+                    .HavePropertyValue(e => e.Value2, "Text1", false));
         }
 
         [Fact]
@@ -594,13 +565,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
 
             var expValue = exp.Body.GetValue<TestEntity>(exp, NoProperty);
 
-            var orElseExp = IsKnownExpression(expValue, ExpressionType.OrElse);
-            var leftExp = IsKnownExpression(orElseExp.Value1, ExpressionType.NotEqual);
-            IsPropertyValue(leftExp.Value1, "Num1", true);
-            IsPropertyValue(leftExp.Value2, "Num1", false);
-            var rightExp = IsKnownExpression(orElseExp.Value2, ExpressionType.NotEqual);
-            IsPropertyValue(rightExp.Value1, "Text1", true);
-            IsPropertyValue(rightExp.Value2, "Text1", false);
+            expValue.Should().BeKnownExpression(ExpressionType.OrElse)
+                .HaveKnownExpression(e => e.Value1, ExpressionType.NotEqual, ke => ke
+                    .HavePropertyValue(e => e.Value1, "Num1", true)
+                    .HavePropertyValue(e => e.Value2, "Num1", false))
+                .HaveKnownExpression(e => e.Value2, ExpressionType.NotEqual, ke => ke
+                    .HavePropertyValue(e => e.Value1, "Text1", true)
+                    .HavePropertyValue(e => e.Value2, "Text1", false));
         }
     }
 }
