@@ -95,7 +95,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             RunnerQueryOptions queryOptions)
         {
             var joinColumns = ProcessMatchExpression(entityType, match, queryOptions);
-            var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnBaseName(), c.IsColumnNullable())).ToArray();
+            var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnNameCompat(), c.IsColumnNullable())).ToArray();
 
             // Find all properties of Owned Entities
             var propertiesFromNavigation = entityType.GetNavigations()
@@ -160,7 +160,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
                 foreach (var property in properties)
                 {
-                    if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnBaseName()))
+                    if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnNameCompat()))
                         continue;
 
                     var propertyAccess = new PropertyValue(property.Name, false, property);
@@ -181,7 +181,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .Select(e => properties
                     .Select(p =>
                     {
-                        var columnName = p.GetColumnBaseName();
+                        var columnName = p.GetColumnNameCompat();
                         object rawValue;
                         if (p.DeclaringEntityType == entityType)
                         {
@@ -189,6 +189,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         }
                         else
                         {
+                            // Sub-entity so an owned-entity
                             var navigation = entityType.GetNavigations().Single(x => x.ForeignKey.IsOwnership && x.GetTargetTypeCompat().GetProperties().Contains(p));
                             rawValue = p.PropertyInfo.GetValue(navigation.PropertyInfo.GetValue(e));
                         }
@@ -234,7 +235,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     arg.ArgumentIndex = i++;
 
                 var columnUpdateExpressions = updateExpressions?.Count > 0
-                    ? updateExpressions.Select(x => (x.Property.GetColumnBaseName(), x.Value)).ToArray()
+                    ? updateExpressions.Select(x => (x.Property.GetColumnNameCompat(), x.Value)).ToArray()
                     : null;
                 var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression);
                 yield return (sqlCommand, arguments);
@@ -252,7 +253,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             switch (value)
             {
                 case PropertyValue prop:
-                    var columnName = prop.Property.GetColumnBaseName();
+                    var columnName = prop.Property.GetColumnNameCompat();
                     if (expandLeftColumn != null && prop.IsLeftParameter)
                         return expandLeftColumn(columnName);
 

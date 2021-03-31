@@ -22,6 +22,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 #else
             false;
 #endif
+        private const string LocalHostname = "localhost";
         private const string Username = "testuser";
         private const string Password = "Password12!";
 
@@ -30,9 +31,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 
         private static readonly string ConnString_Postgres_GitHub = $"Server=localhost;Port=5432;Database={Username};Username=postgres;Password=root";
 
-        private static readonly string ConnString_Postgres_Docker = $"Server=localhost;Port=25432;Database={Username};Username={Username};Password={Password}";
-        private static readonly string ConnString_MySql_Docker = $"Server=localhost;Port=23306;Database={Username};Uid=root;Pwd={Password}";
-        private static readonly string ConnString_SqlServer_Docker = $"Server=localhost,21433;User=sa;Password={Password};Initial Catalog=FlexLabsUpsertTests;";
+        private static readonly string ConnString_Postgres_Docker = $"Server={LocalHostname};Port=25432;Database={Username};Username={Username};Password={Password}";
+        private static readonly string ConnString_MySql_Docker = $"Server={LocalHostname};Port=23306;Database={Username};Uid=root;Pwd={Password}";
+        private static readonly string ConnString_SqlServer_Docker = $"Server={LocalHostname},21433;User=sa;Password={Password};Initial Catalog=FlexLabsUpsertTests;";
 
         private static readonly string ConnString_Postgres_AppVeyor = $"Server=localhost;Port=5432;Database={Username};Username=postgres;Password={Password}";
         private static readonly string ConnString_MySql_AppVeyor = $"Server=localhost;Port=3306;Database={Username};Uid=root;Pwd={Password}";
