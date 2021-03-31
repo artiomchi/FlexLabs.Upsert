@@ -135,4 +135,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         [Required]
         public string Text { get; set; }
     }
+
+    public class Parent
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public string ParentName { get; set; }
+
+        public Child Child { get; set; }
+
+        public int Counter { get; set; }
+    }
+
+    public class Child
+    {
+        [Required]
+        public string ChildName { get; set; }
+    }
 }

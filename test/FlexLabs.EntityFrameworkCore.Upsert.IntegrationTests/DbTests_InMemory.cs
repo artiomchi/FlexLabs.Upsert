@@ -19,5 +19,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
         public DbTests_InMemory(DatabaseInitializer contexts)
             : base(contexts)
         { }
+
+        [Fact(Skip = "Owned entities are not yet supported for InMemory.")]
+        public override void Upsert_Owned_Entity()
+        {
+        }
+
+        [Fact(Skip = "Owned entities are not yet supported for InMemory.")]
+        public override void Upsert_Owned_Entity_NoUpdate()
+        {
+        }
+
+        [Fact(Skip = "Owned entities are not yet supported for InMemory.")]
+        public override void Upsert_Owned_Entity_WhenMatched()
+        {
+        }
     }
 }

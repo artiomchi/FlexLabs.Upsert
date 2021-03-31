@@ -99,12 +99,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             Expression<Func<TEntity, object>>? matchExpression) where TEntity : class
         {
             if (matchExpression != null)
+            {
+                var data = dbContext.Set<TEntity>().ToList();
                 return entities.AsQueryable()
                     .GroupJoin(dbContext.Set<TEntity>().ToList(), matchExpression, matchExpression, (newEntity, dbEntity) => new { dbEntity, newEntity })
                     .SelectMany(x => x.dbEntity.DefaultIfEmpty(), (x, dbEntity) => new { dbEntity, x.newEntity })
                     .AsEnumerable()
                     .Select(x => (x.dbEntity, x.newEntity))
                     .ToArray();
+            }
 
             // If we're resorting to matching on PKs, we'll have to load them manually
             object?[] getPKs(TEntity entity)
