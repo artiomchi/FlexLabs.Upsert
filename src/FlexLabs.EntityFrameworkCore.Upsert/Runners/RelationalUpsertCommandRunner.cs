@@ -100,7 +100,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             // Find all properties of Owned Entities
             var propertiesFromNavigation = entityType.GetNavigations()
                 .Where(x => x.ForeignKey.IsOwnership)
-                .SelectMany(x => x.GetTargetType().GetProperties().Where(x => !x.IsShadowProperty()));
+                .SelectMany(x => x.GetTargetTypeCompat().GetProperties().Where(x => !x.IsShadowProperty()));
 
             var properties = entityType.GetProperties()
                 .Union(propertiesFromNavigation) // Merge regular-properties with OwnedEntity properties
@@ -125,14 +125,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         {
                             foreach (MemberAssignment navigationBinding in navigationUpdater.Bindings)
                             {
-                                var navigationProperty = navigation.GetTargetType().FindProperty(navigationBinding.Member.Name);
+                                var navigationProperty = navigation.GetTargetTypeCompat().FindProperty(navigationBinding.Member.Name);
                                 if (navigationProperty == null)
                                 {
                                     throw new InvalidOperationException("Unknown navigation-property " + binding.Member.Name);
                                 }
 
                                 // TODO: Support navigation property expressions! (currently only allows direct values)
-                                var navigationValue = navigationBinding.Expression.GetValue<TEntity>(updater, navigation.GetTargetType().FindProperty, queryOptions.UseExpressionCompiler);
+                                var navigationValue = navigationBinding.Expression.GetValue<TEntity>(updater, navigation.GetTargetTypeCompat().FindProperty, queryOptions.UseExpressionCompiler);
                                 if (!(navigationValue is IKnownValue knownNavigationVal))
                                     knownNavigationVal = new ConstantValue(navigationValue, property);
 
@@ -189,7 +189,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         }
                         else
                         {
-                            var navigation = entityType.GetNavigations().Single(x => x.ForeignKey.IsOwnership && x.GetTargetType().GetProperties().Contains(p));
+                            var navigation = entityType.GetNavigations().Single(x => x.ForeignKey.IsOwnership && x.GetTargetTypeCompat().GetProperties().Contains(p));
                             rawValue = p.PropertyInfo.GetValue(navigation.PropertyInfo.GetValue(e));
                         }
                         string? defaultSql = null;
