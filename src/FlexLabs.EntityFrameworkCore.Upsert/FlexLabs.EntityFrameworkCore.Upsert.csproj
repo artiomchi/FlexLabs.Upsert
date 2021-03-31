@@ -1,7 +1,7 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <NeutralLanguage>en</NeutralLanguage>
     <Nullable>enable</Nullable>
@@ -18,8 +18,15 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>3.1.0</VersionPrefix>
+    <VersionPrefix>4.0.0</VersionPrefix>
     <PackageReleaseNotes>
+v4.0.0
++ Adding support for .NET 5 and EF Core 5
+! Patched support for constants in the update condition
+! Run and RunAsync will not return all rows affected when command was split into multiple batches, not just the last batch's row count
+! Patching the extension method to replace/inject custom command runner
+! Removed old extension method on IServiceCollection, since it wasn't working anyway
+
 v3.1.0
 - Referencing EF Core 3.1 only, due to internal namespace changes and compatibility issues with .NET Full Framework
 + Nulable type metadata
@@ -29,18 +36,25 @@ v3.1.0
 v3.0.0
 * EF Core 3 support
 
-v2.2.1:      
+v2.2.1:
 + Support for more expressions (Bitwise AND and bitwise OR)
 
-v2.2.0:      
+v2.2.0:
 + Support for more expressions (AND and OR)
 + Support for default column values and expressions
 + Null value handling in generated SQL
 ! Patched MySQL syntax for columns that haven't been updated but may be present in expressions
     </PackageReleaseNotes>
+    <EFCoreVersion>3.1.0</EFCoreVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net5.0'">
+    <EFCoreVersion>5.0.0</EFCoreVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <SignAssembly>True</SignAssembly>
@@ -50,11 +64,11 @@ v2.2.0:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.9.8">
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="5.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="3.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EFCoreVersion)" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)'=='Release'">

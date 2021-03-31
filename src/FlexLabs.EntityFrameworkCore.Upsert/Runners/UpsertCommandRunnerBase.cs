@@ -54,7 +54,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 joinColumns = new List<IProperty>();
                 foreach (MemberExpression arg in newExpression.Arguments)
                 {
-                    if (arg == null || !(arg.Member is PropertyInfo) || !typeof(TEntity).Equals(arg.Expression.Type))
+                    if (arg == null || arg.Member is not PropertyInfo || !typeof(TEntity).Equals(arg.Expression?.Type))
                         throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
                     var property = entityType.FindProperty(arg.Member.Name);
                     if (property == null)
@@ -64,14 +64,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
             else if (matchExpression.Body is UnaryExpression unaryExpression)
             {
-                if (!(unaryExpression.Operand is MemberExpression memberExp) || !(memberExp.Member is PropertyInfo) || !typeof(TEntity).Equals(memberExp.Expression.Type))
+                if (unaryExpression.Operand is not MemberExpression memberExp || memberExp.Member is not PropertyInfo || !typeof(TEntity).Equals(memberExp.Expression?.Type))
                     throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
                 var property = entityType.FindProperty(memberExp.Member.Name);
                 joinColumns = new List<IProperty> { property };
             }
             else if (matchExpression.Body is MemberExpression memberExpression)
             {
-                if (!typeof(TEntity).Equals(memberExpression.Expression.Type) || !(memberExpression.Member is PropertyInfo))
+                if (!typeof(TEntity).Equals(memberExpression.Expression?.Type) || memberExpression.Member is not PropertyInfo)
                     throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
                 var property = entityType.FindProperty(memberExpression.Member.Name);
                 joinColumns = new List<IProperty> { property };

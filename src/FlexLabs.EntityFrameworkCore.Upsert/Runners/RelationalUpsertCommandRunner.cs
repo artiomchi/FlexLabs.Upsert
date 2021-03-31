@@ -95,7 +95,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             RunnerQueryOptions queryOptions)
         {
             var joinColumns = ProcessMatchExpression(entityType, match, queryOptions);
-            var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnName(), c.IsColumnNullable())).ToArray();
+            var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnBaseName(), c.IsColumnNullable())).ToArray();
 
             // Find all properties of Owned Entities
             var propertiesFromNavigation = entityType.GetNavigations()
@@ -111,7 +111,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             List<(IProperty Property, IKnownValue Value)>? updateExpressions = null;
             if (updater != null)
             {
-                if (!(updater.Body is MemberInitExpression entityUpdater))
+                if (updater.Body is not MemberInitExpression entityUpdater)
                     throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.UpdaterMustBeAnInitialiserOfTheTEntityType, nameof(updater)), nameof(updater));
 
                 updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
@@ -149,7 +149,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     }
 
                     var value = binding.Expression.GetValue<TEntity>(updater, entityType.FindProperty, queryOptions.UseExpressionCompiler);
-                    if (!(value is IKnownValue knownVal))
+                    if (value is not IKnownValue knownVal)
                         knownVal = new ConstantValue(value, property);
 
                     updateExpressions.Add((property, knownVal));
@@ -160,7 +160,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
                 foreach (var property in properties)
                 {
-                    if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnName()))
+                    if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnBaseName()))
                         continue;
 
                     var propertyAccess = new PropertyValue(property.Name, false, property);
@@ -172,7 +172,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (updateCondition != null)
             {
                 var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, entityType.FindProperty, queryOptions.UseExpressionCompiler);
-                if (!(updateConditionValue is KnownExpression updateConditionExp))
+                if (updateConditionValue is not KnownExpression updateConditionExp)
                     throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
                 updateConditionExpression = updateConditionExp;
             }
@@ -181,7 +181,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .Select(e => properties
                     .Select(p =>
                     {
-                        var columnName = p.GetColumnName();
+                        var columnName = p.GetColumnBaseName();
                         object rawValue;
                         if (p.DeclaringEntityType == entityType)
                         {
@@ -212,8 +212,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             while (entitiesProcessed < newEntities.Length)
             {
                 var arguments = new List<ConstantValue>();
-                if (updateExpressions != null)
-                    arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues()));
 
                 var entitiesHere = 0;
                 do
@@ -225,12 +223,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 while (entitiesProcessed < newEntities.Length &&
                     (MaxQueryParams == null || arguments.Count + singleEntityArguments < MaxQueryParams));
 
+                if (updateExpressions != null)
+                    arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues()));
+
+                if (updateConditionExpression != null)
+                    arguments.AddRange(updateConditionExpression.GetConstantValues().Where(c => c.Value != null));
+
                 int i = 0;
                 foreach (var arg in arguments)
                     arg.ArgumentIndex = i++;
 
                 var columnUpdateExpressions = updateExpressions?.Count > 0
-                    ? updateExpressions.Select(x => (x.Property.GetColumnName(), x.Value)).ToArray()
+                    ? updateExpressions.Select(x => (x.Property.GetColumnBaseName(), x.Value)).ToArray()
                     : null;
                 var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression);
                 yield return (sqlCommand, arguments);
@@ -248,7 +252,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             switch (value)
             {
                 case PropertyValue prop:
-                    var columnName = prop.Property.GetColumnName();
+                    var columnName = prop.Property.GetColumnBaseName();
                     if (expandLeftColumn != null && prop.IsLeftParameter)
                         return expandLeftColumn(columnName);
 
@@ -404,7 +408,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
-                result = dbContext.Database.ExecuteSqlRaw(sqlCommand, dbArguments);
+                result += dbContext.Database.ExecuteSqlRaw(sqlCommand, dbArguments);
             }
             return result;
         }
@@ -427,7 +431,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
-                result = await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments).ConfigureAwait(false);
+                result += await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments, cancellationToken).ConfigureAwait(false);
             }
             return result;
         }

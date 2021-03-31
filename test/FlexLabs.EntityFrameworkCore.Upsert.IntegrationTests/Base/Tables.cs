@@ -1,8 +1,10 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq.Expressions;
+using Newtonsoft.Json.Linq;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
+namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
 {
     public class Book
     {
@@ -38,8 +40,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public string Data { get; set; }
     }
 
+    public class JObjectData
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int ID { get; set; }
+        public JObject Data { get; set; }
+    }
+
     public class PageVisit
     {
+        public static readonly Expression<Func<PageVisit, object>> MatchKey
+            = pv => new { pv.UserID, pv.Date };
+
         public int ID { get; set; }
         public int UserID { get; set; }
         public DateTime Date { get; set; }

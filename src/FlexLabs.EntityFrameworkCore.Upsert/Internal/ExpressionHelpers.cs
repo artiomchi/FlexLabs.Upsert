@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {
     /// <summary>
-    /// Expression helper classe that is used to deconstruct expression trees
+    /// Expression helper class that is used to deconstruct expression trees
     /// </summary>
     public static class ExpressionHelpers
     {
@@ -20,10 +20,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <param name="propertyFinder">Delegate used to find the EF Property class from a property name</param>
         /// <param name="useExpressionCompiler">Allows enabling the fallback expression compiler</param>
         /// <returns>An</returns>
-        public static object GetValue<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty> propertyFinder, bool useExpressionCompiler = false)
+        public static object? GetValue<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty> propertyFinder, bool useExpressionCompiler = false)
             => GetValueInternal<TSource>(expression, container, propertyFinder, useExpressionCompiler, false);
 
-        private static object GetValueInternal<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty> propertyFinder, bool useExpressionCompiler, bool nested)
+        private static object? GetValueInternal<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty> propertyFinder, bool useExpressionCompiler, bool nested)
         {
             switch (expression.NodeType)
             {
@@ -43,12 +43,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 
                         if (left == null)
                             return right;
-                        if (!(left is IKnownValue))
+                        if (left is not IKnownValue)
                             return left;
 
-                        if (!(left is IKnownValue leftValue))
+                        if (left is not IKnownValue leftValue)
                             leftValue = new ConstantValue(left);
-                        if (!(right is IKnownValue rightValue))
+                        if (right is not IKnownValue rightValue)
                             rightValue = new ConstantValue(right);
 
                         return new KnownExpression(expression.NodeType, leftValue, rightValue);
@@ -61,11 +61,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                         var ifFalse = conditionalExp.IfFalse.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, nested);
                         var conditionExp = conditionalExp.Test.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, nested);
 
-                        if (!(conditionExp is IKnownValue knownCondition))
+                        if (conditionExp is not IKnownValue knownCondition)
                             knownCondition = new ConstantValue(conditionExp);
-                        if (!(ifTrue is IKnownValue knownTrue))
+                        if (ifTrue is not IKnownValue knownTrue)
                             knownTrue = new ConstantValue(ifTrue);
-                        if (!(ifFalse is IKnownValue knownFalse))
+                        if (ifFalse is not IKnownValue knownFalse)
                             knownFalse = new ConstantValue(ifFalse);
 
                         return new KnownExpression(expression.NodeType, knownTrue, knownFalse, knownCondition);
@@ -111,7 +111,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                 case ExpressionType.NewArrayInit:
                     {
                         var arrayExp = (NewArrayExpression)expression;
-                        var result = Array.CreateInstance(arrayExp.Type.GetElementType(), arrayExp.Expressions.Count);
+                        var result = Array.CreateInstance(arrayExp.Type.GetElementType()!, arrayExp.Expressions.Count);
                         for (int i = 0; i < arrayExp.Expressions.Count; i++)
                             result.SetValue(arrayExp.Expressions[i].GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, true), i);
                         return result;
@@ -137,13 +137,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                         if (!nested)
                         {
                             var leftArg = exp.Left.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, false);
-                            if (!(leftArg is IKnownValue leftArgKnown))
+                            if (leftArg is not IKnownValue leftArgKnown)
                                 if (leftArg is KnownExpression leftArgExp)
                                     leftArgKnown = leftArgExp.Value1;
                                 else
                                     leftArgKnown = new ConstantValue(leftArg);
                             var rightArg = exp.Right.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, false);
-                            if (!(rightArg is IKnownValue rightArgKnown))
+                            if (rightArg is not IKnownValue rightArgKnown)
                                 if (rightArg is KnownExpression rightArgExp)
                                     rightArgKnown = rightArgExp.Value1;
                                 else

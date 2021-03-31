@@ -1,329 +1,281 @@
-﻿using System.Collections.Generic;
-using System.Linq.Expressions;
-using FlexLabs.EntityFrameworkCore.Upsert.Internal;
+﻿using System;
+using System.Collections.Generic;
+using System.Data.Common;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
+using FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
 using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 {
-    public abstract class RelationalCommandRunnerTestsBase
+    public abstract class RelationalCommandRunnerTestsBase<TRunner>
+        where TRunner : RelationalUpsertCommandRunner
     {
-        protected abstract RelationalUpsertCommandRunner GetRunner();
+        private readonly DbContext _dbContext;
+        private readonly IRawSqlCommandBuilder _rawSqlBuilder;
+
+        public RelationalCommandRunnerTestsBase(string providerName)
+        {
+            var model = new Model();
+            AddEntity<TestEntity>(model);
+            AddEntity<TestEntityWithNullableKey>(model);
+
+            var dbProvider = Substitute.For<IDatabaseProvider>();
+            dbProvider.Name.Returns(providerName);
+
+            var services = new ServiceCollection();
+            services.AddSingleton<IUpsertCommandRunner, TRunner>();
+            services.AddSingleton<IModel>(model);
+            services.AddSingleton(dbProvider);
+            services.AddSingleton(Substitute.For<IRelationalTypeMappingSource>());
+            var serviceProvider = services.BuildServiceProvider();
+
+            _dbContext = Substitute.For<DbContext, IInfrastructure<IServiceProvider>>();
+            ((IInfrastructure<IServiceProvider>)_dbContext).Instance.Returns(serviceProvider);
+
+            var relationalConnection = Substitute.For<IRelationalConnection>();
+            relationalConnection.DbConnection.Returns(Substitute.For<DbConnection>());
+
+            _rawSqlBuilder = Substitute.For<IRawSqlCommandBuilder>();
+            _rawSqlBuilder.Build(default, default).ReturnsForAnyArgs(
+                new RawSqlCommand(Substitute.For<IRelationalCommand>(), new Dictionary<string, object>()));
+
+            var concurrencyDetector = Substitute.For<IConcurrencyDetector>();
+#if NET5_0
+            var disposer = new ConcurrencyDetectorCriticalSectionDisposer(concurrencyDetector);
+            concurrencyDetector.EnterCriticalSection().Returns(disposer);
+#endif
+
+            var dependencies = Substitute.For<IRelationalDatabaseFacadeDependencies>();
+            dependencies.RelationalConnection.Returns(relationalConnection);
+            dependencies.RawSqlCommandBuilder.Returns(_rawSqlBuilder);
+            dependencies.ConcurrencyDetector.Returns(concurrencyDetector);
+
+            var dbFacade = Substitute.For<DatabaseFacade, IDatabaseFacadeDependenciesAccessor>(_dbContext);
+            ((IDatabaseFacadeDependenciesAccessor)dbFacade).Dependencies.Returns(dependencies);
+
+            _dbContext.Database.Returns(dbFacade);
+        }
+
+        private static void AddEntity<TEntity>(Model model)
+        {
+            var clrType = typeof(TEntity);
+            var entityType = model.AddEntityType(clrType, ConfigurationSource.Convention);
+            foreach (var property in clrType.GetProperties())
+            {
+                entityType.AddProperty(property.Name);
+            }
+            entityType.AddKey(entityType.GetProperty("ID") as Property, ConfigurationSource.Convention);
+        }
 
         protected abstract string NoUpdate_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_NoUpdate()
         {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)> entity = new[]
-            {
-                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                ( "Status", new ConstantValue("status") { ArgumentIndex = 1}, (string)null, true ),
-            };
+            _dbContext.Upsert(new TestEntity())
+                .NoUpdate()
+                .Run();
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, null, null);
-
-            Assert.Equal(NoUpdate_Sql, generatedSql);
+            _rawSqlBuilder.Received().Build(
+                NoUpdate_Sql,
+                Arg.Any<IEnumerable<object>>());
         }
 
         protected abstract string NoUpdate_Multiple_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_NoUpdate_Multiple()
         {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>[] entities = new[]
-            {
-                new[]
-                {
-                    ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                    ( "Status", new ConstantValue("status") { ArgumentIndex = 1}, (string)null, true ),
-                },
-                new[]
-                {
-                    ( "Name", new ConstantValue("value") { ArgumentIndex = 2 }, (string)null, true ),
-                    ( "Status", new ConstantValue("status") { ArgumentIndex = 3}, (string)null, true ),
-                },
-            };
+            _dbContext.UpsertRange(new TestEntity(), new TestEntity())
+                .NoUpdate()
+                .Run();
 
-            var generatedSql = runner.GenerateCommand(tableName, entities, new[] { ("ID", false) }, null, null);
-
-            Assert.Equal(NoUpdate_Multiple_Sql, generatedSql);
+            _rawSqlBuilder.Received().Build(
+                NoUpdate_Multiple_Sql,
+                Arg.Any<IEnumerable<object>>());
         }
 
         protected abstract string NoUpdate_WithNullable_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_NoUpdate_WithNullable()
         {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)> entity = new[]
-            {
-                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                ( "Status", new ConstantValue("status") { ArgumentIndex = 1}, (string)null, true ),
-            };
+            _dbContext.Upsert(new TestEntityWithNullableKey())
+                .On(e => new { e.ID1, e.ID2 })
+                .NoUpdate()
+                .Run();
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID1", false), ("ID2", true) }, null, null);
-
-            Assert.Equal(NoUpdate_WithNullable_Sql, generatedSql);
+            _rawSqlBuilder.Received().Build(
+                NoUpdate_WithNullable_Sql,
+                Arg.Any<IEnumerable<object>>());
         }
 
         protected abstract string Update_Constant_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_Update_Constant()
         {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)> entity = new[]
-            {
-                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                ( "Status", new ConstantValue("status") { ArgumentIndex = 1}, (string)null, true ),
-            };
-            var updates = new[]
-            {
-                ("Name", (IKnownValue)new ConstantValue("newValue") { ArgumentIndex = 2 })
-            };
+            _dbContext.Upsert(new TestEntity())
+                .WhenMatched(e => new TestEntity
+                {
+                    Name = "value"
+                })
+                .Run();
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
-
-            Assert.Equal(Update_Constant_Sql, generatedSql);
+            _rawSqlBuilder.Received().Build(
+                Update_Constant_Sql,
+                Arg.Any<IEnumerable<object>>());
         }
 
         protected abstract string Update_Constant_Multiple_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_Update_Constant_Multiple()
         {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>[] entities = new[]
-            {
-                new[]
+            _dbContext.UpsertRange(new TestEntity(), new TestEntity())
+                .WhenMatched(e => new TestEntity
                 {
-                    ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                    ( "Status", new ConstantValue("status") { ArgumentIndex = 1}, (string)null, true ),
-                },
-                new[]
-                {
-                    ( "Name", new ConstantValue("value") { ArgumentIndex = 2 }, (string)null, true ),
-                    ( "Status", new ConstantValue("status") { ArgumentIndex = 3}, (string)null, true ),
-                },
-            };
-            var updates = new[]
-            {
-                ("Name", (IKnownValue)new ConstantValue("newValue") { ArgumentIndex = 4 })
-            };
+                    Name = "value"
+                })
+                .Run();
 
-            var generatedSql = runner.GenerateCommand(tableName, entities, new[] { ("ID", false) }, updates, null);
-
-            Assert.Equal(Update_Constant_Multiple_Sql, generatedSql);
+            _rawSqlBuilder.Received().Build(
+                Update_Constant_Multiple_Sql,
+                Arg.Any<IEnumerable<object>>());
         }
 
         protected abstract string Update_Source_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_Update_Source()
         {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)> entity = new[]
-            {
-                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                ( "Status", new ConstantValue("status") { ArgumentIndex = 1}, (string)null, true ),
-            };
-            var updates = new[]
-            {
-                ("Name", (IKnownValue)new PropertyValue("Name", false, new MockProperty("Name")))
-            };
+            _dbContext.Upsert(new TestEntity())
+                .WhenMatched((ed, en) => new TestEntity
+                {
+                    Name = en.Name
+                })
+                .Run();
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
-
-            Assert.Equal(Update_Source_Sql, generatedSql);
-        }
-
-        protected abstract string Update_Source_RenamedCol_Sql { get; }
-        [Fact]
-        public void SqlSyntaxRunner_Update_Source_RenamedCol()
-        {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)> entity = new[]
-            {
-                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                ( "Status", new ConstantValue("status") { ArgumentIndex = 1}, (string)null, true ),
-            };
-            var updates = new[]
-            {
-                ("Name", (IKnownValue)new PropertyValue("Name", false, new MockProperty("Name2")))
-            };
-
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
-
-            Assert.Equal(Update_Source_RenamedCol_Sql, generatedSql);
+            _rawSqlBuilder.Received().Build(
+                Update_Source_Sql,
+                Arg.Any<IEnumerable<object>>());
         }
 
         protected abstract string Update_BinaryAdd_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_Update_BinaryAdd()
         {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)> entity = new[]
-            {
-                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                ( "Status", new ConstantValue(3) { ArgumentIndex = 1}, (string)null, true ),
-            };
-            var updates = new[]
-            {
-                ("Status", (IKnownValue)new KnownExpression(ExpressionType.Add,
-                    new PropertyValue("Status", true, new MockProperty("Status")),
-                    new ConstantValue(1) { ArgumentIndex = 2 }))
-            };
+            _dbContext.Upsert(new TestEntity())
+                .WhenMatched(e => new TestEntity
+                {
+                    Total = e.Total + 5
+                })
+                .Run();
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
-
-            Assert.Equal(Update_BinaryAdd_Sql, generatedSql);
+            _rawSqlBuilder.Received().Build(
+                Update_BinaryAdd_Sql,
+                Arg.Any<IEnumerable<object>>());
         }
 
         protected abstract string Update_Coalesce_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_Update_Coalesce()
         {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)> entity = new[]
-            {
-                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                ( "Status", new ConstantValue(3) { ArgumentIndex = 1}, (string)null, true ),
-            };
-            var updates = new[]
-            {
-                ("Status", (IKnownValue)new KnownExpression(ExpressionType.Coalesce,
-                    new PropertyValue("Status", true, new MockProperty("Status")),
-                    new ConstantValue(1) { ArgumentIndex = 2 }))
-            };
+            _dbContext.Upsert(new TestEntity())
+                .WhenMatched(e => new TestEntity
+                {
+                    Status = e.Status ?? "suffix"
+                })
+                .Run();
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
-
-            Assert.Equal(Update_Coalesce_Sql, generatedSql);
+            _rawSqlBuilder.Received().Build(
+                Update_Coalesce_Sql,
+                Arg.Any<IEnumerable<object>>());
         }
 
         protected abstract string Update_BinaryAddMultiply_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_Update_BinaryAddMultiply()
         {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)> entity = new[]
-            {
-                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                ( "Status", new ConstantValue(3) { ArgumentIndex = 1}, (string)null, true ),
-            };
-            var updates = new[]
-            {
-                ("Status", (IKnownValue)new KnownExpression(ExpressionType.Multiply,
-                    new KnownExpression(ExpressionType.Add,
-                        new PropertyValue("Status", true, new MockProperty("Status")),
-                        new ConstantValue(1) { ArgumentIndex = 2 }),
-                    new PropertyValue("Status", false, new MockProperty("Status"))))
-            };
+            _dbContext.Upsert(new TestEntity())
+                .WhenMatched((ed, en) => new TestEntity
+                {
+                    Total = (ed.Total + 5) * en.Total
+                })
+                .Run();
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
-
-            Assert.Equal(Update_BinaryAddMultiply_Sql, generatedSql);
+            _rawSqlBuilder.Received().Build(
+                Update_BinaryAddMultiply_Sql,
+                Arg.Any<IEnumerable<object>>());
         }
 
         protected abstract string Update_BinaryAddMultiplyGroup_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_Update_BinaryAddMultiplyGroup()
         {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)> entity = new[]
-            {
-                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                ( "Status", new ConstantValue(3) { ArgumentIndex = 1}, (string)null, true ),
-            };
-            var updates = new[]
-            {
-                ("Status", (IKnownValue)new KnownExpression(ExpressionType.Add,
-                    new PropertyValue("Status", true, new MockProperty("Status")),
-                    new KnownExpression(ExpressionType.Multiply,
-                        new ConstantValue(1) { ArgumentIndex = 2 },
-                        new PropertyValue("Status", false, new MockProperty("Status")))))
-            };
+            _dbContext.Upsert(new TestEntity())
+                .WhenMatched((ed, en) => new TestEntity
+                {
+                    Total = ed.Total + 3 * en.Total
+                })
+                .Run();
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, null);
-
-            Assert.Equal(Update_BinaryAddMultiplyGroup_Sql, generatedSql);
+            _rawSqlBuilder.Received().Build(
+                Update_BinaryAddMultiplyGroup_Sql,
+                Arg.Any<IEnumerable<object>>());
         }
 
         protected abstract string Update_Condition_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_Update_Condition()
         {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)> entity = new[]
-            {
-                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                ( "Status", new ConstantValue("status") { ArgumentIndex = 1}, (string)null, true ),
-            };
-            var updates = new[]
-            {
-                ("Name", (IKnownValue)new ConstantValue("newValue") { ArgumentIndex = 2 })
-            };
-            var condition = new KnownExpression(ExpressionType.GreaterThan, new PropertyValue("Counter", true, new MockProperty("Counter")), new ConstantValue(12) { ArgumentIndex = 3 });
+            _dbContext.Upsert(new TestEntity())
+                .WhenMatched(e => new TestEntity
+                {
+                    Name = "new"
+                })
+                .UpdateIf(e => e.Total > 5)
+                .Run();
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, condition);
-
-            Assert.Equal(Update_Condition_Sql, generatedSql);
+            _rawSqlBuilder.Received().Build(
+                Update_Condition_Sql,
+                Arg.Any<IEnumerable<object>>());
         }
 
         protected abstract string Update_Condition_AndCondition_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_Update_Condition_AndCondition()
         {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)> entity = new[]
-            {
-                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                ( "Status", new ConstantValue("status") { ArgumentIndex = 1}, (string)null, true ),
-            };
-            var updates = new[]
-            {
-                ("Name", (IKnownValue)new ConstantValue("newValue") { ArgumentIndex = 2 })
-            };
-            var condition = new KnownExpression(ExpressionType.AndAlso,
-                new KnownExpression(ExpressionType.GreaterThan, new PropertyValue("Counter", true, new MockProperty("Counter")), new ConstantValue(12) { ArgumentIndex = 3 }),
-                new KnownExpression(ExpressionType.NotEqual, new PropertyValue("Status", true, new MockProperty("Status")), new PropertyValue("Status", false, new MockProperty("Status"))));
+            _dbContext.Upsert(new TestEntity())
+                .WhenMatched(e => new TestEntity
+                {
+                    Name = "new"
+                })
+                .UpdateIf((ed, en) => ed.Total > 5 && ed.Status != en.Status)
+                .Run();
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, condition);
-
-            Assert.Equal(Update_Condition_AndCondition_Sql, generatedSql);
+            _rawSqlBuilder.Received().Build(
+                Update_Condition_AndCondition_Sql,
+                Arg.Any<IEnumerable<object>>());
         }
 
         protected abstract string Update_Condition_NullCheck_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_Update_Condition_NullCheck()
         {
-            var runner = GetRunner();
-            var tableName = "myTable";
-            ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)> entity = new[]
-            {
-                ( "Name", new ConstantValue("value") { ArgumentIndex = 0 }, (string)null, true ),
-                ( "Status", new ConstantValue("status") { ArgumentIndex = 1}, (string)null, true ),
-            };
-            var updates = new[]
-            {
-                ("Name", (IKnownValue)new ConstantValue("newValue") { ArgumentIndex = 2 })
-            };
-            var condition = new KnownExpression(ExpressionType.NotEqual, new PropertyValue("Counter", true, new MockProperty("Counter")), new ConstantValue(null) { ArgumentIndex = 3 });
+            _dbContext.Upsert(new TestEntity())
+                .WhenMatched(e => new TestEntity
+                {
+                    Name = "new"
+                })
+                .UpdateIf(e => e.Status != null)
+                .Run();
 
-            var generatedSql = runner.GenerateCommand(tableName, new[] { entity }, new[] { ("ID", false) }, updates, condition);
-
-            Assert.Equal(Update_Condition_NullCheck_Sql, generatedSql);
+            _rawSqlBuilder.Received().Build(
+                Update_Condition_NullCheck_Sql,
+                Arg.Any<IEnumerable<object>>());
         }
-
     }
 }

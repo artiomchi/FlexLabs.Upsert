@@ -7,7 +7,7 @@ skip_tags: true
 
 services:
  - mssql2017
- #- mysql
+ - mysql
  - postgresql101
 
 environment:
@@ -37,12 +37,12 @@ before_build:
 
 build_script:
 - ps: $Env:PATH = $Env:PATH + ";C:\Program Files (x86)\Microsoft SDKs\Windows\v7.1A\Bin\"
-- ps: dotnet build -c $Env:CONFIGURATION $Env:VersionSuffixParam $Env:VersionSuffixValue
-- ps: dotnet pack -c $Env:CONFIGURATION $Env:VersionSuffixParam $Env:VersionSuffixValue
+- ps: dotnet build --no-restore -c $Env:CONFIGURATION $Env:VersionSuffixParam $Env:VersionSuffixValue
+- ps: dotnet pack --no-build -c $Env:CONFIGURATION $Env:VersionSuffixParam $Env:VersionSuffixValue
 - ps: dir -rec *.nupkg | foreach { nuget sign $_ -CertificateSubjectName "Artiom Chilaru" -Timestamper "https://timestamp.digicert.com" }
 
 test_script:
-- ps: dotnet test -c $Env:CONFIGURATION
+- ps: dotnet test --no-build -c $Env:CONFIGURATION
 
 artifacts:
 - path: '**\*.nupkg'

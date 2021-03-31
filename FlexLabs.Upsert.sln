@@ -1,4 +1,3 @@
-﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29123.89
@@ -12,6 +11,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".solution", ".solution", "{
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "github-workflows", "github-workflows", "{3B24B110-DA69-4764-9EB3-E7E89695A6DC}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build-full.yml = .github\workflows\build-full.yml
+		.github\workflows\build-quick.yml = .github\workflows\build-quick.yml
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0DCBBEBD-A5B9-46F1-B9DE-F469447630F1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{27DD4B6C-174D-436C-84F4-8706DF282194}"
@@ -20,7 +25,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlexLabs.EntityFrameworkCor
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlexLabs.EntityFrameworkCore.Upsert.Tests", "test\FlexLabs.EntityFrameworkCore.Upsert.Tests\FlexLabs.EntityFrameworkCore.Upsert.Tests.csproj", "{DED725C1-78D6-4060-BC6D-72B6DF164E73}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlexLabs.EntityFrameworkCore5.Upsert.Tests", "test\FlexLabs.EntityFrameworkCore5.Upsert.Tests\FlexLabs.EntityFrameworkCore5.Upsert.Tests.csproj", "{E37580DC-CA49-495A-94CA-A0800339A1FD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests", "test\FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests\FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.csproj", "{2A61A416-2EFA-4199-9958-2817B947E5E0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,18 +41,19 @@ Global
 		{DED725C1-78D6-4060-BC6D-72B6DF164E73}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DED725C1-78D6-4060-BC6D-72B6DF164E73}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DED725C1-78D6-4060-BC6D-72B6DF164E73}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E37580DC-CA49-495A-94CA-A0800339A1FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E37580DC-CA49-495A-94CA-A0800339A1FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E37580DC-CA49-495A-94CA-A0800339A1FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E37580DC-CA49-495A-94CA-A0800339A1FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A61A416-2EFA-4199-9958-2817B947E5E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A61A416-2EFA-4199-9958-2817B947E5E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A61A416-2EFA-4199-9958-2817B947E5E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A61A416-2EFA-4199-9958-2817B947E5E0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{3B24B110-DA69-4764-9EB3-E7E89695A6DC} = {8F601D76-FA75-4B32-AACB-559A63305223}
 		{E00DD739-30D8-4FE0-BFD4-99378BD4AD5F} = {0DCBBEBD-A5B9-46F1-B9DE-F469447630F1}
 		{DED725C1-78D6-4060-BC6D-72B6DF164E73} = {27DD4B6C-174D-436C-84F4-8706DF282194}
-		{E37580DC-CA49-495A-94CA-A0800339A1FD} = {27DD4B6C-174D-436C-84F4-8706DF282194}
+		{2A61A416-2EFA-4199-9958-2817B947E5E0} = {27DD4B6C-174D-436C-84F4-8706DF282194}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AF1562DF-BA49-4D28-A977-6C5A9B8C4F9D}

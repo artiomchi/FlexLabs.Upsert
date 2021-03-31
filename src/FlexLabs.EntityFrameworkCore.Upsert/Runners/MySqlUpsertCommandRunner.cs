@@ -35,7 +35,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append(string.Join(", ", entities.First().Select(e => EscapeName(e.ColumnName))));
             result.Append(") VALUES (");
             result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => e.DefaultSql ?? Parameter(e.Value.ArgumentIndex))))));
-            result.Append(")");
+            result.Append(')');
             if (updateExpressions != null)
             {
                 result.Append(" ON DUPLICATE KEY UPDATE ");

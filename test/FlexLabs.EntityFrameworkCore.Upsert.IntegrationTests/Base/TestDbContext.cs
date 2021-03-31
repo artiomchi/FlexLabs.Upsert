@@ -1,10 +1,11 @@
 ﻿using System;
-using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
+namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
 {
     public class TestDbContext : DbContext
     {
@@ -24,6 +25,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
             modelBuilder.Entity<Book>().Property<DateTime?>("NonMappedColumn");
             modelBuilder.Entity<Country>().HasIndex(c => c.ISO).IsUnique();
             modelBuilder.Entity<DashTable>().HasIndex(t => t.DataSet).IsUnique();
+            modelBuilder.Entity<JObjectData>()
+                .Property(d => d.Data)
+                .HasConversion(
+                    v => JsonConvert.SerializeObject(v),
+                    v => JsonConvert.DeserializeObject<JObject>(v));
             modelBuilder.Entity<PageVisit>().HasIndex(pv => new { pv.UserID, pv.Date }).IsUnique();
             modelBuilder.Entity<SchemaTable>().HasIndex(t => t.Name).IsUnique();
             modelBuilder.Entity<KeyOnly>().HasKey(t => new { t.ID1, t.ID2 });
@@ -34,6 +40,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
                 modelBuilder.Entity<JsonData>().Property(j => j.Data).HasColumnType("jsonb");
             if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql
                 modelBuilder.Entity<NullableRequired>().Property(e => e.Text).HasDefaultValue("B");
+            if (dbProvider.Name == "Pomelo.EntityFrameworkCore.MySql") // Can't have table schemas in MySql
+                modelBuilder.Entity<SchemaTable>().Metadata.SetSchema(null);
         }
 
         public DbSet<Book> Books { get; set; }
@@ -41,6 +49,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DbSet<DashTable> DashTable { get; set; }
         public DbSet<GuidKey> GuidKeys { get; set; }
         public DbSet<GuidKeyAutoGen> GuidKeysAutoGen { get; set; }
+        public DbSet<JObjectData> JObjectDatas { get; set; }
         public DbSet<JsonData> JsonDatas { get; set; }
         public DbSet<KeyOnly> KeyOnlies { get; set; }
         public DbSet<NullableCompositeKey> NullableCompositeKeys { get; set; }
@@ -52,56 +61,5 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF.Base
         public DbSet<StringKeyAutoGen> StringKeysAutoGen { get; set; }
         public DbSet<TestEntity> TestEntities { get; set; }
         public DbSet<Parent> Parents { get; set; }
-
-        public enum DbDriver
-        {
-            Postgres,
-            MSSQL,
-            MySQL,
-            InMemory,
-            Sqlite,
-        }
-
-        public static DbContextOptions<TestDbContext> Configure(string connectionString, DbDriver driver)
-        {
-            var options = new DbContextOptionsBuilder<TestDbContext>();
-            switch (driver)
-            {
-                case DbDriver.Postgres:
-                    options.UseNpgsql(connectionString);
-                    break;
-                case DbDriver.MSSQL:
-                    options.UseSqlServer(connectionString);
-                    break;
-                case DbDriver.MySQL:
-                    options.UseMySql(connectionString);
-                    break;
-                case DbDriver.InMemory:
-                    options.UseInMemoryDatabase(connectionString);
-                    break;
-                case DbDriver.Sqlite:
-#if SQLITE_LEGACY
-                    // If we are on Windows platform, we can copy Sqlite 3.24.0 binary to the output directory.
-                    // The dynamic libraries in the current execution path will load first.
-                    if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-                    {
-                        File.Copy(Environment.Is64BitProcess ? "sqlite3_x64.dll" : "sqlite3_x86.dll", "sqlite3.dll", true);
-                    }
-                    // Using the SQLitePCLRaw.provider.sqlite3.netstandard11 package
-                    // which loads the external sqlite3 standard dynamic library instead of the embeded old one.
-                    SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
-                    // Stop other packages from loading embedded sqlite3 library.
-                    SQLitePCL.raw.FreezeProvider();
-
-                    // For debugging purpose, we want to see which sqlite3 version we are using.
-                    //Console.WriteLine($"Currently using Sqlite v{SQLitePCL.raw.sqlite3_libversion()}");
-#endif
-                    options.UseSqlite(connectionString);
-                    break;
-                default:
-                    throw new InvalidOperationException("Invalid database driver: " + driver);
-            }
-            return options.Options;
-        }
     }
 }
