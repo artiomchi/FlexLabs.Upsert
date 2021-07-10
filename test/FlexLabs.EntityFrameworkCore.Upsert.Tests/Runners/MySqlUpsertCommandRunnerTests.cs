@@ -39,12 +39,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "INSERT INTO `TestEntity` (`ID`, `Name`, `Status`, `Total`) VALUES (@p0, @p1, @p2, @p3) ON DUPLICATE KEY UPDATE `Total` = ( `Total` + ( @p4 * VALUES(`Total`) ) )";
 
         protected override string Update_Condition_Sql =>
-            "INSERT INTO `TestEntity` (`ID`, `Name`, `Status`, `Total`) VALUES (@p0, @p1, @p2, @p3) ON DUPLICATE KEY UPDATE `Name` = COALESCE (IF ((@xName := `Name`), NULL, NULL), IF (`Total` > @p5, @p4, `Name`))";
+            "INSERT INTO `TestEntity` (`ID`, `Name`, `Status`, `Total`) VALUES (@p0, @p1, @p2, @p3) ON DUPLICATE KEY UPDATE `Name` = IF (`Total` > @p5, @p4, `Name`)";
+
+        protected override string Update_Condition_UpdateConditionColumn_Sql =>
+            "INSERT INTO `TestEntity` (`ID`, `Name`, `Status`, `Total`) VALUES (@p0, @p1, @p2, @p3) ON DUPLICATE KEY UPDATE `Name` = COALESCE (IF ((@xTotal := `Total`), NULL, NULL), IF (@xTotal > @p6, @p4, `Name`)), `Total` = IF (@xTotal > @p6, ( `Total` + @p5 ), `Total`)";
 
         protected override string Update_Condition_AndCondition_Sql =>
-            "INSERT INTO `TestEntity` (`ID`, `Name`, `Status`, `Total`) VALUES (@p0, @p1, @p2, @p3) ON DUPLICATE KEY UPDATE `Name` = COALESCE (IF ((@xName := `Name`), NULL, NULL), IF (( `Total` > @p5 ) AND ( `Status` != VALUES(`Status`) ), @p4, `Name`))";
+            "INSERT INTO `TestEntity` (`ID`, `Name`, `Status`, `Total`) VALUES (@p0, @p1, @p2, @p3) ON DUPLICATE KEY UPDATE `Name` = IF (( `Total` > @p5 ) AND ( `Status` != VALUES(`Status`) ), @p4, `Name`)";
 
         protected override string Update_Condition_NullCheck_Sql =>
-            "INSERT INTO `TestEntity` (`ID`, `Name`, `Status`, `Total`) VALUES (@p0, @p1, @p2, @p3) ON DUPLICATE KEY UPDATE `Name` = COALESCE (IF ((@xName := `Name`), NULL, NULL), IF (`Status` IS NOT NULL, @p4, `Name`))";
+            "INSERT INTO `TestEntity` (`ID`, `Name`, `Status`, `Total`) VALUES (@p0, @p1, @p2, @p3) ON DUPLICATE KEY UPDATE `Name` = IF (`Status` IS NOT NULL, @p4, `Name`)";
     }
 }

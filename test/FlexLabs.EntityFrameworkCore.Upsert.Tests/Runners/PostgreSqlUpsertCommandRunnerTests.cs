@@ -64,6 +64,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "DO UPDATE SET \"Name\" = @p4 " +
             "WHERE \"T\".\"Total\" > @p5";
 
+        protected override string Update_Condition_UpdateConditionColumn_Sql =>
+            "INSERT INTO \"TestEntity\" AS \"T\" (\"ID\", \"Name\", \"Status\", \"Total\") " +
+            "VALUES (@p0, @p1, @p2, @p3) ON CONFLICT (\"ID\") " +
+            "DO UPDATE SET \"Name\" = @p4, \"Total\" = ( \"T\".\"Total\" + @p5 ) " +
+            "WHERE \"T\".\"Total\" > @p6";
+
         protected override string Update_Condition_AndCondition_Sql =>
             "INSERT INTO \"TestEntity\" AS \"T\" (\"ID\", \"Name\", \"Status\", \"Total\") " +
             "VALUES (@p0, @p1, @p2, @p3) ON CONFLICT (\"ID\") " +

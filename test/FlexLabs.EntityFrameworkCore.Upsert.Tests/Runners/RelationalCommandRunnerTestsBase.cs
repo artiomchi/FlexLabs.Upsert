@@ -244,6 +244,24 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 Arg.Any<IEnumerable<object>>());
         }
 
+        protected abstract string Update_Condition_UpdateConditionColumn_Sql { get; }
+        [Fact]
+        public void SqlSyntaxRunner_Update_Condition_UpdateConditionColumn()
+        {
+            _dbContext.Upsert(new TestEntity())
+                .WhenMatched(e => new TestEntity
+                {
+                    Name = "new",
+                    Total = e.Total + 1
+                })
+                .UpdateIf(e => e.Total > 5)
+                .Run();
+
+            _rawSqlBuilder.Received().Build(
+                Update_Condition_UpdateConditionColumn_Sql,
+                Arg.Any<IEnumerable<object>>());
+        }
+
         protected abstract string Update_Condition_AndCondition_Sql { get; }
         [Fact]
         public void SqlSyntaxRunner_Update_Condition_AndCondition()

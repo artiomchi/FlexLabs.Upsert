@@ -229,7 +229,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     return Parameter(constVal.ArgumentIndex);
 
                 case KnownExpression expression:
-                    return $"( {ExpandExpression(expression)} )";
+                    return $"( {ExpandExpression(expression, expandLeftColumn)} )";
 
                 default:
                     throw new InvalidOperationException();

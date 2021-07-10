@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
+using Microsoft.EntityFrameworkCore;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
@@ -41,7 +43,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 result.Append(" ON DUPLICATE KEY UPDATE ");
                 if (updateCondition != null)
                 {
-                    var variables = string.Join(", ", updateExpressions.Select(e => $"IF (({Variable(e.ColumnName)} := {EscapeName(e.ColumnName)}), NULL, NULL)"));
+                    var columns = updateCondition.GetPropertyValues()
+                        .Select(v => v.Property.GetColumnBaseName())
+                        .ToArray();
+
+                    var variables = string.Join(", ", updateExpressions
+                        .Where(e => columns.Contains(e.ColumnName))
+                        .Select(e => $"IF (({Variable(e.ColumnName)} := {EscapeName(e.ColumnName)}), NULL, NULL)"));
                     string expandColumn(string propertyName)
                     {
                         if (updateExpressions.Any(e => e.ColumnName == propertyName))
@@ -52,7 +60,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         .Select((e, i) =>
                         {
                             var valueExpression = $"IF ({ExpandExpression(updateCondition, expandColumn)}, {ExpandValue(e.Value)}, {EscapeName(e.ColumnName)})";
-                            return i == 0
+                            return i == 0 && variables.Length > 0
                                 ? $"{EscapeName(e.ColumnName)} = COALESCE ({variables}, {valueExpression})"
                                 : $"{EscapeName(e.ColumnName)} = {valueExpression}";
                         })));

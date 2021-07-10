@@ -68,7 +68,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// </summary>
         public IKnownValue? Value3 { get; }
 
-        private IEnumerable<IKnownValue> GetValues()
+        internal IEnumerable<IKnownValue> GetValues()
         {
             if (Value1 != null)
                 yield return Value1;
