@@ -41,7 +41,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     foreach (var prop in properties)
                     {
                         var property = entityType.FindProperty(prop.Name);
-                        prop.SetValue(dbEntity, prop.GetValue(tmp) ?? property.GetDefaultValue());
+                        prop.SetValue(dbEntity, prop.GetValue(tmp) ?? property?.GetDefaultValue());
                     }
                 };
             }
@@ -60,18 +60,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     foreach (var prop in properties)
                     {
                         var property = entityType.FindProperty(prop!.Name);
-                        prop.SetValue(dbEntity, prop.GetValue(newEntity) ?? property.GetDefaultValue());
+                        prop.SetValue(dbEntity, prop.GetValue(newEntity) ?? property?.GetDefaultValue());
                     }
                 };
             }
 
-            foreach (var (dbEntity, newEntity) in matches)
+            foreach (var match in matches)
             {
-                if (dbEntity == null)
+                if (match.DbEntity == null)
                 {
                     foreach (var prop in typeof(TEntity).GetProperties())
                     {
-                        if (prop.GetValue(newEntity) == null)
+                        if (prop.GetValue(match.NewEntity) == null)
                         {
                             var property = entityType.FindProperty(prop.Name);
                             if (property != null)
@@ -79,43 +79,56 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                                 var defaultValue = property.GetDefaultValue();
                                 if (defaultValue != null)
                                 {
-                                    prop.SetValue(newEntity, defaultValue);
+                                    prop.SetValue(match.NewEntity, defaultValue);
                                 }
                             }
                         }
                     }
-                    dbContext.Add(newEntity);
+                    dbContext.Add(match.NewEntity);
                     continue;
                 }
 
-                if (updateTest?.Invoke(dbEntity, newEntity) == false)
+                if (updateTest?.Invoke(match.DbEntity, match.NewEntity) == false)
                     continue;
 
-                updateAction?.Invoke(dbEntity, newEntity);
+                updateAction?.Invoke(match.DbEntity, match.NewEntity);
             }
         }
 
-        private static ICollection<(TEntity dbEntity, TEntity newEntity)> FindMatches<TEntity>(IEntityType entityType, IEnumerable<TEntity> entities, DbContext dbContext,
+        private struct EntityMatch<TEntity>
+        {
+            public EntityMatch(TEntity? dbEntity, TEntity newEntity)
+            {
+                DbEntity = dbEntity;
+                NewEntity = newEntity;
+            }
+
+            public TEntity? DbEntity;
+            public TEntity NewEntity;
+        }
+
+        private static ICollection<EntityMatch<TEntity>> FindMatches<TEntity>(IEntityType entityType, IEnumerable<TEntity> entities, DbContext dbContext,
             Expression<Func<TEntity, object>>? matchExpression) where TEntity : class
         {
             if (matchExpression != null)
                 return entities.AsQueryable()
                     .GroupJoin(dbContext.Set<TEntity>().ToList(), matchExpression, matchExpression, (newEntity, dbEntity) => new { dbEntity, newEntity })
-                    .SelectMany(x => x.dbEntity.DefaultIfEmpty(), (x, dbEntity) => new { dbEntity, x.newEntity })
-                    .AsEnumerable()
-                    .Select(x => (x.dbEntity, x.newEntity))
+                    .SelectMany(x => x.dbEntity.DefaultIfEmpty(), (x, dbEntity) => new EntityMatch<TEntity>(dbEntity, x.newEntity))
                     .ToArray();
 
             // If we're resorting to matching on PKs, we'll have to load them manually
+            var primaryKeyProperties = entityType.FindPrimaryKey()?.Properties;
+            if (primaryKeyProperties == null)
+                return Array.Empty<EntityMatch<TEntity>>();
+
             object?[] getPKs(TEntity entity)
             {
-                return entityType.FindPrimaryKey()
-                    .Properties
-                    .Select(p => p.PropertyInfo.GetValue(entity))
+                return primaryKeyProperties
+                    .Select(p => p.PropertyInfo?.GetValue(entity))
                     .ToArray();
             }
             return entities
-                .Select(e => (dbContext.Find<TEntity>(getPKs(e)), e))
+                .Select(e => new EntityMatch<TEntity>(dbContext.Find<TEntity>(getPKs(e)), e))
                 .ToArray();
         }
 
@@ -123,6 +136,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
         {
+            if (dbContext is null)
+                throw new ArgumentNullException(nameof(dbContext));
             if (entityType == null)
                 throw new ArgumentNullException(nameof(entityType));
 
@@ -135,6 +150,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
             CancellationToken cancellationToken)
         {
+            if (dbContext is null)
+                throw new ArgumentNullException(nameof(dbContext));
             if (entityType == null)
                 throw new ArgumentNullException(nameof(entityType));
 

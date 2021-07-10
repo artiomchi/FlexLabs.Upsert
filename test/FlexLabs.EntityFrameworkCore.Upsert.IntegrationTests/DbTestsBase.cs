@@ -19,13 +19,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             _fixture = fixture;
         }
 
-        readonly Country _dbCountry = new Country
+        readonly Country _dbCountry = new()
         {
             Name = "...loading...",
             ISO = "AU",
             Created = new DateTime(1970, 1, 1),
         };
-        readonly PageVisit _dbVisitOld = new PageVisit
+        readonly PageVisit _dbVisitOld = new()
         {
             UserID = 1,
             Date = DateTime.Today.AddDays(-1),
@@ -33,7 +33,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             FirstVisit = new DateTime(1970, 1, 1),
             LastVisit = new DateTime(1970, 1, 1),
         };
-        readonly PageVisit _dbVisit = new PageVisit
+        readonly PageVisit _dbVisit = new()
         {
             UserID = 1,
             Date = DateTime.Today,
@@ -41,30 +41,30 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             FirstVisit = new DateTime(1970, 1, 1),
             LastVisit = new DateTime(1970, 1, 1),
         };
-        readonly Status _dbStatus = new Status
+        readonly Status _dbStatus = new()
         {
             ID = 1,
             Name = "Created",
             LastChecked = new DateTime(1970, 1, 1),
         };
-        readonly Book _dbBook = new Book
+        readonly Book _dbBook = new()
         {
             Name = "The Fellowship of the Ring",
             Genres = new[] { "Fantasy" },
         };
-        readonly NullableCompositeKey _nullableKey1 = new NullableCompositeKey
+        readonly NullableCompositeKey _nullableKey1 = new()
         {
             ID1 = 1,
             ID2 = 2,
             Value = "First",
         };
-        readonly NullableCompositeKey _nullableKey2 = new NullableCompositeKey
+        readonly NullableCompositeKey _nullableKey2 = new()
         {
             ID1 = 1,
             ID2 = null,
             Value = "Second",
         };
-        readonly DateTime _now = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
+        readonly DateTime _now = new(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
         readonly int _increment = 8;
 
         private void ResetDb()
@@ -105,21 +105,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.AddRange(seedValue.Cast<object>());
             dbContext.SaveChanges();
-        }
-
-        private static void AssertEqual(PageVisit expected, PageVisit actual)
-        {
-            actual.UserID.Should().Be(expected.UserID);
-            actual.Date.Should().Be(expected.Date);
-            actual.Visits.Should().Be(expected.Visits);
-            actual.FirstVisit.Should().Be(expected.FirstVisit);
-            actual.LastVisit.Should().Be(expected.LastVisit);
-        }
-
-        private static void AssertEqual(Book expected, Book actual)
-        {
-            actual.Name.Should().Be(expected.Name);
-            actual.Genres.Should().Equal(expected.Genres);
         }
 
         [Fact]

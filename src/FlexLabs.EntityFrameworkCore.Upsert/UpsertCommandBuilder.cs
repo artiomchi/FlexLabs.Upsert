@@ -23,9 +23,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         private readonly DbContext _dbContext;
         private readonly IEntityType _entityType;
         private readonly ICollection<TEntity> _entities;
-        private Expression<Func<TEntity, object>>? _matchExpression = null;
-        private Expression<Func<TEntity, TEntity, TEntity>>? _updateExpression = null;
-        private Expression<Func<TEntity, TEntity, bool>>? _updateCondition = null;
+        private Expression<Func<TEntity, object>>? _matchExpression;
+        private Expression<Func<TEntity, TEntity, TEntity>>? _updateExpression;
+        private Expression<Func<TEntity, TEntity, bool>>? _updateCondition;
         private RunnerQueryOptions _queryOptions;
 
         /// <summary>
@@ -38,12 +38,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             _dbContext = dbContext;
             _entities = entities;
 
-            _entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity));
-
-            if (_entityType == null)
-            {
-                throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
-            }
+            _entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity))
+                ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
         }
 
         /// <summary>

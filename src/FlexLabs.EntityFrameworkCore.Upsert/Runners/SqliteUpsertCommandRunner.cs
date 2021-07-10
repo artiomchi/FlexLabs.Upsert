@@ -8,7 +8,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     public class SqliteUpsertCommandRunner : PostgreSqlUpsertCommandRunner
     {
         /// <inheritdoc/>
-        public override bool Supports(string name) => name == "Microsoft.EntityFrameworkCore.Sqlite";
+        public override bool Supports(string providerName) => providerName == "Microsoft.EntityFrameworkCore.Sqlite";
         /// <inheritdoc/>
         protected override int? MaxQueryParams => 999;
 

@@ -6,6 +6,8 @@
     <NeutralLanguage>en</NeutralLanguage>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <Authors>Artiom Chilaru</Authors>
     <Company>Artiom Chilaru</Company>
     <Description>Adds basic support for "Upsert" operations to EF Core.
@@ -55,8 +57,7 @@ v2.2.0:
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <IncludeSymbols>True</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <DebugType>embedded</DebugType>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\certs\FlexLabsStrongKey.snk</AssemblyOriginatorKeyFile>
     <SignCertificateName>Artiom Chilaru</SignCertificateName>
@@ -64,10 +65,6 @@ v2.2.0:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="5.0.3">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EFCoreVersion)" />
   </ItemGroup>
 

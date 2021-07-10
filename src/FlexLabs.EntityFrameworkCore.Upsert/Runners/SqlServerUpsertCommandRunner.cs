@@ -11,7 +11,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     public class SqlServerUpsertCommandRunner : RelationalUpsertCommandRunner
     {
         /// <inheritdoc/>
-        public override bool Supports(string name) => name == "Microsoft.EntityFrameworkCore.SqlServer";
+        public override bool Supports(string providerName) => providerName == "Microsoft.EntityFrameworkCore.SqlServer";
         /// <inheritdoc/>
         protected override string EscapeName(string name) => "[" + name + "]";
         /// <inheritdoc/>

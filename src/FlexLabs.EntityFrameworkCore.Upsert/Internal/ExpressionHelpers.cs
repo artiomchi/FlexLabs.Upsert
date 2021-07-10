@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
@@ -20,10 +21,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <param name="propertyFinder">Delegate used to find the EF Property class from a property name</param>
         /// <param name="useExpressionCompiler">Allows enabling the fallback expression compiler</param>
         /// <returns>An</returns>
-        public static object? GetValue<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty> propertyFinder, bool useExpressionCompiler = false)
+        [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "This will only be called internally. It's marked as public for the test class")]
+        public static object? GetValue<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty?> propertyFinder, bool useExpressionCompiler = false)
             => GetValueInternal<TSource>(expression, container, propertyFinder, useExpressionCompiler, false);
 
-        private static object? GetValueInternal<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty> propertyFinder, bool useExpressionCompiler, bool nested)
+        private static object? GetValueInternal<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty?> propertyFinder, bool useExpressionCompiler, bool nested)
         {
             switch (expression.NodeType)
             {
@@ -99,7 +101,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                                 {
                                     var isLeftParam = memberExp.Expression.Equals(container.Parameters[0]);
                                     if (isLeftParam || memberExp.Expression.Equals(container.Parameters[1]))
-                                        return new PropertyValue(pInfo.Name, isLeftParam, propertyFinder(pInfo.Name));
+                                    {
+                                        var property = propertyFinder(pInfo.Name)
+                                            ?? throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.UnknownProperty, pInfo.Name));
+                                        return new PropertyValue(pInfo.Name, isLeftParam, property);
+                                    }
                                 }
                                 return pInfo.GetValue(memberExp.Expression?.GetValueInternal<TSource>(container, propertyFinder, useExpressionCompiler, true));
 

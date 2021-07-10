@@ -17,7 +17,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     public abstract class UpsertCommandRunnerBase : IUpsertCommandRunner
     {
         /// <inheritdoc/>
-        public abstract bool Supports(string name);
+        public abstract bool Supports(string providerName);
 
         /// <inheritdoc/>
         public abstract int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
@@ -37,7 +37,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="matchExpression">The match expression provided by the user</param>
         /// <param name="queryOptions">Options for the current query that will affect it's behaviour</param>
         /// <returns>A list of model properties used to match entities</returns>
-        protected static List<IProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>>? matchExpression, RunnerQueryOptions queryOptions)
+        protected static ICollection<IProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>>? matchExpression, RunnerQueryOptions queryOptions)
         {
             if (entityType == null)
                 throw new ArgumentNullException(nameof(entityType));
@@ -67,6 +67,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 if (unaryExpression.Operand is not MemberExpression memberExp || memberExp.Member is not PropertyInfo || !typeof(TEntity).Equals(memberExp.Expression?.Type))
                     throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
                 var property = entityType.FindProperty(memberExp.Member.Name);
+                if (property == null)
+                    throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.UnknownProperty, memberExp.Member.Name));
                 joinColumns = new List<IProperty> { property };
             }
             else if (matchExpression.Body is MemberExpression memberExpression)
@@ -74,6 +76,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 if (!typeof(TEntity).Equals(memberExpression.Expression?.Type) || memberExpression.Member is not PropertyInfo)
                     throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
                 var property = entityType.FindProperty(memberExpression.Member.Name);
+                if (property == null)
+                    throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.UnknownProperty, memberExpression.Member.Name));
                 joinColumns = new List<IProperty> { property };
             }
             else

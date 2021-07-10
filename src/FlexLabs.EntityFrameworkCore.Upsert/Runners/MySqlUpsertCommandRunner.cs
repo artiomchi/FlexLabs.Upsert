@@ -11,7 +11,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     public class MySqlUpsertCommandRunner : RelationalUpsertCommandRunner
     {
         /// <inheritdoc/>
-        public override bool Supports(string name) => name == "MySql.Data.EntityFrameworkCore" || name == "Pomelo.EntityFrameworkCore.MySql";
+        public override bool Supports(string providerName) => providerName == "MySql.Data.EntityFrameworkCore" || providerName == "Pomelo.EntityFrameworkCore.MySql";
         /// <inheritdoc/>
         protected override string EscapeName(string name) => "`" + name + "`";
         /// <inheritdoc/>

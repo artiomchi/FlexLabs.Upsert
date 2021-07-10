@@ -3,6 +3,7 @@ using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore.Metadata;
+using NSubstitute;
 using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
@@ -12,7 +13,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
         private static Expression GetMemberExpression(LambdaExpression expression)
             => ((MemberAssignment)((MemberInitExpression)expression.Body).Bindings[0]).Expression;
 
-        private IProperty NoProperty(string propertyName) => default;
+        private IProperty NoProperty(string propertyName) => Substitute.For<IProperty>();
 
         [Fact]
         public void ExpressionHelpersTests_Constant()

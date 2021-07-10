@@ -129,6 +129,9 @@
   <data name="CantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive" xml:space="preserve">
     <value>Can't call {0} when {1} has been called, as they are mutually exclusive</value>
   </data>
+  <data name="CouldNotGetTableNameForEntityType" xml:space="preserve">
+    <value>Count not get table name for entity type {0}</value>
+  </data>
   <data name="DatabaseProviderNotSupportedYet" xml:space="preserve">
     <value>Database provider not supported yet!</value>
   </data>

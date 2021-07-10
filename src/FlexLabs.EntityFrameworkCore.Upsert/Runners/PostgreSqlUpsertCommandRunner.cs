@@ -11,7 +11,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     public class PostgreSqlUpsertCommandRunner : RelationalUpsertCommandRunner
     {
         /// <inheritdoc/>
-        public override bool Supports(string name) => name == "Npgsql.EntityFrameworkCore.PostgreSQL";
+        public override bool Supports(string providerName) => providerName == "Npgsql.EntityFrameworkCore.PostgreSQL";
         /// <inheritdoc/>
         protected override string EscapeName(string name) => "\"" + name + "\"";
         /// <inheritdoc/>

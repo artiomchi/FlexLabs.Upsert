@@ -67,7 +67,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// </summary>
         /// <param name="entityType">The entity type of the table</param>
         /// <returns>The fully qualified and escaped table reference</returns>
-        protected virtual string GetTableName(IEntityType entityType) => GetSchema(entityType) + EscapeName(entityType.GetTableName());
+        protected virtual string GetTableName(IEntityType entityType)
+        {
+            var tableName = entityType.GetTableName()
+                ?? throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CouldNotGetTableNameForEntityType, entityType?.Name));
+            return GetSchema(entityType) + EscapeName(tableName);
+        }
+
         /// <summary>
         /// Prefix used to reference source dataset columns
         /// </summary>
@@ -148,7 +154,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     .Select(p =>
                     {
                         var columnName = p.GetColumnBaseName();
-                        var rawValue = p.PropertyInfo.GetValue(e);
+                        var rawValue = p.PropertyInfo?.GetValue(e);
                         string? defaultSql = null;
                         if (rawValue == null)
                         {
@@ -183,8 +189,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 if (updateExpressions != null)
                     arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues()));
 
+#pragma warning disable CA1508 // Avoid dead conditional code. Analyzer is drunk - this can clearly be not null!
                 if (updateConditionExpression != null)
                     arguments.AddRange(updateConditionExpression.GetConstantValues().Where(c => c.Value != null));
+#pragma warning restore CA1508 // Avoid dead conditional code
 
                 int i = 0;
                 foreach (var arg in arguments)

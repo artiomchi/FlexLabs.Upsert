@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -37,6 +38,7 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="dbContext">The data context used to connect to the database</param>
         /// <param name="entities">The entities that are being upserted</param>
         /// <returns>The upsert command builder that is used to configure and run the upsert operation</returns>
+        [SuppressMessage("Maintainability", "CA1508:Avoid dead conditional code", Justification = "A null array could be passed, so a null check should still be done")]
         public static UpsertCommandBuilder<TEntity> UpsertRange<TEntity>(this DbContext dbContext, params TEntity[] entities)
             where TEntity : class
         {
@@ -97,6 +99,7 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="dbSet">The db set where the items will be upserted</param>
         /// <param name="entities">The entities that are being upserted</param>
         /// <returns>The upsert command builder that is used to configure and run the upsert operation</returns>
+        [SuppressMessage("Maintainability", "CA1508:Avoid dead conditional code", Justification = "A null array could be passed, so a null check should still be done")]
         public static UpsertCommandBuilder<TEntity> UpsertRange<TEntity>(this DbSet<TEntity> dbSet, params TEntity[] entities)
             where TEntity : class
         {

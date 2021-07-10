@@ -16,9 +16,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <summary>
         /// Specifies whether this command runner supports a specific database provider
         /// </summary>
-        /// <param name="name">Name of the database provider</param>
+        /// <param name="providerName">Name of the database provider</param>
         /// <returns>true if this runner supports the database provider specified; otherwise false</returns>
-        bool Supports(string name);
+        bool Supports(string providerName);
 
         /// <summary>
         /// Run the upsert command for the entities passed
