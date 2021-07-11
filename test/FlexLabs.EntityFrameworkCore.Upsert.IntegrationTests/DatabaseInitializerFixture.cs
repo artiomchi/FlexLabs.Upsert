@@ -14,14 +14,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
         docker run --name flexlabs_upsert_test_mssql -e ACCEPT_EULA=Y -e SA_PASSWORD=Password12! -p 21433:1433 -d mcr.microsoft.com/mssql/server
         */
 
-        private static bool IsAppVeyor => Environment.GetEnvironmentVariable("APPVEYOR") != null;
-        private static bool IsGitHub => Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != null;
-        private const bool IsGitHubLocalPostgres =
-#if POSTGRES_ONLY
-            true;
-#else
-            false;
-#endif
         private const string Username = "testuser";
         private const string Password = "Password12!";
 
@@ -53,13 +45,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             {
                 DbDriver.InMemory => ConnString_InMemory,
                 DbDriver.Sqlite => ConnString_Sqlite,
-                DbDriver.Postgres when IsAppVeyor => ConnString_Postgres_AppVeyor,
-                DbDriver.Postgres when IsGitHub && IsGitHubLocalPostgres => ConnString_Postgres_GitHub,
+                DbDriver.Postgres when BuildEnvironment.IsAppVeyor => ConnString_Postgres_AppVeyor,
+                DbDriver.Postgres when BuildEnvironment.IsGitHub && BuildEnvironment.IsGitHubLocalPostgres => ConnString_Postgres_GitHub,
                 DbDriver.Postgres => ConnString_Postgres_Docker,
-                DbDriver.MySQL when IsAppVeyor => ConnString_MySql_AppVeyor,
+                DbDriver.MySQL when BuildEnvironment.IsAppVeyor => ConnString_MySql_AppVeyor,
                 DbDriver.MySQL => ConnString_MySql_Docker,
-                DbDriver.MSSQL when IsAppVeyor => ConnString_SqlServer_AppVeyor,
-                DbDriver.MSSQL when IsGitHub || Environment.OSVersion.Platform != PlatformID.Win32NT => ConnString_SqlServer_Docker,
+                DbDriver.MSSQL when BuildEnvironment.IsAppVeyor => ConnString_SqlServer_AppVeyor,
+                DbDriver.MSSQL when BuildEnvironment.IsGitHub || Environment.OSVersion.Platform != PlatformID.Win32NT => ConnString_SqlServer_Docker,
                 DbDriver.MSSQL => ConnString_SqlServer_LocalDb,
                 _ => throw new ArgumentException("Can't get a connection string for driver " + driver)
             };
