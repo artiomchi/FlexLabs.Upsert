@@ -5,7 +5,6 @@ using Xunit.Abstractions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
-#if !NOSQLITE
     public class DbTests_Sqlite : DbTestsBase, IClassFixture<DbTests_Sqlite.DatabaseInitializer>
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
@@ -19,5 +18,4 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             : base(contexts)
         { }
     }
-#endif
 }

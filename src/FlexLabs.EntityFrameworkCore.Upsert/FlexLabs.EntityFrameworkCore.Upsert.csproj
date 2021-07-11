@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;netstandard2.1;net5.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.1;net5.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <NeutralLanguage>en</NeutralLanguage>
     <Nullable>enable</Nullable>
@@ -20,8 +20,11 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>4.0.1</VersionPrefix>
+    <VersionPrefix>5.0.0</VersionPrefix>
     <PackageReleaseNotes>
+v5.0.0
+! Fixing the library versioning. From now one, one version of the library depends on one version of EF Core, for all supported target frameworks
+
 v4.0.1
 ! Patching some MySql conditional update queries
 
@@ -31,18 +34,7 @@ v4.0.0
 ! Run and RunAsync will not return all rows affected when command was split into multiple batches, not just the last batch's row count
 ! Patching the extension method to replace/inject custom command runner
 ! Removed old extension method on IServiceCollection, since it wasn't working anyway
-
-v3.1.0
-- Referencing EF Core 3.1 only, due to internal namespace changes and compatibility issues with .NET Full Framework
-+ Nulable type metadata
-+ Adding support for upserting by identity column
-+ Splitting the request into multiple queries if the query parameter limit is reached
     </PackageReleaseNotes>
-    <EFCoreVersion>3.1.0</EFCoreVersion>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)'=='net5.0'">
-    <EFCoreVersion>5.0.0</EFCoreVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
@@ -56,7 +48,7 @@ v3.1.0
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EFCoreVersion)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="5.0.0" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)'=='Release'">

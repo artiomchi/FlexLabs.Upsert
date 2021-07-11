@@ -48,10 +48,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 new RawSqlCommand(Substitute.For<IRelationalCommand>(), new Dictionary<string, object>()));
 
             var concurrencyDetector = Substitute.For<IConcurrencyDetector>();
-#if NET5_0
             var disposer = new ConcurrencyDetectorCriticalSectionDisposer(concurrencyDetector);
             concurrencyDetector.EnterCriticalSection().Returns(disposer);
-#endif
 
             var dependencies = Substitute.For<IRelationalDatabaseFacadeDependencies>();
             dependencies.RelationalConnection.Returns(relationalConnection);
