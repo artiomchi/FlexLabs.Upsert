@@ -20,8 +20,11 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>4.0.0</VersionPrefix>
+    <VersionPrefix>4.0.1</VersionPrefix>
     <PackageReleaseNotes>
+v4.0.1
+! Patching some MySql conditional update queries
+
 v4.0.0
 + Adding support for .NET 5 and EF Core 5
 ! Patched support for constants in the update condition
@@ -34,18 +37,6 @@ v3.1.0
 + Nulable type metadata
 + Adding support for upserting by identity column
 + Splitting the request into multiple queries if the query parameter limit is reached
-
-v3.0.0
-* EF Core 3 support
-
-v2.2.1:
-+ Support for more expressions (Bitwise AND and bitwise OR)
-
-v2.2.0:
-+ Support for more expressions (AND and OR)
-+ Support for default column values and expressions
-+ Null value handling in generated SQL
-! Patched MySQL syntax for columns that haven't been updated but may be present in expressions
     </PackageReleaseNotes>
     <EFCoreVersion>3.1.0</EFCoreVersion>
   </PropertyGroup>
