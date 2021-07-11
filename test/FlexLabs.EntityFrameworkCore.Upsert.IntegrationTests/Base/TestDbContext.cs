@@ -36,7 +36,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             modelBuilder.Entity<NullableCompositeKey>().HasIndex(t => new { t.ID1, t.ID2 }).IsUnique().HasFilter(null);
 
             if (dbProvider.Name == "Npgsql.EntityFrameworkCore.PostgreSQL")
+            {
                 modelBuilder.Entity<JsonData>().Property(j => j.Data).HasColumnType("jsonb");
+                modelBuilder.Entity<JsonData>().Property(j => j.Child).HasColumnType("jsonb");
+            }
+            else
+            {
+                modelBuilder.Entity<JsonData>().Ignore(j => j.Child);
+            }
             if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql
                 modelBuilder.Entity<NullableRequired>().Property(e => e.Text).HasDefaultValue("B");
             if (dbProvider.Name == "Pomelo.EntityFrameworkCore.MySql") // Can't have table schemas in MySql

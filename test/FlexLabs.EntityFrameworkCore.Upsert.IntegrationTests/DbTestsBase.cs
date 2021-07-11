@@ -1109,6 +1109,39 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Fact]
+        public void Upsert_JsonData_Update_ComplexObject()
+        {
+            if (_fixture.DbDriver != DbDriver.Postgres)
+                return; // Default values on text columns not supported in MySQL
+
+            var existingJson = new JsonData
+            {
+                Data = JsonConvert.SerializeObject(new { hello = "world" }),
+            };
+
+            ResetDb(existingJson);
+            using (var testContext = new TestDbContext(_fixture.DataContextOptions))
+            {
+                testContext.JsonDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                    j => JToken.DeepEquals(JObject.Parse(existingJson.Data), JObject.Parse(j.Data)).Should().BeTrue());
+            }
+
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var timestamp = new DateTime(2021, 2, 3, 4, 5, 6, DateTimeKind.Utc);
+            var updatedJson = new JsonData
+            {
+                Child = new ChildObject { Value = "test", Time = timestamp }
+            };
+
+            dbContext.JsonDatas.Upsert(updatedJson)
+                .Run();
+
+            dbContext.JsonDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                j => j.Child.Time.Should().Be(timestamp));
+        }
+
+        [Fact]
         public void Upsert_GuidKey_AutoGenThrows()
         {
             ResetDb();

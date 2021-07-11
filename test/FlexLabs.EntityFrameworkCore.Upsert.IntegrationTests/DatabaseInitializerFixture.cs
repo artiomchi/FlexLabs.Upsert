@@ -9,8 +9,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
     public abstract class DatabaseInitializerFixture
     {
         /* Docker commands for the test containers
-        docker run --name flexlabs_upsert_test_postgres -e POSTGRES_USER=testuser -e POSTGRES_PASSWORD=Password12! -e POSTGRES_DB=testuser -p 25432:5432 postgres:alpine
-        docker run --name flexlabs_upsert_test_mysql -e MYSQL_ROOT_PASSWORD=Password12! -e MYSQL_USER=testuser -e MYSQL_PASSWORD=Password12! -e MYSQL_DATABASE=testuser -p 23306:3306 mysql
+        docker run --name flexlabs_upsert_test_postgres -e POSTGRES_USER=testuser -e POSTGRES_PASSWORD=Password12! -e POSTGRES_DB=testuser -p 25432:5432 -d postgres:alpine
+        docker run --name flexlabs_upsert_test_mysql -e MYSQL_ROOT_PASSWORD=Password12! -e MYSQL_USER=testuser -e MYSQL_PASSWORD=Password12! -e MYSQL_DATABASE=testuser -p 23306:3306 -d mysql
         docker run --name flexlabs_upsert_test_mssql -e ACCEPT_EULA=Y -e SA_PASSWORD=Password12! -p 21433:1433 -d mcr.microsoft.com/mssql/server
         */
 

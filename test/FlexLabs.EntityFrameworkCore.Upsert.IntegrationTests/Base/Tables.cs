@@ -38,6 +38,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
         public int ID { get; set; }
         public string Data { get; set; }
+        public ChildObject Child { get; set; }
+    }
+
+    public class ChildObject
+    {
+        public string Value { get; set; }
+        public DateTimeOffset Time { get; set; }
     }
 
     public class JObjectData
