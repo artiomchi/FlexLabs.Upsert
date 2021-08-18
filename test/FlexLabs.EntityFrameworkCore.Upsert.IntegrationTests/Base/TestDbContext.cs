@@ -39,6 +39,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             {
                 modelBuilder.Entity<JsonData>().Property(j => j.Data).HasColumnType("jsonb");
                 modelBuilder.Entity<JsonData>().Property(j => j.Child).HasColumnType("jsonb");
+
+                modelBuilder.Entity<GeneratedAlwaysAsIdentity>().HasIndex(b => b.Num1).IsUnique();
+                modelBuilder.Entity<GeneratedAlwaysAsIdentity>().Property(e => e.Num2).UseIdentityAlwaysColumn();
             }
             else
             {
@@ -66,5 +69,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public DbSet<StringKey> StringKeys { get; set; }
         public DbSet<StringKeyAutoGen> StringKeysAutoGen { get; set; }
         public DbSet<TestEntity> TestEntities { get; set; }
+        public DbSet<GeneratedAlwaysAsIdentity> GeneratedAlwaysAsIdentity { get; set; }
     }
 }
