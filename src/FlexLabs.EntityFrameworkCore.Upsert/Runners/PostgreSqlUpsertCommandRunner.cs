@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
@@ -28,9 +29,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         {
             var result = new StringBuilder();
             result.Append($"INSERT INTO {tableName} AS \"T\" (");
-            result.Append(string.Join(", ", entities.First().Select(e => EscapeName(e.ColumnName))));
+            result.Append(string.Join(", ", entities.First().Where(e => !IsGeneratedAlways(e.Value.Property)).Select(e => EscapeName(e.ColumnName))));
             result.Append(") VALUES (");
-            result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => e.DefaultSql ?? Parameter(e.Value.ArgumentIndex))))));
+            result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Where(e => !IsGeneratedAlways(e.Value.Property)).Select(e => e.DefaultSql ?? Parameter(e.Value.ArgumentIndex))))));
             result.Append(") ON CONFLICT (");
             result.Append(string.Join(", ", joinColumns.Select(c => EscapeName(c.ColumnName))));
             result.Append(") DO ");
@@ -46,6 +47,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 result.Append("NOTHING");
             }
             return result.ToString();
+        }
+
+        private static bool IsGeneratedAlways(IProperty? property)
+        {
+            var annotation = property?.FindAnnotation("Npgsql:ValueGenerationStrategy");
+            return annotation is not null
+                   && (int)annotation.Value == 3;
         }
     }
 }
