@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FluentAssertions;
@@ -1745,6 +1746,34 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .Run();
 
             dbContext.NullableRequireds.Should().HaveCount(100_000);
+        }
+
+        [Fact]
+        public async Task Upsert_TestDateTime()
+        {
+            await using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var utcNow = DateTime.UtcNow;
+            var testDatetime = new TestDateTime
+            {
+                Id = 1,
+                DateTime = utcNow,
+                DateTimeNullable = utcNow,
+                DateTimeOffset = utcNow
+            };
+
+            await dbContext.TestDateTime.Upsert(testDatetime)
+                .On(c => c.Id)
+                .RunAsync();
+
+            dbContext.TestDateTime.Should().HaveCount(1);
+            var dt= await dbContext.TestDateTime.FindAsync(1);
+            dt!.DateTime.Kind.Should().Be(DateTimeKind.Unspecified);
+            dt.DateTime.Should().BeCloseTo(utcNow,1000);
+            dt.DateTimeNullable!.Value.Kind.Should().Be(DateTimeKind.Utc);
+            dt.DateTimeNullable.Should().BeCloseTo(utcNow,1000);
+            dt.DateTimeOffset!.Value.Should().BeCloseTo(utcNow,1000);
+
         }
     }
 }

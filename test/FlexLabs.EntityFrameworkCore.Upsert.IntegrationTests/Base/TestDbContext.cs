@@ -39,6 +39,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             {
                 modelBuilder.Entity<JsonData>().Property(j => j.Data).HasColumnType("jsonb");
                 modelBuilder.Entity<JsonData>().Property(j => j.Child).HasColumnType("jsonb");
+                modelBuilder.Entity<TestDateTime>().Property(j => j.DateTimeNullable).HasColumnType("timestamp with time zone");
             }
             else
             {
@@ -66,5 +67,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public DbSet<StringKey> StringKeys { get; set; }
         public DbSet<StringKeyAutoGen> StringKeysAutoGen { get; set; }
         public DbSet<TestEntity> TestEntities { get; set; }
+        public DbSet<TestDateTime> TestDateTime { get; set; }
     }
 }

@@ -135,6 +135,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public DateTime Updated { get; set; }
     }
 
+    public class TestDateTime
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int Id { get; set; }
+        public DateTime DateTime { get; set; }
+        public DateTime? DateTimeNullable { get; set; }
+        public DateTimeOffset? DateTimeOffset { get; set; }
+    }
+
     public class NullableRequired
     {
         [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
