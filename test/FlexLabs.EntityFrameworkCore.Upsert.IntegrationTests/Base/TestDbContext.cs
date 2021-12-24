@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -39,6 +40,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             {
                 modelBuilder.Entity<JsonData>().Property(j => j.Data).HasColumnType("jsonb");
                 modelBuilder.Entity<JsonData>().Property(j => j.Child).HasColumnType("jsonb");
+                foreach (var property in modelBuilder!.Model.GetEntityTypes()
+                             .SelectMany(t => t.GetProperties())
+                             .Where(p => p.ClrType == typeof(DateTime?) || p.ClrType == typeof(DateTime))
+                        )
+                {
+                    property.SetColumnType("timestamp");
+                }
             }
             else
             {

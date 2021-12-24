@@ -65,7 +65,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
         private static void AddEntity<TEntity>(Model model)
         {
             var clrType = typeof(TEntity);
+#if NET6_0_OR_GREATER
+            var entityType = model.AddEntityType(clrType,true, ConfigurationSource.Convention);
+#else
             var entityType = model.AddEntityType(clrType, ConfigurationSource.Convention);
+#endif
             foreach (var property in clrType.GetProperties())
             {
                 entityType.AddProperty(property.Name, ConfigurationSource.Explicit);
