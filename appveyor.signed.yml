@@ -1,6 +1,6 @@
 version: 1.0.0.{build}
 
-image: Visual Studio 2019
+image: Visual Studio 2022
 
 configuration: Release
 skip_tags: true
@@ -8,7 +8,7 @@ skip_tags: true
 services:
  - mssql2017
  - mysql
- - postgresql101
+ - postgresql13
 
 environment:
   skey_secret:
