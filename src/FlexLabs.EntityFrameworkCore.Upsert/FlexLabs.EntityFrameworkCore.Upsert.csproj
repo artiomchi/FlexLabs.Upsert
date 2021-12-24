@@ -50,8 +50,12 @@ v4.0.0
     <PostBuildEvent>signtool.exe sign /n "$(SignCertificateName)" /fd sha256 /tr "http://timestamp.digicert.com" /td sha256 FlexLabs.EntityFrameworkCore.Upsert.dll</PostBuildEvent>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.0-preview.5.21301.9" />
+  <ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="5.0.1" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.1" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)'=='Release'">
