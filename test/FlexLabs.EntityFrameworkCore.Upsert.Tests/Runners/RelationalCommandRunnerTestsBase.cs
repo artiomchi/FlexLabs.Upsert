@@ -66,12 +66,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
         protected static EntityType AddEntity<TEntity>(Model model)
         {
             var clrType = typeof(TEntity);
+#if NET6_0_OR_GREATER
+            var entityType = model.AddEntityType(clrType, true, ConfigurationSource.Convention);
+#else
             var entityType = model.AddEntityType(clrType, ConfigurationSource.Convention);
+#endif
             foreach (var property in clrType.GetProperties())
             {
-                entityType.AddProperty(property.Name);
+                entityType.AddProperty(property.Name, ConfigurationSource.Explicit);
             }
-            entityType.AddKey(entityType.GetProperty("ID") as Property, ConfigurationSource.Convention);
+            var idProperty = entityType.FindProperty("ID");
+            if (idProperty == null)
+                throw new InvalidOperationException("ID property missing on entity " + typeof(TEntity).Name);
+            entityType.AddKey(idProperty, ConfigurationSource.Convention);
             return entityType;
         }
 

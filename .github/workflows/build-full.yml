@@ -31,25 +31,33 @@ jobs:
           ACCEPT_EULA: Y
           SA_PASSWORD: Password12!
     steps:
+    - uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0'
+        include-prerelease: True
     - uses: actions/checkout@v2
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore /p:CORE_ONLY=true
+      run: dotnet build --no-restore /p:CORE_ONLY=true /p:V6_ONLY=true
     - name: Test
-      run: dotnet test --no-build /p:CORE_ONLY=true
+      run: dotnet test --no-build /p:V6_ONLY=true
 
   build-windows:
     runs-on: windows-latest
     steps:
+    - uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0'
+        include-prerelease: True
     - uses: actions/checkout@v2
     - name: Enable Postgres
-      run: sc config postgresql-x64-13 start= demand
+      run: sc config postgresql-x64-14 start= demand
     - name: Start Postgres
-      run: net start postgresql-x64-13
+      run: net start postgresql-x64-14
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore /p:POSTGRES_ONLY=true
+      run: dotnet build --no-restore /p:POSTGRES_ONLY=true /p:V6_ONLY=true
     - name: Test
-      run: dotnet test --no-build
+      run: dotnet test --no-build /p:V6_ONLY=true

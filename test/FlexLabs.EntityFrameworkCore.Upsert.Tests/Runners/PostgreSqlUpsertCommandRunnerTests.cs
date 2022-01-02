@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using NSubstitute;
 using Xunit;
 
@@ -23,8 +23,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             : base("Npgsql.EntityFrameworkCore.PostgreSQL")
         {
             var sequenceProperty = AddEntity<TestEntityWithIdentity>(_model)
-                .GetProperty("Sequence") as Property;
-            sequenceProperty.SetOrRemoveAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn);
+                .GetProperties().First(p => p.Name == "Sequence");
+            sequenceProperty.SetAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn);
         }
 
         protected override string NoUpdate_Sql =>
