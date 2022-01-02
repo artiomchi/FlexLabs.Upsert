@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net5.0</TargetFrameworks>
+    <TargetFramework>net5.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <NoWarn>EF1001</NoWarn>
     <IsPackable>false</IsPackable>
@@ -9,10 +9,6 @@
 
   <PropertyGroup Condition="'$(POSTGRES_ONLY)'!=''">
     <DefineConstants>$(DefineConstants);NOMSSQL;NOMYSQL;POSTGRES_ONLY</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(V6_ONLY)'!=''">
-    <TargetFrameworks>net6.0</TargetFrameworks>
   </PropertyGroup>
 
   <ItemGroup>
