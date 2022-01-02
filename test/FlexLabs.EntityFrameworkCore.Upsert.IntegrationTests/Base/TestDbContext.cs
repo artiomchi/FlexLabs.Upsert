@@ -34,14 +34,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             modelBuilder.Entity<SchemaTable>().HasIndex(t => t.Name).IsUnique();
             modelBuilder.Entity<KeyOnly>().HasKey(t => new { t.ID1, t.ID2 });
             modelBuilder.Entity<NullableCompositeKey>().HasIndex(t => new { t.ID1, t.ID2 }).IsUnique().HasFilter(null);
+            modelBuilder.Entity<GeneratedAlwaysAsIdentity>().HasIndex(b => b.Num1).IsUnique();
+            modelBuilder.Entity<GeneratedAlwaysAsIdentity>().Property(e => e.Num2).UseIdentityAlwaysColumn();
 
             if (dbProvider.Name == "Npgsql.EntityFrameworkCore.PostgreSQL")
             {
                 modelBuilder.Entity<JsonData>().Property(j => j.Data).HasColumnType("jsonb");
                 modelBuilder.Entity<JsonData>().Property(j => j.Child).HasColumnType("jsonb");
-
-                modelBuilder.Entity<GeneratedAlwaysAsIdentity>().HasIndex(b => b.Num1).IsUnique();
-                modelBuilder.Entity<GeneratedAlwaysAsIdentity>().Property(e => e.Num2).UseIdentityAlwaysColumn();
             }
             else
             {

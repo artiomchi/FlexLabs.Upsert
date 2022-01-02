@@ -63,7 +63,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             _dbContext.Database.Returns(dbFacade);
         }
 
-        private static void AddEntity<TEntity>(Model model)
+        protected static EntityType AddEntity<TEntity>(Model model)
         {
             var clrType = typeof(TEntity);
             var entityType = model.AddEntityType(clrType, ConfigurationSource.Convention);
@@ -72,6 +72,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 entityType.AddProperty(property.Name);
             }
             entityType.AddKey(entityType.GetProperty("ID") as Property, ConfigurationSource.Convention);
+            return entityType;
         }
 
         protected abstract string NoUpdate_Sql { get; }

@@ -104,6 +104,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
             var properties = entityType.GetProperties()
                 .Where(p => queryOptions.AllowIdentityMatch || p.ValueGenerated == ValueGenerated.Never || p.GetAfterSaveBehavior() == PropertySaveBehavior.Save)
+                .Where(p => p.GetAnnotations()
+                    .FirstOrDefault(a => a.Name == "Npgsql:ValueGenerationStrategy")
+                    ?.Value?.ToString() != "IdentityAlwaysColumn")
                 .Where(p => p.PropertyInfo != null)
                 .ToArray();
 

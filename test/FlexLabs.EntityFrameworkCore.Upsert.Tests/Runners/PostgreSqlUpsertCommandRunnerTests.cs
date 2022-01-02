@@ -2,7 +2,7 @@
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using NSubstitute;
 using Xunit;
 
@@ -10,18 +10,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 {
     public class PostgreSqlUpsertCommandRunnerTests : RelationalCommandRunnerTestsBase<PostgreSqlUpsertCommandRunner>
     {
+        private enum NpgsqlValueGenerationStrategy
+        {
+            None,
+            SequenceHiLo,
+            SerialColumn,
+            IdentityAlwaysColumn,
+            IdentityByDefaultColumn
+        }
+
         public PostgreSqlUpsertCommandRunnerTests()
             : base("Npgsql.EntityFrameworkCore.PostgreSQL")
         {
-            var clrType = typeof(TestEntityWithIdentity);
-            var entityType = _model.AddEntityType(clrType, ConfigurationSource.Convention);
-
-            var idProperty = entityType.AddProperty(nameof(TestEntityWithIdentity.ID), ConfigurationSource.Explicit);
-            entityType.AddKey(idProperty, ConfigurationSource.Convention);
-
-            entityType.AddProperty(nameof(TestEntityWithIdentity.Name), ConfigurationSource.Explicit);
-            var seqProperty = entityType.AddProperty(nameof(TestEntityWithIdentity.Sequence), ConfigurationSource.Explicit);
-            seqProperty.SetOrRemoveAnnotation("Npgsql:ValueGenerationStrategy", 3);
+            var sequenceProperty = AddEntity<TestEntityWithIdentity>(_model)
+                .GetProperty("Sequence") as Property;
+            sequenceProperty.SetOrRemoveAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn);
         }
 
         protected override string NoUpdate_Sql =>
@@ -97,7 +100,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "VALUES (@p0, @p1, @p2, @p3) ON CONFLICT (\"ID\") " +
             "DO UPDATE SET \"Name\" = @p4 " +
             "WHERE \"T\".\"Status\" IS NOT NULL";
-
 
         protected string NoUpdate_WithSequence_Sql =>
             "INSERT INTO \"TestEntityWithIdentity\" AS \"T\" (\"ID\", \"Name\") " +
