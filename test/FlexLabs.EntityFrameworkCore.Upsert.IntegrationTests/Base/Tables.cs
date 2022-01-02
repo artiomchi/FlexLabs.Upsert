@@ -149,4 +149,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public int Num1 { get; set; }
         public int Num2 { get; set; }
     }
+
+    public class ComputedColumn
+    {
+        public int ID { get; set; }
+        public int Num1 { get; set; }
+        public int Num2 { get; set; }
+        public int Num3 { get; set; }
+    }
 }

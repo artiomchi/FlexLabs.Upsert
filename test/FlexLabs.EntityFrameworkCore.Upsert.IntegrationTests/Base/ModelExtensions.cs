@@ -70,5 +70,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             result.Subject.Num2.Should().Be(num2 ?? expected.Num2);
             return result;
         }
+
+        public static AndWhichConstraint<ObjectAssertions, ComputedColumn> MatchModel(this ObjectAssertions assertions, ComputedColumn expected, int? num2 = null, int? num3 = null)
+        {
+            using var _ = new AssertionScope();
+            var result = assertions.BeOfType<ComputedColumn>();
+            result.Subject.Num1.Should().Be(expected.Num1);
+            result.Subject.Num2.Should().Be(num2 ?? expected.Num2);
+            result.Subject.Num3.Should().Be(num3 ?? expected.Num3);
+            return result;
+        }
     }
 }

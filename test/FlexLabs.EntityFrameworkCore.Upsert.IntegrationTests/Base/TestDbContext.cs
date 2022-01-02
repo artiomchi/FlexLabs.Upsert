@@ -36,6 +36,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             modelBuilder.Entity<NullableCompositeKey>().HasIndex(t => new { t.ID1, t.ID2 }).IsUnique().HasFilter(null);
             modelBuilder.Entity<GeneratedAlwaysAsIdentity>().HasIndex(b => b.Num1).IsUnique();
             modelBuilder.Entity<GeneratedAlwaysAsIdentity>().Property(e => e.Num2).UseIdentityAlwaysColumn();
+            modelBuilder.Entity<ComputedColumn>().HasIndex(b => b.Num1).IsUnique();
+            modelBuilder.Entity<ComputedColumn>().Property(e => e.Num3).HasComputedColumnSql($"{EscapeColumn(dbProvider, nameof(ComputedColumn.Num2))} + 1", stored: true);
 
             if (dbProvider.Name == "Npgsql.EntityFrameworkCore.PostgreSQL")
             {
@@ -51,6 +53,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             if (dbProvider.Name == "Pomelo.EntityFrameworkCore.MySql") // Can't have table schemas in MySql
                 modelBuilder.Entity<SchemaTable>().Metadata.SetSchema(null);
         }
+
+        private string EscapeColumn(IDatabaseProvider dbProvider, string columnName)
+            => dbProvider.Name switch
+            {
+                "Pomelo.EntityFrameworkCore.MySql" => $"`{columnName}`",
+                "Npgsql.EntityFrameworkCore.PostgreSQL" => $"\"{columnName}\"",
+                "Microsoft.EntityFrameworkCore.Sqlite" => $"\"{columnName}\"",
+                _ => $"[{columnName}]"
+            };
 
         public DbSet<Book> Books { get; set; }
         public DbSet<Country> Countries { get; set; }
@@ -69,5 +80,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public DbSet<StringKeyAutoGen> StringKeysAutoGen { get; set; }
         public DbSet<TestEntity> TestEntities { get; set; }
         public DbSet<GeneratedAlwaysAsIdentity> GeneratedAlwaysAsIdentity { get; set; }
+        public DbSet<ComputedColumn> ComputedColumns { get; set; }
     }
 }

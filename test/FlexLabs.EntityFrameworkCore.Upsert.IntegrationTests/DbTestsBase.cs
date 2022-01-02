@@ -64,6 +64,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ID2 = null,
             Value = "Second",
         };
+        readonly ComputedColumn _computedColumn = new()
+        {
+            Num1 = 1,
+            Num2 = 7,
+        };
         readonly static DateTime _now = NewDateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
         readonly static DateTime _today = NewDateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
         readonly int _increment = 8;
@@ -92,6 +97,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.RemoveRange(dbContext.StringKeysAutoGen);
             dbContext.RemoveRange(dbContext.TestEntities);
             dbContext.RemoveRange(dbContext.GeneratedAlwaysAsIdentity);
+            dbContext.RemoveRange(dbContext.ComputedColumns);
 
             dbContext.Add(_dbCountry);
             dbContext.Add(_dbVisitOld);
@@ -100,6 +106,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.Add(_dbBook);
             dbContext.Add(_nullableKey1);
             dbContext.Add(_nullableKey2);
+            dbContext.Add(_computedColumn);
             dbContext.SaveChanges();
         }
 
@@ -1750,6 +1757,29 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .Run();
 
             dbContext.NullableRequireds.Should().HaveCount(100_000);
+        }
+
+        [Fact]
+        public void ComputedColumn_Updates()
+        {
+            if (_fixture.DbDriver == DbDriver.InMemory)
+                return; // In memory db doesn't support sql computed columns
+
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var item = new ComputedColumn
+            {
+                Num1 = 1,
+                Num2 = 9
+            };
+
+            dbContext.ComputedColumns.Upsert(item)
+                .On(c => c.Num1)
+                .Run();
+
+            dbContext.ComputedColumns.OrderBy(c => c.Num1).Should().SatisfyRespectively(
+                visit => visit.Should().MatchModel(item, num3: 10));
         }
     }
 }
