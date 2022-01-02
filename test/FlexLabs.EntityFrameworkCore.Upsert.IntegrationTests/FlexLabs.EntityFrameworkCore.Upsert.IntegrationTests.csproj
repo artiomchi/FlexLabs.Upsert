@@ -5,6 +5,7 @@
     <LangVersion>latest</LangVersion>
     <NoWarn>EF1001</NoWarn>
     <IsPackable>false</IsPackable>
+    <EFCoreVersion>6.0.*</EFCoreVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(POSTGRES_ONLY)'!=''">
@@ -15,16 +16,21 @@
     <TargetFrameworks>net6.0</TargetFrameworks>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0'">
+    <EFCoreVersion>5.0.*</EFCoreVersion>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="5.10.3" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="6.0.0-preview.5.21301.9" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.0-preview.5.21301.9" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.0-preview.5.21301.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="$(EFCoreVersion)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="$(EFCoreVersion)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EFCoreVersion)" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EFCoreVersion)" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.10.0" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.0-preview5" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="$(EFCoreVersion)" />
     <PackageReference Include="NSubstitute" Version="4.2.2" />
     <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.14" />
-    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="6.0.0-preview.5" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="$(EFCoreVersion)" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
       <PrivateAssets>all</PrivateAssets>
@@ -36,14 +42,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\FlexLabs.EntityFrameworkCore.Upsert\FlexLabs.EntityFrameworkCore.Upsert.csproj" />
   </ItemGroup>
-
-  <!-- Workaround for this bug (replace the analyzer name with the one you need to exclude (filename only, no extension) -->
-  <Target Name="RemoveLoggingAnalyzer" BeforeTargets="CoreCompile" Condition="'$(TargetFramework)'!='net6.0'">
-    <ItemGroup>
-      <Analyzer Remove="@(Analyzer)" Condition="%(FileName) == 'Microsoft.Extensions.Logging.Generators'" />
-      <Analyzer Remove="@(Analyzer)" Condition="%(FileName) == 'System.Text.Json.SourceGeneration'" />
-    </ItemGroup>
-  </Target>
 
   <ItemGroup>
     <None Update="xunit.runner.json">

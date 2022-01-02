@@ -52,9 +52,9 @@ jobs:
         include-prerelease: True
     - uses: actions/checkout@v2
     - name: Enable Postgres
-      run: sc config postgresql-x64-13 start= demand
+      run: sc config postgresql-x64-14 start= demand
     - name: Start Postgres
-      run: net start postgresql-x64-13
+      run: net start postgresql-x64-14
     - name: Restore dependencies
       run: dotnet restore
     - name: Build

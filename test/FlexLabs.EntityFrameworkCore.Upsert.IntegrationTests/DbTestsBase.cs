@@ -23,29 +23,29 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         {
             Name = "...loading...",
             ISO = "AU",
-            Created = new DateTime(1970, 1, 1),
+            Created = NewDateTime(1970, 1, 1),
         };
         readonly PageVisit _dbVisitOld = new()
         {
             UserID = 1,
-            Date = DateTime.Today.AddDays(-1),
+            Date = _today.AddDays(-1),
             Visits = 10,
-            FirstVisit = new DateTime(1970, 1, 1),
-            LastVisit = new DateTime(1970, 1, 1),
+            FirstVisit = NewDateTime(1970, 1, 1),
+            LastVisit = NewDateTime(1970, 1, 1),
         };
         readonly PageVisit _dbVisit = new()
         {
             UserID = 1,
-            Date = DateTime.Today,
+            Date = _today,
             Visits = 12,
-            FirstVisit = new DateTime(1970, 1, 1),
-            LastVisit = new DateTime(1970, 1, 1),
+            FirstVisit = NewDateTime(1970, 1, 1),
+            LastVisit = NewDateTime(1970, 1, 1),
         };
         readonly Status _dbStatus = new()
         {
             ID = 1,
             Name = "Created",
-            LastChecked = new DateTime(1970, 1, 1),
+            LastChecked = NewDateTime(1970, 1, 1),
         };
         readonly Book _dbBook = new()
         {
@@ -64,8 +64,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ID2 = null,
             Value = "Second",
         };
-        readonly DateTime _now = new(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
+        readonly static DateTime _now = NewDateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
+        readonly static DateTime _today = NewDateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
         readonly int _increment = 8;
+
+        private static DateTime NewDateTime(int year, int month, int day, int hour = 0, int minute = 0, int second = 0)
+            => new DateTime(year, month, day, hour, minute, second, DateTimeKind.Utc);
 
         private void ResetDb()
         {
@@ -355,7 +359,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 1,
                 FirstVisit = _now,
                 LastVisit = _now,
@@ -379,7 +383,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 1,
                 FirstVisit = _now,
                 LastVisit = _now,
@@ -403,7 +407,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 1,
                 FirstVisit = _now,
                 LastVisit = _now,
@@ -432,7 +436,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 1,
                 FirstVisit = _now,
                 LastVisit = _now,
@@ -462,7 +466,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 1,
                 FirstVisit = _now,
                 LastVisit = _now,
@@ -491,7 +495,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 1,
                 FirstVisit = _now,
                 LastVisit = _now,
@@ -520,7 +524,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 5,
                 FirstVisit = _now,
                 LastVisit = _now,
@@ -549,7 +553,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 1,
                 FirstVisit = _now,
                 LastVisit = _now,
@@ -578,7 +582,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 1,
                 FirstVisit = _now,
                 LastVisit = _now,
@@ -607,7 +611,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 1,
                 FirstVisit = _now,
                 LastVisit = _now,
@@ -636,7 +640,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 1,
                 FirstVisit = _now,
                 LastVisit = _now,
@@ -665,7 +669,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 1,
                 FirstVisit = _now,
                 LastVisit = _now,
@@ -694,7 +698,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 1,
                 FirstVisit = _now,
                 LastVisit = _now,
@@ -723,7 +727,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var newVisit = new PageVisit
             {
                 UserID = 1,
-                Date = DateTime.Today,
+                Date = _today,
                 Visits = 1,
                 FirstVisit = _now,
                 LastVisit = _now,
