@@ -15,12 +15,12 @@
     <TargetFrameworks>net6.0</TargetFrameworks>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0'">
-    <EFCoreVersion>5.0.*</EFCoreVersion>
+  <PropertyGroup>
+    <EFCoreVersion>6.0.*</EFCoreVersion>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'">
-    <EFCoreVersion>6.0.*</EFCoreVersion>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0'">
+    <EFCoreVersion>5.0.*</EFCoreVersion>
   </PropertyGroup>
 
   <ItemGroup>
