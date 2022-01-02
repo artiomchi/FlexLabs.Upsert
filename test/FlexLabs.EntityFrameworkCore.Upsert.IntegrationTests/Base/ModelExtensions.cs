@@ -61,5 +61,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             result.Subject.Text2.Should().Be(text2 ?? expected.Text2);
             return result;
         }
+
+        public static AndWhichConstraint<ObjectAssertions, GeneratedAlwaysAsIdentity> MatchModel(this ObjectAssertions assertions, GeneratedAlwaysAsIdentity expected, int? num1 = null, int? num2 = null)
+        {
+            using var _ = new AssertionScope();
+            var result = assertions.BeOfType<GeneratedAlwaysAsIdentity>();
+            result.Subject.Num1.Should().Be(num1 ?? expected.Num1);
+            result.Subject.Num2.Should().Be(num2 ?? expected.Num2);
+            return result;
+        }
     }
 }

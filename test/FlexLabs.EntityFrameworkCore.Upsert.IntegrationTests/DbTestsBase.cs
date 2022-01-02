@@ -12,7 +12,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 {
     public abstract class DbTestsBase
     {
-        private readonly DatabaseInitializerFixture _fixture;
+        protected readonly DatabaseInitializerFixture _fixture;
 
         public DbTestsBase(DatabaseInitializerFixture fixture)
         {
@@ -71,7 +71,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         private static DateTime NewDateTime(int year, int month, int day, int hour = 0, int minute = 0, int second = 0)
             => new DateTime(year, month, day, hour, minute, second, DateTimeKind.Utc);
 
-        private void ResetDb()
+        protected void ResetDb()
         {
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
@@ -91,6 +91,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.RemoveRange(dbContext.StringKeys);
             dbContext.RemoveRange(dbContext.StringKeysAutoGen);
             dbContext.RemoveRange(dbContext.TestEntities);
+            dbContext.RemoveRange(dbContext.GeneratedAlwaysAsIdentity);
 
             dbContext.Add(_dbCountry);
             dbContext.Add(_dbVisitOld);

@@ -18,21 +18,22 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
     public abstract class RelationalCommandRunnerTestsBase<TRunner>
         where TRunner : RelationalUpsertCommandRunner
     {
-        private readonly DbContext _dbContext;
-        private readonly IRawSqlCommandBuilder _rawSqlBuilder;
+        protected readonly DbContext _dbContext;
+        protected readonly IRawSqlCommandBuilder _rawSqlBuilder;
+        protected Model _model;
 
         public RelationalCommandRunnerTestsBase(string providerName)
         {
-            var model = new Model();
-            AddEntity<TestEntity>(model);
-            AddEntity<TestEntityWithNullableKey>(model);
+            _model = new Model();
+            AddEntity<TestEntity>(_model);
+            AddEntity<TestEntityWithNullableKey>(_model);
 
             var dbProvider = Substitute.For<IDatabaseProvider>();
             dbProvider.Name.Returns(providerName);
 
             var services = new ServiceCollection();
             services.AddSingleton<IUpsertCommandRunner, TRunner>();
-            services.AddSingleton<IModel>(model);
+            services.AddSingleton<IModel>(_model);
             services.AddSingleton(dbProvider);
             services.AddSingleton(Substitute.For<IRelationalTypeMappingSource>());
             var serviceProvider = services.BuildServiceProvider();
@@ -62,7 +63,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             _dbContext.Database.Returns(dbFacade);
         }
 
-        private static void AddEntity<TEntity>(Model model)
+        protected static EntityType AddEntity<TEntity>(Model model)
         {
             var clrType = typeof(TEntity);
 #if NET6_0_OR_GREATER
@@ -78,6 +79,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             if (idProperty == null)
                 throw new InvalidOperationException("ID property missing on entity " + typeof(TEntity).Name);
             entityType.AddKey(idProperty, ConfigurationSource.Convention);
+            return entityType;
         }
 
         protected abstract string NoUpdate_Sql { get; }

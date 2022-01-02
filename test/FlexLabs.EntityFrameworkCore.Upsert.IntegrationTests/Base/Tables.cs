@@ -142,4 +142,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         [Required]
         public string Text { get; set; }
     }
+
+    public class GeneratedAlwaysAsIdentity
+    {
+        public int ID { get; set; }
+        public int Num1 { get; set; }
+        public int Num2 { get; set; }
+    }
 }

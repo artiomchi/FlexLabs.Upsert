@@ -1,12 +1,31 @@
-﻿using FlexLabs.EntityFrameworkCore.Upsert.Runners;
+﻿using System.Collections.Generic;
+using System.Linq;
+using FlexLabs.EntityFrameworkCore.Upsert.Runners;
+using FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners.Models;
+using Microsoft.EntityFrameworkCore;
+using NSubstitute;
+using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 {
     public class PostgreSqlUpsertCommandRunnerTests : RelationalCommandRunnerTestsBase<PostgreSqlUpsertCommandRunner>
     {
+        private enum NpgsqlValueGenerationStrategy
+        {
+            None,
+            SequenceHiLo,
+            SerialColumn,
+            IdentityAlwaysColumn,
+            IdentityByDefaultColumn
+        }
+
         public PostgreSqlUpsertCommandRunnerTests()
             : base("Npgsql.EntityFrameworkCore.PostgreSQL")
-        { }
+        {
+            var sequenceProperty = AddEntity<TestEntityWithIdentity>(_model)
+                .GetProperties().First(p => p.Name == "Sequence");
+            sequenceProperty.SetAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityAlwaysColumn);
+        }
 
         protected override string NoUpdate_Sql =>
             "INSERT INTO \"TestEntity\" AS \"T\" (\"ID\", \"Name\", \"Status\", \"Total\") " +
@@ -81,5 +100,22 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "VALUES (@p0, @p1, @p2, @p3) ON CONFLICT (\"ID\") " +
             "DO UPDATE SET \"Name\" = @p4 " +
             "WHERE \"T\".\"Status\" IS NOT NULL";
+
+        protected string NoUpdate_WithSequence_Sql =>
+            "INSERT INTO \"TestEntityWithIdentity\" AS \"T\" (\"ID\", \"Name\") " +
+            "VALUES (@p0, @p1) ON CONFLICT (\"ID\") " +
+            "DO NOTHING";
+
+        [Fact]
+        public void PostgresSyntaxRunner_NoUpdate_WithSequence()
+        {
+            _dbContext.Upsert(new TestEntityWithIdentity())
+                .NoUpdate()
+                .Run();
+
+            _rawSqlBuilder.Received().Build(
+                NoUpdate_WithSequence_Sql,
+                Arg.Any<IEnumerable<object>>());
+        }
     }
 }
