@@ -38,6 +38,7 @@ v4.0.0
 ! Patching the extension method to replace/inject custom command runner
 ! Removed old extension method on IServiceCollection, since it wasn't working anyway
     </PackageReleaseNotes>
+    <EFCoreVersion>6.0.1</EFCoreVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
@@ -48,10 +49,6 @@ v4.0.0
     <AssemblyOriginatorKeyFile>..\..\certs\FlexLabsStrongKey.snk</AssemblyOriginatorKeyFile>
     <SignCertificateName>Artiom Chilaru</SignCertificateName>
     <PostBuildEvent>signtool.exe sign /n "$(SignCertificateName)" /fd sha256 /tr "http://timestamp.digicert.com" /td sha256 FlexLabs.EntityFrameworkCore.Upsert.dll</PostBuildEvent>
-  </PropertyGroup>
-
-  <PropertyGroup>
-    <EFCoreVersion>6.0.1</EFCoreVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0'">
@@ -65,13 +62,6 @@ v4.0.0
   <ItemGroup Condition="'$(Configuration)'=='Release'">
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
   </ItemGroup>
-
-  <!-- Workaround for this bug (replace the analyzer name with the one you need to exclude (filename only, no extension) -->
-  <Target Name="RemoveLoggingAnalyzer" BeforeTargets="CoreCompile" Condition="'$(TargetFramework)'!='net6.0'">
-    <ItemGroup>
-      <Analyzer Remove="@(Analyzer)" Condition="%(FileName) == 'Microsoft.Extensions.Logging.Generators'" />
-    </ItemGroup>
-  </Target>
 
   <ItemGroup>
     <Compile Update="Resources.Designer.cs">

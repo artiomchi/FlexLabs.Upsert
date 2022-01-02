@@ -5,22 +5,20 @@
     <LangVersion>latest</LangVersion>
     <NoWarn>EF1001</NoWarn>
     <IsPackable>false</IsPackable>
+	  <EFCoreVersion>6.0.*</EFCoreVersion>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(V6_ONLY)'!=''">
     <TargetFrameworks>net6.0</TargetFrameworks>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="5.0.*" />
-   </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.*" />
-  </ItemGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0'">
+    <EFCoreVersion>5.0.*</EFCoreVersion>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="5.10.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EFCoreVersion)" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.10.0" />
     <PackageReference Include="NSubstitute" Version="4.2.2" />
     <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.14" />
@@ -35,14 +33,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\FlexLabs.EntityFrameworkCore.Upsert\FlexLabs.EntityFrameworkCore.Upsert.csproj" />
   </ItemGroup>
-
-  <!-- Workaround for this bug (replace the analyzer name with the one you need to exclude (filename only, no extension) -->
-  <Target Name="RemoveLoggingAnalyzer" BeforeTargets="CoreCompile" Condition="'$(TargetFramework)'!='net6.0'">
-    <ItemGroup>
-      <Analyzer Remove="@(Analyzer)" Condition="%(FileName) == 'Microsoft.Extensions.Logging.Generators'" />
-      <Analyzer Remove="@(Analyzer)" Condition="%(FileName) == 'System.Text.Json.SourceGeneration'" />
-    </ItemGroup>
-  </Target>
 
   <ItemGroup>
     <Service Include="{82a7f48d-3b50-4b1e-b82e-3ada8210c358}" />

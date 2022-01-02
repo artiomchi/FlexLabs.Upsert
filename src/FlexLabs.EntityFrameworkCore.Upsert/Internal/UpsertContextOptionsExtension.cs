@@ -35,7 +35,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 #if NET6_0_OR_GREATER
             public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other)
             {
-                return string.Equals(LogFragment, other.LogFragment, StringComparison.InvariantCulture);
+                return string.Equals(LogFragment, other.LogFragment, StringComparison.Ordinal);
             }
             public override int GetServiceProviderHashCode() => 0;
 
