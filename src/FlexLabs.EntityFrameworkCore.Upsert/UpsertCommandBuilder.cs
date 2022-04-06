@@ -39,6 +39,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             _entities = entities;
 
             _entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity))
+                ?? (entities.Count == 0 ? null : dbContext.GetService<IModel>().FindEntityType(entities.First().GetType()))
                 ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
         }
 
