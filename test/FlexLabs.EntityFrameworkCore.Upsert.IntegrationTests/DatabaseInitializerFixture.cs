@@ -24,11 +24,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 
         private static readonly string ConnString_Postgres_Docker = $"Server=localhost;Port=25432;Database={Username};Username={Username};Password={Password}";
         private static readonly string ConnString_MySql_Docker = $"Server=localhost;Port=23306;Database={Username};Uid=root;Pwd={Password}";
-        private static readonly string ConnString_SqlServer_Docker = $"Server=localhost,21433;User=sa;Password={Password};Initial Catalog=FlexLabsUpsertTests;";
+        private static readonly string ConnString_SqlServer_Docker = $"Server=localhost,21433;User=sa;Password={Password};Initial Catalog=FlexLabsUpsertTests;Trust Server Certificate=true";
 
         private static readonly string ConnString_Postgres_AppVeyor = $"Server=localhost;Port=5432;Database={Username};Username=postgres;Password={Password}";
         private static readonly string ConnString_MySql_AppVeyor = $"Server=localhost;Port=3306;Database={Username};Uid=root;Pwd={Password}";
-        private static readonly string ConnString_SqlServer_AppVeyor = $"Server=(local)\\SQL2017;Database={Username};User Id=sa;Password={Password}";
+        private static readonly string ConnString_SqlServer_AppVeyor = $"Server=(local)\\SQL2017;Database={Username};User Id=sa;Password={Password};Trust Server Certificate=true";
 
         private static readonly string ConnString_SqlServer_LocalDb = $"Server=(localdb)\\MSSqlLocalDB;Integrated Security=SSPI;Initial Catalog=FlexLabsUpsertTests;";
 
