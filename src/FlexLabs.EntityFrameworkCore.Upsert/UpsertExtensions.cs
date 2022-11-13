@@ -49,7 +49,6 @@ namespace Microsoft.EntityFrameworkCore
 
             var entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity))
                 ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
-
             return new UpsertCommandBuilder<TEntity>(dbContext, entityType, entities);
         }
 
@@ -70,13 +69,11 @@ namespace Microsoft.EntityFrameworkCore
 
             var entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity))
                 ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
-
-            ICollection<TEntity> collection;
-            if (entities is ICollection<TEntity> entityCollection)
-                collection = entityCollection;
-            else
-                collection = entities.ToArray();
-
+            var collection = entities switch
+            {
+                ICollection<TEntity> entityCollection => entityCollection,
+                _ => entities.ToArray()
+            };
             return new UpsertCommandBuilder<TEntity>(dbContext, entityType, collection);
         }
 
@@ -115,9 +112,7 @@ namespace Microsoft.EntityFrameworkCore
                 throw new ArgumentNullException(nameof(entities));
 
             var dbContext = dbSet.GetService<ICurrentDbContext>().Context;
-            var entityType = dbSet.EntityType;
-
-            return new UpsertCommandBuilder<TEntity>(dbContext, entityType, entities);
+            return new UpsertCommandBuilder<TEntity>(dbContext, dbSet.EntityType, entities);
         }
 
         /// <summary>
@@ -136,15 +131,12 @@ namespace Microsoft.EntityFrameworkCore
                 throw new ArgumentNullException(nameof(entities));
 
             var dbContext = dbSet.GetService<ICurrentDbContext>().Context;
-            var entityType = dbSet.EntityType;
-
-            ICollection<TEntity> collection;
-            if (entities is ICollection<TEntity> entityCollection)
-                collection = entityCollection;
-            else
-                collection = entities.ToArray();
-
-            return new UpsertCommandBuilder<TEntity>(dbContext, entityType, collection);
+            var collection = entities switch
+            {
+                ICollection<TEntity> entityCollection => entityCollection,
+                _ => entities.ToArray()
+            };
+            return new UpsertCommandBuilder<TEntity>(dbContext, dbSet.EntityType, collection);
         }
     }
 }
