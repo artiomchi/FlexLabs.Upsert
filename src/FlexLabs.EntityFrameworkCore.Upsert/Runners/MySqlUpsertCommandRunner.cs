@@ -44,7 +44,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 if (updateCondition != null)
                 {
                     var columns = updateCondition.GetPropertyValues()
-                        .Select(v => v.Property.GetColumnBaseName())
+                        .Select(v => v.Property.GetColumnName())
                         .ToArray();
 
                     var variables = string.Join(", ", updateExpressions

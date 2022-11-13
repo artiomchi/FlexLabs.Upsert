@@ -5,6 +5,8 @@
     <LangVersion>latest</LangVersion>
     <NoWarn>EF1001</NoWarn>
     <IsPackable>false</IsPackable>
+    <!-- Temporarily disabling MySQL tests, as they don't have a v7 compatible library -->
+    <DefineConstants>$(DefineConstants);NOMYSQL</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(POSTGRES_ONLY)'!=''">
