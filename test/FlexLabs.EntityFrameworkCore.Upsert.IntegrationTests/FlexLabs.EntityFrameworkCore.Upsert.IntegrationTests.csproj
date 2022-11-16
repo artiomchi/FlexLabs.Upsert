@@ -1,33 +1,34 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net6.0</TargetFrameworks>
+    <TargetFramework>net7.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <NoWarn>EF1001</NoWarn>
     <IsPackable>false</IsPackable>
+    <!-- Temporarily disabling MySQL tests, as they don't have a v7 compatible library -->
+    <DefineConstants>$(DefineConstants);NOMYSQL</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(POSTGRES_ONLY)'!=''">
     <DefineConstants>$(DefineConstants);NOMSSQL;NOMYSQL;POSTGRES_ONLY</DefineConstants>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(V6_ONLY)'!=''">
-    <TargetFrameworks>net6.0</TargetFrameworks>
-  </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="FluentAssertions" Version="5.10.3" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.*" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="6.0.*" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.*" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.*" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.10.0" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.*" />
-    <PackageReference Include="NSubstitute" Version="4.2.2" />
-    <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.14" />
+    <PackageReference Include="FluentAssertions" Version="6.8.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="7.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="7.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="7.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.*" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="7.0.*" />
+    <PackageReference Include="NSubstitute" Version="4.4.0" />
+    <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.15">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="6.0.*" />
-    <PackageReference Include="xunit" Version="2.4.1" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
+    <PackageReference Include="xunit" Version="2.4.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
