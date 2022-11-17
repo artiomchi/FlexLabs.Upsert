@@ -69,7 +69,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <returns>The fully qualified and escaped table reference</returns>
         protected virtual string GetTableName(IEntityType entityType)
         {
-            var tableName = entityType.GetTableName()
+            var tableName = entityType.GetTableName() ?? entityType.GetViewName()
                 ?? throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CouldNotGetTableNameForEntityType, entityType?.Name));
             return GetSchema(entityType) + EscapeName(tableName);
         }
