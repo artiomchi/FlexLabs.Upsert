@@ -179,27 +179,35 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 var arguments = new List<ConstantValue>();
 
+                if (updateExpressions != null)
+                    arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues().Select((x, y) =>
+                    {
+                        x.ArgumentIndex = y;
+                        return x;
+                    })));
+
+#pragma warning disable CA1508 // Avoid dead conditional code. Analyzer is drunk - this can clearly be not null!
+                if (updateConditionExpression != null)
+                    arguments.AddRange(updateConditionExpression.GetConstantValues().Where(c => c.Value != null).Select((x, y) =>
+                    {
+                        x.ArgumentIndex = y;
+                        return x;
+                    }));
+#pragma warning restore CA1508 // Avoid dead conditional code
+
                 var entitiesHere = 0;
                 do
                 {
-                    arguments.AddRange(newEntities[entitiesProcessed].Select(p => p.Value));
+                    arguments.AddRange(newEntities[entitiesProcessed].Select((p, i) =>
+                    {
+                        p.Value.ArgumentIndex = i;
+                        return p.Value;
+                    }));
                     entitiesProcessed++;
                     entitiesHere++;
                 }
                 while (entitiesProcessed < newEntities.Length &&
                     (MaxQueryParams == null || arguments.Count + singleEntityArguments < MaxQueryParams));
-
-                if (updateExpressions != null)
-                    arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues()));
-
-#pragma warning disable CA1508 // Avoid dead conditional code. Analyzer is drunk - this can clearly be not null!
-                if (updateConditionExpression != null)
-                    arguments.AddRange(updateConditionExpression.GetConstantValues().Where(c => c.Value != null));
-#pragma warning restore CA1508 // Avoid dead conditional code
-
-                int i = 0;
-                foreach (var arg in arguments)
-                    arg.ArgumentIndex = i++;
 
                 var columnUpdateExpressions = updateExpressions?.Count > 0
                     ? updateExpressions.Select(x => (x.Property.GetColumnName(), x.Value)).ToArray()
