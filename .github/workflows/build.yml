@@ -1,15 +1,38 @@
-name: .NET Full Build
+name: Build
 
 on: [push, pull_request]
 
 jobs:
-  build-ubuntu:
+  build-quick:
+    name: Quick Build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/setup-dotnet@v1
+    - uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '7.0'
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: dotnet test ./test/FlexLabs.EntityFrameworkCore.Upsert.Tests --no-build --logger "trx;LogFileName=test-results.trx"
+    - name: Test Report
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        name: Test Results (quick)
+        path: '**/TestResults/*.trx'
+        reporter: dotnet-trx
+
+  build-ubuntu:
+    name: Full Build (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '7.0'
+    - uses: actions/checkout@v3
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
@@ -26,14 +49,17 @@ jobs:
 
 
   build-windows:
+    name: Full Build (Windows)
     runs-on: windows-latest
     steps:
-    - uses: actions/setup-dotnet@v1
+    - uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '7.0'
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Restore dependencies
       run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --logger "trx;LogFileName=test-results.trx"
     - name: Test Report
