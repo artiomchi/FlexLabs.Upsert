@@ -22,7 +22,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
             {
                 var connectionString = (TestContainer as IDatabaseContainer)?.GetConnectionString()
-                    ?? (BuildEnvironment.IsAppVeyor ? "Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=Password12!" : null)
                     ?? (BuildEnvironment.IsGitHub ? "Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=root" : null);
                 builder.UseNpgsql(connectionString);
             }

@@ -19,8 +19,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
             {
-                var connectionString = (TestContainer as IDatabaseContainer)?.GetConnectionString()
-                    ?? (BuildEnvironment.IsAppVeyor ? "Server=localhost;Port=3306;Database=testuser;Uid=root;Pwd=Password12!" : null);
+                var connectionString = (TestContainer as IDatabaseContainer).GetConnectionString();
                 builder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
             }
         }

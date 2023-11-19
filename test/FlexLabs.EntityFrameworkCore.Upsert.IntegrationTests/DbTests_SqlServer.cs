@@ -20,8 +20,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
             {
                 var connectionString = (TestContainer as IDatabaseContainer)?.GetConnectionString()
-                    ?? (BuildEnvironment.IsAppVeyor ? "Server=(local)\\SQL2017;Database=testuser;User Id=sa;Password=Password12!;Trust Server Certificate=true" : null)
-                    ?? (BuildEnvironment.IsGitHub ? "Server=(localdb)\\MSSqlLocalDB;Integrated Security=SSPI;Initial Catalog=FlexLabsUpsertTests;" : null);
+                    ?? "Server=(localdb)\\MSSqlLocalDB;Integrated Security=SSPI;Initial Catalog=FlexLabsUpsertTests;";
                 builder.UseSqlServer(connectionString);
             }
         }
