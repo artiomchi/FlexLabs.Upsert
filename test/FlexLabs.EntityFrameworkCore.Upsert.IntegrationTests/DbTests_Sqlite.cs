@@ -1,7 +1,7 @@
 ﻿using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
@@ -9,9 +9,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
         {
-            public DatabaseInitializer(IMessageSink diagnosticMessageSink)
-                : base(diagnosticMessageSink, DbDriver.Sqlite)
+            public DatabaseInitializer()
+                : base(DbDriver.Sqlite)
             { }
+
+            protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
+                => builder.UseSqlite("Data Source=testdb.db");
         }
 
         public DbTests_Sqlite(DatabaseInitializer contexts)

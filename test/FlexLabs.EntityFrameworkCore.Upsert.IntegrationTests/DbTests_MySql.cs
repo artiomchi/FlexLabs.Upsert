@@ -1,7 +1,9 @@
-﻿using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
+﻿using DotNet.Testcontainers.Containers;
+using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
+using Microsoft.EntityFrameworkCore;
+using Testcontainers.MySql;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
@@ -10,9 +12,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
         {
-            public DatabaseInitializer(IMessageSink diagnosticMessageSink)
-                : base(diagnosticMessageSink, DbDriver.MySQL)
+            public DatabaseInitializer()
+                : base(DbDriver.MySQL, new MySqlBuilder().Build())
             { }
+
+            protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
+            {
+                var connectionString = (TestContainer as IDatabaseContainer).GetConnectionString();
+                builder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+            }
         }
 
         public DbTests_MySql(DatabaseInitializer contexts)

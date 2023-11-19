@@ -5,8 +5,6 @@
     <LangVersion>latest</LangVersion>
     <NoWarn>EF1001</NoWarn>
     <IsPackable>false</IsPackable>
-    <!-- Temporarily disabling MySQL tests, as they don't have a v7 compatible library -->
-    <DefineConstants>$(DefineConstants);NOMYSQL</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(POSTGRES_ONLY)'!=''">
@@ -26,7 +24,10 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="6.0.*" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="7.0.*" />
+    <PackageReference Include="Testcontainers.MsSql" Version="3.6.0" />
+    <PackageReference Include="Testcontainers.MySql" Version="3.6.0" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="3.6.0" />
     <PackageReference Include="xunit" Version="2.4.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
       <PrivateAssets>all</PrivateAssets>

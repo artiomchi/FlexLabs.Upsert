@@ -1,10 +1,11 @@
 ﻿using System.Linq;
+using DotNet.Testcontainers.Containers;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Testcontainers.PostgreSql;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
@@ -13,9 +14,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
         {
-            public DatabaseInitializer(IMessageSink diagnosticMessageSink)
-                : base(diagnosticMessageSink, DbDriver.Postgres)
+            public DatabaseInitializer()
+                : base(DbDriver.Postgres, new PostgreSqlBuilder().Build())
             { }
+
+            protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
+            {
+                var connectionString = (TestContainer as IDatabaseContainer).GetConnectionString();
+                builder.UseNpgsql(connectionString);
+            }
         }
 
         public DbTests_Postgres(DatabaseInitializer contexts)
