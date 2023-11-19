@@ -12,13 +12,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
         {
-            public DatabaseInitializer()
-                : base(DbDriver.MSSQL, new MsSqlBuilder().Build())
-            { }
+            public override DbDriver DbDriver => DbDriver.MSSQL;
+
+            protected override IContainer BuildContainer()
+                => new MsSqlBuilder().Build();
 
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
             {
-                var connectionString = (TestContainer as IDatabaseContainer).GetConnectionString();
+                var connectionString = (TestContainer as IDatabaseContainer)?.GetConnectionString()
+                    ?? (BuildEnvironment.IsAppVeyor ? "Server=(local)\\SQL2017;Database=testuser;User Id=sa;Password=Password12!;Trust Server Certificate=true" : null)
+                    ?? (BuildEnvironment.IsGitHub ? "Server=(localdb)\\MSSqlLocalDB;Integrated Security=SSPI;Initial Catalog=FlexLabsUpsertTests;" : null);
                 builder.UseSqlServer(connectionString);
             }
         }

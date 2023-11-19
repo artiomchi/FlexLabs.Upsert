@@ -11,9 +11,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
         {
-            public DatabaseInitializer()
-                : base(DbDriver.InMemory)
-            { }
+            public override DbDriver DbDriver => DbDriver.InMemory;
 
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
                 => builder.UseInMemoryDatabase("Upsert_TestDbContext_Tests");

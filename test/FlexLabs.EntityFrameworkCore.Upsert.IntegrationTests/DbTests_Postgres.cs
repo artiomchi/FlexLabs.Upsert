@@ -14,13 +14,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
         {
-            public DatabaseInitializer()
-                : base(DbDriver.Postgres, new PostgreSqlBuilder().Build())
-            { }
+            public override DbDriver DbDriver => DbDriver.Postgres;
+
+            protected override IContainer BuildContainer()
+                => new PostgreSqlBuilder().Build();
 
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
             {
-                var connectionString = (TestContainer as IDatabaseContainer).GetConnectionString();
+                var connectionString = (TestContainer as IDatabaseContainer)?.GetConnectionString()
+                    ?? (BuildEnvironment.IsAppVeyor ? "Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=Password12!" : null)
+                    ?? (BuildEnvironment.IsGitHub ? "Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=root" : null);
                 builder.UseNpgsql(connectionString);
             }
         }

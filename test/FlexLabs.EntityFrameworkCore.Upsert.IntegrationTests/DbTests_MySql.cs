@@ -12,13 +12,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
         {
-            public DatabaseInitializer()
-                : base(DbDriver.MySQL, new MySqlBuilder().Build())
-            { }
+            public override DbDriver DbDriver => DbDriver.MySQL;
+
+            protected override IContainer BuildContainer()
+                => new MySqlBuilder().Build();
 
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
             {
-                var connectionString = (TestContainer as IDatabaseContainer).GetConnectionString();
+                var connectionString = (TestContainer as IDatabaseContainer)?.GetConnectionString()
+                    ?? (BuildEnvironment.IsAppVeyor ? "Server=localhost;Port=3306;Database=testuser;Uid=root;Pwd=Password12!" : null);
                 builder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
             }
         }

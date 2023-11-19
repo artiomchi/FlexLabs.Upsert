@@ -9,9 +9,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
         {
-            public DatabaseInitializer()
-                : base(DbDriver.Sqlite)
-            { }
+            public override DbDriver DbDriver => DbDriver.Sqlite;
 
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
                 => builder.UseSqlite("Data Source=testdb.db");

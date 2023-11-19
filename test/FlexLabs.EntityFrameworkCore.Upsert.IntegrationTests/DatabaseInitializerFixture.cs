@@ -9,19 +9,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
     public abstract class DatabaseInitializerFixture : IAsyncLifetime
     {
         public IContainer TestContainer { get; }
-        public DbDriver DbDriver { get; }
         public DbContextOptions<TestDbContext> DataContextOptions { get; private set; }
 
-        public DatabaseInitializerFixture(DbDriver dbDriver)
+        public DatabaseInitializerFixture()
         {
-            DbDriver = dbDriver;
+            if (!BuildEnvironment.UseLocalService)
+            {
+                TestContainer = BuildContainer();
+            }
         }
 
-        public DatabaseInitializerFixture(DbDriver dbDriver, IContainer testContainer)
-            : this(dbDriver)
-        {
-            TestContainer = testContainer;
-        }
+        public abstract DbDriver DbDriver { get; }
+        protected virtual IContainer BuildContainer() => null;
 
         protected abstract void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder);
 

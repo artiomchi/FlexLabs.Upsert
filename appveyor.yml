@@ -5,6 +5,11 @@ image: Visual Studio 2022
 configuration: Debug
 skip_tags: true
 
+services:
+ - mssql2019
+ - mysql
+ - postgresql15
+
 before_build:
 - ps: dotnet --info
 - ps: dotnet restore -v Minimal
