@@ -15,4 +15,11 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Test
-      run: dotnet test ./test/FlexLabs.EntityFrameworkCore.Upsert.Tests --no-build
+      run: dotnet test ./test/FlexLabs.EntityFrameworkCore.Upsert.Tests --no-build --logger "trx;LogFileName=test-results.trx"
+    - name: Test Report
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        name: Test Results (quick)
+        path: '**/TestResults/*.trx'
+        reporter: dotnet-trx

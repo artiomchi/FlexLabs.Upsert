@@ -15,7 +15,15 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Test
-      run: dotnet test --no-build
+      run: dotnet test --no-build --logger "trx;LogFileName=test-results.trx"
+    - name: Test Report
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        name: Test Results (ubuntu)
+        path: '**/TestResults/*.trx'
+        reporter: dotnet-trx
+
 
   build-windows:
     runs-on: windows-latest
@@ -27,4 +35,12 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Test
-      run: dotnet test --no-build
+      run: dotnet test --no-build --logger "trx;LogFileName=test-results.trx"
+    - name: Test Report
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        name: Test Results (windows)
+        path: '**/TestResults/*.trx'
+        reporter: dotnet-trx
+
