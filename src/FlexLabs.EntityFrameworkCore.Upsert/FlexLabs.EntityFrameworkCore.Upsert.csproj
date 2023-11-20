@@ -15,7 +15,7 @@
 Uses `INSERT … ON CONFLICT DO UPDATE` in PostgreSQL/Sqlite, `MERGE` in SqlServer and `INSERT INTO … ON DUPLICATE KEY UPDATE` in MySQL.
 
 Also supports injecting sql command generators to add support for other providers</Description>
-    <Copyright>Artiom Chilaru © 2019</Copyright>
+    <Copyright>Artiom Chilaru © 2023</Copyright>
     <PackageProjectUrl>https://github.com/artiomchi/FlexLabs.Upsert</PackageProjectUrl>
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -49,9 +49,6 @@ v4.0.0
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <DebugType>embedded</DebugType>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\certs\FlexLabsStrongKey.snk</AssemblyOriginatorKeyFile>
     <SignCertificateName>Artiom Chilaru</SignCertificateName>
@@ -60,10 +57,6 @@ v4.0.0
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="7.0.0" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(Configuration)'=='Release'">
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>

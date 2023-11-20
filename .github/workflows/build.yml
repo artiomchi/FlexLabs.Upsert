@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   build-ubuntu:
-    name: Full Build (Ubuntu)
+    name: Build on Ubuntu (full)
     runs-on: ubuntu-latest
     steps:
     - uses: actions/setup-dotnet@v3
