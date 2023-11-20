@@ -4,6 +4,7 @@ using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -23,7 +24,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             {
                 var connectionString = (TestContainer as IDatabaseContainer)?.GetConnectionString()
                     ?? (BuildEnvironment.IsGitHub ? "Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=root" : null);
-                builder.UseNpgsql(connectionString);
+                builder.UseNpgsql(new NpgsqlDataSourceBuilder(connectionString)
+                    .EnableDynamicJsonMappings()
+                    .Build());
             }
         }
 
