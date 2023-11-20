@@ -48,6 +48,7 @@ namespace Microsoft.EntityFrameworkCore
                 throw new ArgumentNullException(nameof(entities));
 
             var entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity))
+                ?? (entities.Length == 0 ? null : dbContext.GetService<IModel>().FindEntityType(entities.First().GetType()))
                 ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
             return new UpsertCommandBuilder<TEntity>(dbContext, entityType, entities);
         }
@@ -67,13 +68,14 @@ namespace Microsoft.EntityFrameworkCore
             if (entities == null)
                 throw new ArgumentNullException(nameof(entities));
 
-            var entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity))
-                ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
             var collection = entities switch
             {
                 ICollection<TEntity> entityCollection => entityCollection,
                 _ => entities.ToArray()
             };
+            var entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity))
+                ?? (collection.Count > 0 ? null : dbContext.GetService<IModel>().FindEntityType(collection.First().GetType()))
+                ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
             return new UpsertCommandBuilder<TEntity>(dbContext, entityType, collection);
         }
 
