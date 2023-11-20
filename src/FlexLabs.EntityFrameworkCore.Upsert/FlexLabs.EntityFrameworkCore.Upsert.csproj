@@ -15,13 +15,20 @@
 Uses `INSERT … ON CONFLICT DO UPDATE` in PostgreSQL/Sqlite, `MERGE` in SqlServer and `INSERT INTO … ON DUPLICATE KEY UPDATE` in MySQL.
 
 Also supports injecting sql command generators to add support for other providers</Description>
-    <Copyright>Artiom Chilaru © 2019</Copyright>
+    <Copyright>Artiom Chilaru © 2023</Copyright>
     <PackageProjectUrl>https://github.com/artiomchi/FlexLabs.Upsert</PackageProjectUrl>
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
-    <VersionPrefix>6.0.1</VersionPrefix>
+    <VersionPrefix>7.0.0</VersionPrefix>
     <PackageReleaseNotes>
+v7.0.0
++ Adding support for EF Core 7
+
+v6.0.2
+* Improving entity type detection when using DbSet&lt;&gt;
+! Patching MySQL handling of null columns
+
 v6.0.0
 + Adding support for EF Core 6
 + Handling UseIdentityAlwaysColumn columns
@@ -42,9 +49,6 @@ v4.0.0
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
-    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <DebugType>embedded</DebugType>
     <SignAssembly>True</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\certs\FlexLabsStrongKey.snk</AssemblyOriginatorKeyFile>
     <SignCertificateName>Artiom Chilaru</SignCertificateName>
@@ -52,11 +56,7 @@ v4.0.0
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.0" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(Configuration)'=='Release'">
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="7.0.0" />
   </ItemGroup>
 
   <ItemGroup>

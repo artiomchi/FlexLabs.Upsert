@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Microsoft.EntityFrameworkCore
 {
@@ -47,7 +47,10 @@ namespace Microsoft.EntityFrameworkCore
             if (entities == null)
                 throw new ArgumentNullException(nameof(entities));
 
-            return new UpsertCommandBuilder<TEntity>(dbContext, entities);
+            var entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity))
+                ?? (entities.Length == 0 ? null : dbContext.GetService<IModel>().FindEntityType(entities.First().GetType()))
+                ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
+            return new UpsertCommandBuilder<TEntity>(dbContext, entityType, entities);
         }
 
         /// <summary>
@@ -65,12 +68,15 @@ namespace Microsoft.EntityFrameworkCore
             if (entities == null)
                 throw new ArgumentNullException(nameof(entities));
 
-            ICollection<TEntity> collection;
-            if (entities is ICollection<TEntity> entityCollection)
-                collection = entityCollection;
-            else
-                collection = entities.ToArray();
-            return new UpsertCommandBuilder<TEntity>(dbContext, collection);
+            var collection = entities switch
+            {
+                ICollection<TEntity> entityCollection => entityCollection,
+                _ => entities.ToArray()
+            };
+            var entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity))
+                ?? (collection.Count > 0 ? null : dbContext.GetService<IModel>().FindEntityType(collection.First().GetType()))
+                ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
+            return new UpsertCommandBuilder<TEntity>(dbContext, entityType, collection);
         }
 
         /// <summary>
@@ -88,8 +94,7 @@ namespace Microsoft.EntityFrameworkCore
             if (entity == null)
                 throw new ArgumentNullException(nameof(entity));
 
-            var dbContext = dbSet.GetService<ICurrentDbContext>().Context;
-            return Upsert(dbContext, entity);
+            return UpsertRange(dbSet, entity);
         }
 
         /// <summary>
@@ -109,7 +114,7 @@ namespace Microsoft.EntityFrameworkCore
                 throw new ArgumentNullException(nameof(entities));
 
             var dbContext = dbSet.GetService<ICurrentDbContext>().Context;
-            return UpsertRange(dbContext, entities);
+            return new UpsertCommandBuilder<TEntity>(dbContext, dbSet.EntityType, entities);
         }
 
         /// <summary>
@@ -128,7 +133,12 @@ namespace Microsoft.EntityFrameworkCore
                 throw new ArgumentNullException(nameof(entities));
 
             var dbContext = dbSet.GetService<ICurrentDbContext>().Context;
-            return UpsertRange(dbContext, entities);
+            var collection = entities switch
+            {
+                ICollection<TEntity> entityCollection => entityCollection,
+                _ => entities.ToArray()
+            };
+            return new UpsertCommandBuilder<TEntity>(dbContext, dbSet.EntityType, collection);
         }
     }
 }

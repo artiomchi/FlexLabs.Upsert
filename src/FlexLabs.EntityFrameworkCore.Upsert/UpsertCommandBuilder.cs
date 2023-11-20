@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -32,15 +32,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// Initialise an instance of the UpsertCommandBuilder
         /// </summary>
         /// <param name="dbContext">The data context that will be used to upsert entities</param>
+        /// <param name="entityType">The entity type for the entities to be upserted</param>
         /// <param name="entities">The collection of entities to be upserted</param>
-        internal UpsertCommandBuilder(DbContext dbContext, ICollection<TEntity> entities)
+        internal UpsertCommandBuilder(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities)
         {
             _dbContext = dbContext;
+            _entityType = entityType;
             _entities = entities;
-
-            _entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity))
-                ?? (entities.Count == 0 ? null : dbContext.GetService<IModel>().FindEntityType(entities.First().GetType()))
-                ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
         }
 
         /// <summary>

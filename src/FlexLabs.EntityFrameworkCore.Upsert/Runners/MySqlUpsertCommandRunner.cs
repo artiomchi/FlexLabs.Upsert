@@ -44,12 +44,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 if (updateCondition != null)
                 {
                     var columns = updateCondition.GetPropertyValues()
-                        .Select(v => v.Property.GetColumnBaseName())
+                        .Select(v => v.Property.GetColumnName())
                         .ToArray();
 
                     var variables = string.Join(", ", updateExpressions
                         .Where(e => columns.Contains(e.ColumnName))
-                        .Select(e => $"IF (({Variable(e.ColumnName)} := {EscapeName(e.ColumnName)}), NULL, NULL)"));
+                        .Select(e => $"IF (({Variable(e.ColumnName)} := {EscapeName(e.ColumnName)}) IS NOT NULL, NULL, NULL)"));
                     string expandColumn(string propertyName)
                     {
                         if (updateExpressions.Any(e => e.ColumnName == propertyName))
