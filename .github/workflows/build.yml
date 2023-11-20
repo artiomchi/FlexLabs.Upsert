@@ -9,7 +9,7 @@ jobs:
     steps:
     - uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '7.0'
+        dotnet-version: '8.0'
     - uses: actions/checkout@v3
     - name: Restore dependencies
       run: dotnet restore
@@ -30,7 +30,7 @@ jobs:
     steps:
     - uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '7.0'
+        dotnet-version: '8.0'
     - uses: actions/checkout@v3
     - name: Enable Postgres
       run: sc config postgresql-x64-14 start= demand
