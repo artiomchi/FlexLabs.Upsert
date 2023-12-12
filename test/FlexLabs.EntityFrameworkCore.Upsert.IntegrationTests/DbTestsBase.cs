@@ -208,6 +208,59 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Fact]
+        public void Upsert_ReturnResult_Single()
+        {
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var dashTable = new DashTable
+            {
+                DataSet = "Test",
+                Updated = _now,
+            };
+
+            var result = dbContext.DashTable.Upsert(dashTable)
+                .On(c => c.DataSet)
+                .RunAndReturn();
+
+            result.Should().ContainEquivalentOf(new DashTable
+            {
+                ID = 1,
+                DataSet = "Test",
+                Updated = _now,
+            });
+        }
+
+        [Fact]
+        public void Upsert_ReturnResult_Multiple()
+        {
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var dashTables = new[]
+            {
+                new DashTable
+                {
+                    DataSet = "Test",
+                    Updated = _now,
+                },
+                new DashTable
+                {
+                    DataSet = "Test",
+                    Updated = _now,
+                }
+            };
+
+            var result = dbContext.DashTable.UpsertRange(dashTables)
+                .On(c => c.DataSet)
+                .RunAndReturn();
+
+            result.Should().HaveCount(2);
+
+            dbContext.DashTable.Should().HaveCount(1);
+        }
+
+        [Fact]
         public void Upsert_IdentityKey_ExplicitOn_AllowWithOverride()
         {
             ResetDb();
