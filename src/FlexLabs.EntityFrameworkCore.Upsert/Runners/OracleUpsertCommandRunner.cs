@@ -22,29 +22,32 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
     {
         var result = new StringBuilder();
 
-        result.Append($"MERGE INTO {tableName} t USING ( SELECT");
-        result.Append(string.Join(", ",
-            entities.Select(ec => string.Join(" AS ", ec.Select(e => new List<string> { Parameter(e.Value.ArgumentIndex), e.ColumnName })))));
-        result.Append("FROM dual) s");
-        result.Append("ON (");
-        result.Append(string.Join(" AND ", joinColumns.Select(c => c.IsNullable
-            ? $"((s.[{c.ColumnName}] IS NULL AND t.[{c.ColumnName}] IS NULL) OR (s.[{c.ColumnName}] IS NOT NULL AND t.[{c.ColumnName}] = t.[{c.ColumnName}]))"
-            : $"t.[{c.ColumnName}] = s.[{c.ColumnName}]")));
+        result.Append($"MERGE INTO {tableName} t USING (");
+        result.Append("SELECT ");
+        result.Append(string.Join("", string.Join(" ", entities.Select(ec => string.Join(", ",
+            ec.Select(e => string.Join(" AS ", ExpandValue(e.Value), EscapeName(e.ColumnName))))))));
+        result.Append(" FROM dual ) s ON (");
+        result.Append(string.Join(" AND ",
+            joinColumns.Select(j => $"t.{EscapeName(j.ColumnName)} = s.{EscapeName(j.ColumnName)}")));
+        result.Append(") ");
         result.Append(" WHEN NOT MATCHED THEN INSERT (");
         result.Append(string.Join(", ",
             entities.First().Where(e => e.AllowInserts).Select(e => EscapeName(e.ColumnName))));
         result.Append(") VALUES (");
         result.Append(string.Join(", ",
-            entities.First().Where(e => e.AllowInserts).Select(e => EscapeName(e.ColumnName))));
-        result.Append(')');
-        if (updateExpressions != null)
+            entities.First().Where(e => e.AllowInserts).Select(e => ExpandValue(e.Value))));
+        result.Append(") ");
+        if (updateExpressions is not null)
         {
-            result.Append(" WHEN MATCHED");
-            if (updateCondition != null)
-                result.Append($" AND {ExpandExpression(updateCondition)}");
-            result.Append(" THEN UPDATE SET ");
+            result.Append("WHEN MATCHED ");
+            if (updateCondition is not null)
+            {
+                result.Append($" AND {ExpandExpression(updateCondition)} ");
+            }
+
+            result.Append("THEN UPDATE SET ");
             result.Append(string.Join(", ",
-                updateExpressions.Select((e, i) => $"{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
+                updateExpressions.Select(e => $"t.{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
         }
 
         result.Append(';');
