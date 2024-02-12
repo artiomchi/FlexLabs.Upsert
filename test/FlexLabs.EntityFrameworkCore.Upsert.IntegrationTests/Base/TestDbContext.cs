@@ -37,7 +37,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             modelBuilder.Entity<GeneratedAlwaysAsIdentity>().HasIndex(b => b.Num1).IsUnique();
             modelBuilder.Entity<GeneratedAlwaysAsIdentity>().Property(e => e.Num2).UseIdentityAlwaysColumn();
             modelBuilder.Entity<ComputedColumn>().HasIndex(b => b.Num1).IsUnique();
-            modelBuilder.Entity<ComputedColumn>().Property(e => e.Num3).HasComputedColumnSql($"{EscapeColumn(dbProvider, nameof(ComputedColumn.Num2))} + 1", stored: true);
+            modelBuilder.Entity<ComputedColumn>().Property(e => e.Num3)
+                .HasComputedColumnSql($"{EscapeColumn(dbProvider, nameof(ComputedColumn.Num2))} + 1", stored: true);
 
             if (dbProvider.Name == "Npgsql.EntityFrameworkCore.PostgreSQL")
             {
@@ -48,9 +49,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             {
                 modelBuilder.Entity<JsonData>().Ignore(j => j.Child);
             }
-            if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql
+
+            if (dbProvider.Name !=
+                "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql
                 modelBuilder.Entity<NullableRequired>().Property(e => e.Text).HasDefaultValue("B");
-            if (dbProvider.Name == "Pomelo.EntityFrameworkCore.MySql") // Can't have table schemas in MySql
+            if (dbProvider.Name is "Pomelo.EntityFrameworkCore.MySql"
+                or "Oracle.EntityFrameworkCore") // Can't have table schemas in MySql and Oracle
                 modelBuilder.Entity<SchemaTable>().Metadata.SetSchema(null);
         }
 
