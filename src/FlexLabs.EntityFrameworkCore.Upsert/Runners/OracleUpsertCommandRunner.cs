@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 
@@ -52,6 +54,113 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
         }
 
         return result.ToString();
+    }
+
+    /// <inheritdoc />
+    protected override string ExpandExpression(KnownExpression expression,
+        Func<string, string>? expandLeftColumn = null)
+    {
+        ArgumentNullException.ThrowIfNull(expression);
+
+        switch (expression.ExpressionType)
+        {
+            case ExpressionType.Add:
+            case ExpressionType.Divide:
+            case ExpressionType.Modulo:
+            case ExpressionType.Multiply:
+            case ExpressionType.Subtract:
+            case ExpressionType.LessThan:
+            case ExpressionType.LessThanOrEqual:
+            case ExpressionType.GreaterThan:
+            case ExpressionType.GreaterThanOrEqual:
+            {
+                var left = ExpandValue(expression.Value1, expandLeftColumn);
+                var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                var op = GetSimpleOperator(expression.ExpressionType);
+                return $"{left} {op} {right}";
+            }
+            case ExpressionType.Equal:
+            case ExpressionType.NotEqual:
+            {
+                var value1Null = expression.Value1 is ConstantValue constant1 && constant1.Value == null;
+                var value2Null = expression.Value2 is ConstantValue constant2 && constant2.Value == null;
+                if (value1Null || value2Null)
+                {
+                    return IsNullExpression(value2Null ? expression.Value1! : expression.Value2!,
+                        expression.ExpressionType == ExpressionType.NotEqual);
+                }
+
+                var left = ExpandValue(expression.Value1, expandLeftColumn);
+                var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                var op = GetSimpleOperator(expression.ExpressionType);
+                return $"{left} {op} {right}";
+            }
+
+            case ExpressionType.Coalesce:
+            {
+                var left = ExpandValue(expression.Value1, expandLeftColumn);
+                var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                return $"COALESCE({left}, {right})";
+            }
+
+            case ExpressionType.Conditional:
+            {
+                var ifTrue = ExpandValue(expression.Value1, expandLeftColumn);
+                var ifFalse = ExpandValue(expression.Value2!, expandLeftColumn);
+                var test = ExpandValue(expression.Value3!, expandLeftColumn);
+                return $"CASE WHEN {test} THEN {ifTrue} ELSE {ifFalse} END";
+            }
+
+            case ExpressionType.MemberAccess:
+            case ExpressionType.Constant:
+            {
+                return ExpandValue(expression.Value1, expandLeftColumn);
+            }
+
+            case ExpressionType.AndAlso:
+            case ExpressionType.OrElse:
+            {
+                var exp = expression.ExpressionType == ExpressionType.AndAlso ? "AND" : "OR";
+                var left = ExpandValue(expression.Value1, expandLeftColumn);
+                var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                return $"{left} {exp} {right}";
+            }
+            case ExpressionType.And:
+            {
+                var left = ExpandValue(expression.Value1, expandLeftColumn);
+                var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                return $"BITAND({left}, {right})";
+            }
+            case ExpressionType.Or:
+            {
+                var left = ExpandValue(expression.Value1, expandLeftColumn);
+                var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                return $"BITOR({left}, {right})";
+            }
+
+            default:
+                throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
+        }
+    }
+
+    /// <inheritdoc />
+    protected override string GetSimpleOperator(ExpressionType expressionType)
+    {
+        return expressionType switch
+        {
+            ExpressionType.Add => "+",
+            ExpressionType.Divide => "/",
+            ExpressionType.Modulo => "%",
+            ExpressionType.Multiply => "*",
+            ExpressionType.Subtract => "-",
+            ExpressionType.LessThan => "<",
+            ExpressionType.LessThanOrEqual => "<=",
+            ExpressionType.GreaterThan => ">",
+            ExpressionType.GreaterThanOrEqual => ">=",
+            ExpressionType.Equal => "=",
+            ExpressionType.NotEqual => "!=",
+            _ => throw new InvalidOperationException($"{expressionType} is not a simple arithmetic operation"),
+        };
     }
 
     /// <inheritdoc />
