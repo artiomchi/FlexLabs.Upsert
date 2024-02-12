@@ -21,7 +21,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
             {
                 var connectionString = (TestContainer as IDatabaseContainer)?.GetConnectionString();
-                builder.UseOracle(connectionString);
+                builder
+                    .UseOracle(connectionString)
+                    .UseUpperSnakeCaseNamingConvention();
             }
         }
 
