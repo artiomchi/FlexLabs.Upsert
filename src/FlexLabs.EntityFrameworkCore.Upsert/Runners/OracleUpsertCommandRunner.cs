@@ -66,7 +66,6 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
         {
             case ExpressionType.Add:
             case ExpressionType.Divide:
-            case ExpressionType.Modulo:
             case ExpressionType.Multiply:
             case ExpressionType.Subtract:
             case ExpressionType.LessThan:
@@ -137,6 +136,12 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
                 var right = ExpandValue(expression.Value2!, expandLeftColumn);
                 return $"BITOR({left}, {right})";
             }
+            case ExpressionType.Modulo:
+            {
+                var left = ExpandValue(expression.Value1, expandLeftColumn);
+                var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                return $"MOD({left}, {right})";
+            }
 
             default:
                 throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
@@ -150,7 +155,6 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
         {
             ExpressionType.Add => "+",
             ExpressionType.Divide => "/",
-            ExpressionType.Modulo => "%",
             ExpressionType.Multiply => "*",
             ExpressionType.Subtract => "-",
             ExpressionType.LessThan => "<",
