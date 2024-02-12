@@ -64,6 +64,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
                 "Pomelo.EntityFrameworkCore.MySql" => $"`{columnName}`",
                 "Npgsql.EntityFrameworkCore.PostgreSQL" => $"\"{columnName}\"",
                 "Microsoft.EntityFrameworkCore.Sqlite" => $"\"{columnName}\"",
+                "Oracle.EntityFrameworkCore" => columnName.ToUpper(),
                 _ => $"[{columnName}]"
             };
 
