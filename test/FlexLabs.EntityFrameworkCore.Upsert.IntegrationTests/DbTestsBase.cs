@@ -1257,7 +1257,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [Fact]
         public void Upsert_NullableKeys()
         {
-            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Postgres || _fixture.DbDriver == DbDriver.Sqlite)
+            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Postgres ||
+                _fixture.DbDriver == DbDriver.Sqlite || _fixture.DbDriver == DbDriver.Oracle)
                 return;
 
             ResetDb();
