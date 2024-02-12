@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
@@ -50,16 +51,18 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
                 updateExpressions.Select(e => $"t.{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
         }
 
-        result.Append(';');
         return result.ToString();
     }
 
     /// <inheritdoc />
-    protected override string EscapeName(string name) => "\"" + name + "\"";
+    protected override string EscapeName([NotNull] string name) => name.ToUpperInvariant();
 
     /// <inheritdoc />
     protected override string? SourcePrefix => "s.";
 
     /// <inheritdoc />
     protected override string? TargetPrefix => "t.";
+
+    /// <inheritdoc />
+    protected override string Parameter(int index) => $":p{index}";
 }
