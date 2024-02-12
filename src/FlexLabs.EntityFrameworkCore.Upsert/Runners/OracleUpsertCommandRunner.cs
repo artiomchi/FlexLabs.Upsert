@@ -55,7 +55,7 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
     }
 
     /// <inheritdoc />
-    protected override string EscapeName([NotNull] string name) => name.ToUpperInvariant();
+    protected override string EscapeName([NotNull] string name) => $"\"{name.ToUpperInvariant()}\"";
 
     /// <inheritdoc />
     protected override string? SourcePrefix => "s.";
