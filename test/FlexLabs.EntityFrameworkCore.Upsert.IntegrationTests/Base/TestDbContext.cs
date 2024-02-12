@@ -55,7 +55,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
                 modelBuilder.Entity<NullableRequired>().Property(e => e.Text).HasDefaultValue("B");
             if (dbProvider.Name is "Pomelo.EntityFrameworkCore.MySql"
                 or "Oracle.EntityFrameworkCore") // Can't have table schemas in MySql and Oracle
+            {
                 modelBuilder.Entity<SchemaTable>().Metadata.SetSchema(null);
+            }
+            else
+            {
+                modelBuilder.Entity<SchemaTable>().Metadata.SetSchema("testsch");
+            }
         }
 
         private string EscapeColumn(IDatabaseProvider dbProvider, string columnName)
