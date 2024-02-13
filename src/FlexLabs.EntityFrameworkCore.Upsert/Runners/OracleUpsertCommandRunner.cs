@@ -23,13 +23,22 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
         ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
         KnownExpression? updateCondition)
     {
+        ArgumentNullException.ThrowIfNull(entities);
         var result = new StringBuilder();
 
         result.Append($"MERGE INTO {tableName} t USING (");
-        result.Append("SELECT ");
-        result.Append(string.Join(", ", entities.First().Select(ec => string.Join(" AS ", ExpandValue(ec.Value),
-            EscapeName(ec.ColumnName)))));
-        result.Append(" FROM dual ) s ON (");
+        foreach (var item in entities.Select((e, ind) => new {e, ind}))
+        {
+            result.Append(" SELECT ");
+            result.Append(string.Join(", ", item.e.Select(ec => string.Join(" AS ", ExpandValue(ec.Value),
+                EscapeName(ec.ColumnName)))));
+            result.Append(" FROM dual");
+            if (entities.Count > 1 && item.ind != entities.Count - 1)
+            {
+                result.Append(" UNION ALL ");
+            }
+        }
+        result.Append(") s ON (");
         result.Append(string.Join(" AND ",
             joinColumns.Select(j => $"t.{EscapeName(j.ColumnName)} = s.{EscapeName(j.ColumnName)}")));
         result.Append(") ");
@@ -38,7 +47,7 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
             entities.First().Where(e => e.AllowInserts).Select(e => EscapeName(e.ColumnName))));
         result.Append(") VALUES (");
         result.Append(string.Join(", ",
-            entities.First().Where(e => e.AllowInserts).Select(e => ExpandValue(e.Value))));
+            entities.First().Where(e => e.AllowInserts).Select(e => $"s.{EscapeName(e.ColumnName)}")));
         result.Append(") ");
         if (updateExpressions is not null)
         {
@@ -178,4 +187,7 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
 
     /// <inheritdoc />
     protected override string Parameter(int index) => $":p{index}";
+
+    /// <inheritdoc />
+    protected override int? MaxQueryParams => 1000;
 }
