@@ -7,5 +7,6 @@
         MySQL,
         InMemory,
         Sqlite,
+        Oracle,
     }
 }

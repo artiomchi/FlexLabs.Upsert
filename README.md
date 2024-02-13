@@ -7,7 +7,7 @@ CI build: [![FlexLabs.EntityFrameworkCore.Upsert on MyGet](https://img.shields.i
 
 This library adds basic support for "Upsert" operations to EF Core.
 
-Uses `INSERT … ON CONFLICT DO UPDATE` in PostgreSQL/Sqlite, `MERGE` in SqlServer and `INSERT INTO … ON DUPLICATE KEY UPDATE` in MySQL.
+Uses `INSERT … ON CONFLICT DO UPDATE` in PostgreSQL/Sqlite, `MERGE` in SqlServer & Oracle and `INSERT INTO … ON DUPLICATE KEY UPDATE` in MySQL.
 
 Also supports injecting sql command runners to add support for other providers
 
