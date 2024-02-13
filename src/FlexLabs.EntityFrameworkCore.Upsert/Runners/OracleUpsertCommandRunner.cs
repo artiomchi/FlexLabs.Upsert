@@ -43,14 +43,14 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
         if (updateExpressions is not null)
         {
             result.Append("WHEN MATCHED ");
-            if (updateCondition is not null)
-            {
-                result.Append($" AND {ExpandExpression(updateCondition)} ");
-            }
 
             result.Append("THEN UPDATE SET ");
             result.Append(string.Join(", ",
                 updateExpressions.Select(e => $"t.{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
+            if (updateCondition is not null)
+            {
+                result.Append($" WHERE {ExpandExpression(updateCondition)} ");
+            }
         }
 
         return result.ToString();
