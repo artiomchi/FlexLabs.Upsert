@@ -27,8 +27,8 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
 
         result.Append($"MERGE INTO {tableName} t USING (");
         result.Append("SELECT ");
-        result.Append(string.Join("", string.Join(" ", entities.Select(ec => string.Join(", ",
-            ec.Select(e => string.Join(" AS ", ExpandValue(e.Value), EscapeName(e.ColumnName))))))));
+        result.Append(string.Join(", ", entities.First().Select(ec => string.Join(" AS ", ExpandValue(ec.Value),
+            EscapeName(ec.ColumnName)))));
         result.Append(" FROM dual ) s ON (");
         result.Append(string.Join(" AND ",
             joinColumns.Select(j => $"t.{EscapeName(j.ColumnName)} = s.{EscapeName(j.ColumnName)}")));
