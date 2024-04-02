@@ -409,7 +409,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             return result;
         }
 
-        private object PrepareDbCommandArgument(DbCommand dbCommand, IRelationalTypeMappingSource relationalTypeMappingSource, ConstantValue constantValue)
+        private DbParameter PrepareDbCommandArgument(DbCommand dbCommand, IRelationalTypeMappingSource relationalTypeMappingSource, ConstantValue constantValue)
         {
             RelationalTypeMapping? relationalTypeMapping = null;
 
