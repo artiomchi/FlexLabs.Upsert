@@ -1781,5 +1781,88 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.ComputedColumns.OrderBy(c => c.Num1).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(item, num3: 10));
         }
+
+        [Fact]
+        public void Upsert_IgnoreNullConstantInExpression_WhenMatched()
+        {
+            const int entityNum = 1;
+            const int num2Value = 54;
+            TestEntity oldItem = new()
+            {
+                Num1 = entityNum,
+                Num2 = num2Value,
+                Text1 = null,
+            };
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+            dbContext.Add(oldItem);
+            dbContext.SaveChanges();
+            dbContext.Entry(oldItem).State = EntityState.Detached;
+
+            const string expectedText = "Text1";
+            var newItem = new TestEntity
+            {
+                Num1 = entityNum,
+                Num2 = num2Value,
+                Text1 = "SomeText",
+            };
+
+            dbContext.TestEntities
+                .Upsert(newItem)
+                .On(e => e.Num1)
+                .WhenMatched((old, ins) => new TestEntity
+                {
+                    Text1 = old.Text1 == null ? expectedText : ins.Text1,
+                })
+                .Run();
+
+            dbContext.TestEntities.Single()
+                .Should().MatchModel(new TestEntity
+                {
+                    Num1 = entityNum,
+                    Num2 = num2Value,
+                    Text1 = expectedText,
+                });
+        }
+
+        [Fact]
+        public void Upsert_IgnoreNullConstantInExpression_UpdateIf()
+        {
+            const int entityNum = 1;
+            const int num2Value = 54;
+            TestEntity oldItem = new()
+            {
+                Num1 = entityNum,
+                Num2 = num2Value,
+                Text1 = null,
+            };
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+            dbContext.Add(oldItem);
+            dbContext.SaveChanges();
+            dbContext.Entry(oldItem).State = EntityState.Detached;
+
+            const string expectedText = "SomeText";
+            var newItem = new TestEntity
+            {
+                Num1 = entityNum,
+                Num2 = num2Value,
+                Text1 = expectedText,
+            };
+
+            dbContext.TestEntities
+                .Upsert(newItem)
+                .On(e => e.Num1)
+                .UpdateIf(o => o.Text2 == null)
+                .Run();
+
+            dbContext.TestEntities.Single()
+                .Should().MatchModel(new TestEntity
+                {
+                    Num1 = entityNum,
+                    Num2 = num2Value,
+                    Text1 = expectedText,
+                });
+        }
     }
 }

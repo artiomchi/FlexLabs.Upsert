@@ -113,36 +113,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var expressionArguments = new List<ConstantValue>();
             var updateExpressions = new List<(string, IKnownValue Value)>();
 
-            if (updater != null)
+            foreach (var (property, value) in GetUpdateProperties(
+                         entityType, updater, queryOptions, properties, joinColumnNames))
             {
-                if (updater.Body is not MemberInitExpression entityUpdater)
-                    throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.UpdaterMustBeAnInitialiserOfTheTEntityType, nameof(updater)), nameof(updater));
-
-                foreach (MemberAssignment binding in entityUpdater.Bindings)
-                {
-                    var property = entityType.FindProperty(binding.Member.Name);
-                    if (property == null)
-                        throw new InvalidOperationException("Unknown property " + binding.Member.Name);
-
-                    var value = binding.Expression.GetValue<TEntity>(updater, entityType.FindProperty, queryOptions.UseExpressionCompiler);
-                    if (value is not IKnownValue knownVal)
-                        knownVal = new ConstantValue(value, property);
-
-                    expressionArguments.AddRange(knownVal.GetConstantValues());
-                    updateExpressions.Add((property.GetColumnName(), knownVal));
-                }
-            }
-            else if (!queryOptions.NoUpdate)
-            {
-                foreach (var property in properties)
-                {
-                    if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnName()))
-                        continue;
-
-                    var propertyAccess = new PropertyValue(property.Name, false, property);
-                    expressionArguments.AddRange(propertyAccess.GetConstantValues());
-                    updateExpressions.Add((property.GetColumnName(), propertyAccess));
-                }
+                expressionArguments.AddRange(value.GetConstantValues().Where(c => c.Value is not null));
+                updateExpressions.Add((property.GetColumnName(), value));
             }
 
             KnownExpression? updateConditionExpression = null;
@@ -198,6 +173,41 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
                 var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, updateExpressions, updateConditionExpression);
                 yield return (sqlCommand, arguments);
+            }
+        }
+
+        private static IEnumerable<(IProperty property, IKnownValue value)> GetUpdateProperties<TEntity>(
+            IEntityType entityType, Expression<Func<TEntity, TEntity, TEntity>>? updater,
+            RunnerQueryOptions queryOptions, IReadOnlyList<IProperty> properties,
+            IReadOnlyList<(string ColumnName, bool IsNullable)> joinColumnNames)
+        {
+            if (updater != null)
+            {
+                if (updater.Body is not MemberInitExpression entityUpdater)
+                    throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.UpdaterMustBeAnInitialiserOfTheTEntityType, nameof(updater)), nameof(updater));
+
+                foreach (MemberBinding memberBinding in entityUpdater.Bindings)
+                {
+                    var binding = (MemberAssignment)memberBinding;
+                    var property = entityType.FindProperty(binding.Member.Name);
+                    if (property == null)
+                        throw new InvalidOperationException("Unknown property " + binding.Member.Name);
+
+                    var value = binding.Expression.GetValue<TEntity>(updater, entityType.FindProperty, queryOptions.UseExpressionCompiler);
+                    IKnownValue knownValue = value as IKnownValue ?? new ConstantValue(value, property);
+                    yield return (property, knownValue);
+                }
+            }
+            else if (!queryOptions.NoUpdate)
+            {
+                foreach (var property in properties)
+                {
+                    if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnName()))
+                        continue;
+
+                    var propertyAccess = new PropertyValue(property.Name, false, property);
+                    yield return (property, propertyAccess);
+                }
             }
         }
 
