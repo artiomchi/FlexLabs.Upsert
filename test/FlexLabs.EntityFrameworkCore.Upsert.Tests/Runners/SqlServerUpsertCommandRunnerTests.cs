@@ -28,17 +28,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
         protected override string Update_Constant_Sql =>
             "MERGE INTO [TestEntity] WITH (HOLDLOCK) AS [T] " +
-            "USING ( VALUES (@p0, @p1, @p2, @p3) ) AS [S] ([ID], [Name], [Status], [Total]) " +
+            "USING ( VALUES (@p1, @p2, @p3, @p4) ) AS [S] ([ID], [Name], [Status], [Total]) " +
             "ON [T].[ID] = [S].[ID] " +
             "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
-            "WHEN MATCHED THEN UPDATE SET [Name] = @p4;";
+            "WHEN MATCHED THEN UPDATE SET [Name] = @p0;";
 
         protected override string Update_Constant_Multiple_Sql =>
             "MERGE INTO [TestEntity] WITH (HOLDLOCK) AS [T] " +
-            "USING ( VALUES (@p0, @p1, @p2, @p3), (@p4, @p5, @p6, @p7) ) AS [S] ([ID], [Name], [Status], [Total]) " +
+            "USING ( VALUES (@p1, @p2, @p3, @p4), (@p5, @p6, @p7, @p8) ) AS [S] ([ID], [Name], [Status], [Total]) " +
             "ON [T].[ID] = [S].[ID] " +
             "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
-            "WHEN MATCHED THEN UPDATE SET [Name] = @p8;";
+            "WHEN MATCHED THEN UPDATE SET [Name] = @p0;";
 
         protected override string Update_Source_Sql =>
             "MERGE INTO [TestEntity] WITH (HOLDLOCK) AS [T] " +
@@ -49,58 +49,58 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
         protected override string Update_BinaryAdd_Sql =>
             "MERGE INTO [TestEntity] WITH (HOLDLOCK) AS [T] " +
-            "USING ( VALUES (@p0, @p1, @p2, @p3) ) AS [S] ([ID], [Name], [Status], [Total]) " +
+            "USING ( VALUES (@p1, @p2, @p3, @p4) ) AS [S] ([ID], [Name], [Status], [Total]) " +
             "ON [T].[ID] = [S].[ID] " +
             "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
-            "WHEN MATCHED THEN UPDATE SET [Total] = ( [T].[Total] + @p4 );";
+            "WHEN MATCHED THEN UPDATE SET [Total] = ( [T].[Total] + @p0 );";
 
         protected override string Update_Coalesce_Sql =>
             "MERGE INTO [TestEntity] WITH (HOLDLOCK) AS [T] " +
-            "USING ( VALUES (@p0, @p1, @p2, @p3) ) AS [S] ([ID], [Name], [Status], [Total]) " +
+            "USING ( VALUES (@p1, @p2, @p3, @p4) ) AS [S] ([ID], [Name], [Status], [Total]) " +
             "ON [T].[ID] = [S].[ID] " +
             "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
-            "WHEN MATCHED THEN UPDATE SET [Status] = ( COALESCE([T].[Status], @p4) );";
+            "WHEN MATCHED THEN UPDATE SET [Status] = ( COALESCE([T].[Status], @p0) );";
 
         protected override string Update_BinaryAddMultiply_Sql =>
             "MERGE INTO [TestEntity] WITH (HOLDLOCK) AS [T] " +
-            "USING ( VALUES (@p0, @p1, @p2, @p3) ) AS [S] ([ID], [Name], [Status], [Total]) " +
+            "USING ( VALUES (@p1, @p2, @p3, @p4) ) AS [S] ([ID], [Name], [Status], [Total]) " +
             "ON [T].[ID] = [S].[ID] " +
             "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
-            "WHEN MATCHED THEN UPDATE SET [Total] = ( ( [T].[Total] + @p4 ) * [S].[Total] );";
+            "WHEN MATCHED THEN UPDATE SET [Total] = ( ( [T].[Total] + @p0 ) * [S].[Total] );";
 
         protected override string Update_BinaryAddMultiplyGroup_Sql =>
             "MERGE INTO [TestEntity] WITH (HOLDLOCK) AS [T] " +
-            "USING ( VALUES (@p0, @p1, @p2, @p3) ) AS [S] ([ID], [Name], [Status], [Total]) " +
+            "USING ( VALUES (@p1, @p2, @p3, @p4) ) AS [S] ([ID], [Name], [Status], [Total]) " +
             "ON [T].[ID] = [S].[ID] " +
             "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
-            "WHEN MATCHED THEN UPDATE SET [Total] = ( [T].[Total] + ( @p4 * [S].[Total] ) );";
+            "WHEN MATCHED THEN UPDATE SET [Total] = ( [T].[Total] + ( @p0 * [S].[Total] ) );";
 
         protected override string Update_Condition_Sql =>
             "MERGE INTO [TestEntity] WITH (HOLDLOCK) AS [T] " +
-            "USING ( VALUES (@p0, @p1, @p2, @p3) ) AS [S] ([ID], [Name], [Status], [Total]) " +
+            "USING ( VALUES (@p2, @p3, @p4, @p5) ) AS [S] ([ID], [Name], [Status], [Total]) " +
             "ON [T].[ID] = [S].[ID] " +
             "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
-            "WHEN MATCHED AND [T].[Total] > @p5 THEN UPDATE SET [Name] = @p4;";
+            "WHEN MATCHED AND [T].[Total] > @p1 THEN UPDATE SET [Name] = @p0;";
 
         protected override string Update_Condition_UpdateConditionColumn_Sql =>
             "MERGE INTO [TestEntity] WITH (HOLDLOCK) AS [T] " +
-            "USING ( VALUES (@p0, @p1, @p2, @p3) ) AS [S] ([ID], [Name], [Status], [Total]) " +
+            "USING ( VALUES (@p3, @p4, @p5, @p6) ) AS [S] ([ID], [Name], [Status], [Total]) " +
             "ON [T].[ID] = [S].[ID] " +
             "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
-            "WHEN MATCHED AND [T].[Total] > @p6 THEN UPDATE SET [Name] = @p4, [Total] = ( [T].[Total] + @p5 );";
+            "WHEN MATCHED AND [T].[Total] > @p2 THEN UPDATE SET [Name] = @p0, [Total] = ( [T].[Total] + @p1 );";
 
         protected override string Update_Condition_AndCondition_Sql =>
             "MERGE INTO [TestEntity] WITH (HOLDLOCK) AS [T] " +
-            "USING ( VALUES (@p0, @p1, @p2, @p3) ) AS [S] ([ID], [Name], [Status], [Total]) " +
+            "USING ( VALUES (@p2, @p3, @p4, @p5) ) AS [S] ([ID], [Name], [Status], [Total]) " +
             "ON [T].[ID] = [S].[ID] " +
             "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
-            "WHEN MATCHED AND ( [T].[Total] > @p5 ) AND ( [T].[Status] != [S].[Status] ) THEN UPDATE SET [Name] = @p4;";
+            "WHEN MATCHED AND ( [T].[Total] > @p1 ) AND ( [T].[Status] != [S].[Status] ) THEN UPDATE SET [Name] = @p0;";
 
         protected override string Update_Condition_NullCheck_Sql =>
             "MERGE INTO [TestEntity] WITH (HOLDLOCK) AS [T] " +
-            "USING ( VALUES (@p0, @p1, @p2, @p3) ) AS [S] ([ID], [Name], [Status], [Total]) " +
+            "USING ( VALUES (@p1, @p2, @p3, @p4) ) AS [S] ([ID], [Name], [Status], [Total]) " +
             "ON [T].[ID] = [S].[ID] " +
             "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
-            "WHEN MATCHED AND [T].[Status] IS NOT NULL THEN UPDATE SET [Name] = @p4;";
+            "WHEN MATCHED AND [T].[Status] IS NOT NULL THEN UPDATE SET [Name] = @p0;";
     }
 }

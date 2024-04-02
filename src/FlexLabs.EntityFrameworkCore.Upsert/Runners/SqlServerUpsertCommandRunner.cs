@@ -22,8 +22,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override int? MaxQueryParams => 2100;
 
         /// <inheritdoc/>
-        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
-            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
+        protected override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
+            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions,
             KnownExpression? updateCondition)
         {
             var result = new StringBuilder();
@@ -40,7 +40,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append(") VALUES (");
             result.Append(string.Join(", ", entities.First().Where(e => e.AllowInserts).Select(e => EscapeName(e.ColumnName))));
             result.Append(')');
-            if (updateExpressions != null)
+            if (updateExpressions.Count != 0)
             {
                 result.Append(" WHEN MATCHED");
                 if (updateCondition != null)

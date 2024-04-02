@@ -29,8 +29,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="updateExpressions">The expressions that represent update commands for matched entities</param>
         /// <param name="updateCondition">The expression that tests whether existing entities should be updated</param>
         /// <returns>A fully formed database query</returns>
-        public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
-            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
+        protected abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
+            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions,
             KnownExpression? updateCondition);
         /// <summary>
         /// Escape the name of the table/column/schema in a given database language
@@ -110,13 +110,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .Where(p => p.PropertyInfo != null)
                 .ToArray();
 
-            List<(IProperty Property, IKnownValue Value)>? updateExpressions = null;
+            var expressionArguments = new List<ConstantValue>();
+            var updateExpressions = new List<(string, IKnownValue Value)>();
+
             if (updater != null)
             {
                 if (updater.Body is not MemberInitExpression entityUpdater)
                     throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.UpdaterMustBeAnInitialiserOfTheTEntityType, nameof(updater)), nameof(updater));
 
-                updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
                 foreach (MemberAssignment binding in entityUpdater.Bindings)
                 {
                     var property = entityType.FindProperty(binding.Member.Name);
@@ -127,19 +128,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     if (value is not IKnownValue knownVal)
                         knownVal = new ConstantValue(value, property);
 
-                    updateExpressions.Add((property, knownVal));
+                    expressionArguments.AddRange(knownVal.GetConstantValues());
+                    updateExpressions.Add((property.GetColumnName(), knownVal));
                 }
             }
             else if (!queryOptions.NoUpdate)
             {
-                updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
                 foreach (var property in properties)
                 {
                     if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnName()))
                         continue;
 
                     var propertyAccess = new PropertyValue(property.Name, false, property);
-                    updateExpressions.Add((property, propertyAccess));
+                    expressionArguments.AddRange(propertyAccess.GetConstantValues());
+                    updateExpressions.Add((property.GetColumnName(), propertyAccess));
                 }
             }
 
@@ -150,6 +152,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 if (updateConditionValue is not KnownExpression updateConditionExp)
                     throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
                 updateConditionExpression = updateConditionExp;
+                expressionArguments.AddRange(updateConditionExpression.GetConstantValues().Where(c => c.Value != null));
             }
 
             var newEntities = entities
@@ -177,7 +180,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var singleEntityArguments = newEntities[0].Count;
             while (entitiesProcessed < newEntities.Length)
             {
-                var arguments = new List<ConstantValue>();
+                var arguments = new List<ConstantValue>(expressionArguments);
 
                 var entitiesHere = 0;
                 do
@@ -189,22 +192,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 while (entitiesProcessed < newEntities.Length &&
                     (MaxQueryParams == null || arguments.Count + singleEntityArguments < MaxQueryParams));
 
-                if (updateExpressions != null)
-                    arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues()));
-
-#pragma warning disable CA1508 // Avoid dead conditional code. Analyzer is drunk - this can clearly be not null!
-                if (updateConditionExpression != null)
-                    arguments.AddRange(updateConditionExpression.GetConstantValues().Where(c => c.Value != null));
-#pragma warning restore CA1508 // Avoid dead conditional code
-
                 int i = 0;
                 foreach (var arg in arguments)
                     arg.ArgumentIndex = i++;
 
-                var columnUpdateExpressions = updateExpressions?.Count > 0
-                    ? updateExpressions.Select(x => (x.Property.GetColumnName(), x.Value)).ToArray()
-                    : null;
-                var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression);
+                var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, updateExpressions, updateConditionExpression);
                 yield return (sqlCommand, arguments);
             }
         }

@@ -19,7 +19,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests
             public override bool Supports(string name) => name == "Microsoft.EntityFrameworkCore.Sqlite";
 
             public static int GenerateCalled;
-            public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
+            protected override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
                 ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions, KnownExpression updateCondition)
             {
                 GenerateCalled++;

@@ -22,8 +22,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override int? MaxQueryParams => 32767;
 
         /// <inheritdoc/>
-        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
-            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
+        protected override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
+            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)> updateExpressions,
             KnownExpression? updateCondition)
         {
             var result = new StringBuilder();
@@ -34,7 +34,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append(") ON CONFLICT (");
             result.Append(string.Join(", ", joinColumns.Select(c => EscapeName(c.ColumnName))));
             result.Append(") DO ");
-            if (updateExpressions != null)
+            if (updateExpressions.Count != 0)
             {
                 result.Append("UPDATE SET ");
                 result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
