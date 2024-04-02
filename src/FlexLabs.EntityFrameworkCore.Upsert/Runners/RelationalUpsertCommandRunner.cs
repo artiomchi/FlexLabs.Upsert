@@ -5,6 +5,7 @@ using System.Data.Common;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
@@ -20,6 +21,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     /// </summary>
     public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     {
+        private static readonly CompositeFormat CouldNotGetTableNameForEntityType =
+            CompositeFormat.Parse(Resources.CouldNotGetTableNameForEntityType);
+        private static readonly CompositeFormat UpdaterMustBeAnInitialiserOfTheTEntityType =
+            CompositeFormat.Parse(Resources.UpdaterMustBeAnInitialiserOfTheTEntityType);
+
         /// <summary>
         /// Generate a full command for the opsert operation, given the inputs passed
         /// </summary>
@@ -70,7 +76,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected virtual string GetTableName(IEntityType entityType)
         {
             var tableName = entityType.GetTableName()
-                ?? throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CouldNotGetTableNameForEntityType, entityType?.Name));
+                ?? throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture,
+                    CouldNotGetTableNameForEntityType, entityType?.Name));
             return GetSchema(entityType) + EscapeName(tableName);
         }
 
@@ -184,7 +191,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             if (updater != null)
             {
                 if (updater.Body is not MemberInitExpression entityUpdater)
-                    throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.UpdaterMustBeAnInitialiserOfTheTEntityType, nameof(updater)), nameof(updater));
+                    throw new ArgumentException(string.Format(CultureInfo.InvariantCulture,
+                        UpdaterMustBeAnInitialiserOfTheTEntityType, nameof(updater)), nameof(updater));
 
                 foreach (MemberBinding memberBinding in entityUpdater.Bindings)
                 {
