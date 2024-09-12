@@ -43,6 +43,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             {
                 modelBuilder.Entity<JsonData>().Property(j => j.Data).HasColumnType("jsonb");
                 modelBuilder.Entity<JsonData>().Property(j => j.Child).HasColumnType("jsonb");
+                modelBuilder.Entity<JsonData>().OwnsOne(j => j.Poco, x => x.ToJson());
             }
             else
             {
