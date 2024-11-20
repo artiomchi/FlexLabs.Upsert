@@ -25,8 +25,7 @@ namespace Microsoft.Extensions.DependencyInjection
         public static DbContextOptionsBuilder ReplaceUpsertCommandRunner<TRunner>(this DbContextOptionsBuilder builder)
             where TRunner : class, IUpsertCommandRunner
         {
-            if (builder == null)
-                throw new ArgumentNullException(nameof(builder));
+            ArgumentNullException.ThrowIfNull(builder);
 
             ((IDbContextOptionsBuilderInfrastructure)builder).AddOrUpdateExtension(new UpsertContextOptionsExtension<TRunner>());
             return builder;

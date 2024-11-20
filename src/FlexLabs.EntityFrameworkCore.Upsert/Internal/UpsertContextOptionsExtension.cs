@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {
-    internal class UpsertContextOptionsExtension<TRunner> : IDbContextOptionsExtension
+    internal sealed class UpsertContextOptionsExtension<TRunner> : IDbContextOptionsExtension
         where TRunner : class, IUpsertCommandRunner
     {
         public UpsertContextOptionsExtension()
@@ -23,7 +23,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 
         public void Validate(IDbContextOptions options) { }
 
-        class ExtensionInfo : DbContextOptionsExtensionInfo
+        sealed class ExtensionInfo : DbContextOptionsExtensionInfo
         {
             public ExtensionInfo(IDbContextOptionsExtension extension)
                 : base(extension)

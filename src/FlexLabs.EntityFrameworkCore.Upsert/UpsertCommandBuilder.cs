@@ -49,7 +49,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public UpsertCommandBuilder<TEntity> On(Expression<Func<TEntity, object>> match)
         {
             if (_matchExpression != null)
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(On)));
+                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(On)));
 
             _matchExpression = match ?? throw new ArgumentNullException(nameof(match));
             return this;
@@ -72,12 +72,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// <returns>The current instance of the UpsertCommandBuilder</returns>
         public UpsertCommandBuilder<TEntity> WhenMatched(Expression<Func<TEntity, TEntity>> updater)
         {
-            if (updater == null)
-                throw new ArgumentNullException(nameof(updater));
+            ArgumentNullException.ThrowIfNull(updater);
             if (_updateExpression != null)
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched)));
+                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
             if (_queryOptions.NoUpdate)
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched), nameof(NoUpdate)));
+                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(NoUpdate)));
 
             _updateExpression =
                 Expression.Lambda<Func<TEntity, TEntity, TEntity>>(
@@ -96,9 +95,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public UpsertCommandBuilder<TEntity> WhenMatched(Expression<Func<TEntity, TEntity, TEntity>> updater)
         {
             if (_updateExpression != null)
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched)));
+                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
             if (_queryOptions.NoUpdate)
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched), nameof(NoUpdate)));
+                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(NoUpdate)));
 
             _updateExpression = updater ?? throw new ArgumentNullException(nameof(updater));
             return this;
@@ -111,12 +110,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// <returns>The current instance of the UpsertCommandBuilder</returns>
         public UpsertCommandBuilder<TEntity> UpdateIf(Expression<Func<TEntity, bool>> condition)
         {
-            if (condition == null)
-                throw new ArgumentNullException(nameof(condition));
+            ArgumentNullException.ThrowIfNull(condition);
             if (_updateCondition != null)
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched)));
+                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
             if (_queryOptions.NoUpdate)
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched), nameof(NoUpdate)));
+                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(NoUpdate)));
 
             _updateCondition =
                 Expression.Lambda<Func<TEntity, TEntity, bool>>(
@@ -135,9 +133,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public UpsertCommandBuilder<TEntity> UpdateIf(Expression<Func<TEntity, TEntity, bool>> condition)
         {
             if (_updateCondition != null)
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched)));
+                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
             if (_queryOptions.NoUpdate)
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(WhenMatched), nameof(NoUpdate)));
+                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(NoUpdate)));
 
             _updateCondition = condition ?? throw new ArgumentNullException(nameof(condition));
             return this;
@@ -162,7 +160,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public UpsertCommandBuilder<TEntity> NoUpdate()
         {
             if (_updateExpression != null)
-                throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CantCallMethodTwice, nameof(NoUpdate), nameof(WhenMatched)));
+                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
 
             _queryOptions.NoUpdate = true;
             return this;

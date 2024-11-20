@@ -39,8 +39,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <returns>A list of model properties used to match entities</returns>
         protected static ICollection<IProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>>? matchExpression, RunnerQueryOptions queryOptions)
         {
-            if (entityType == null)
-                throw new ArgumentNullException(nameof(entityType));
+            ArgumentNullException.ThrowIfNull(entityType);
 
             List<IProperty> joinColumns;
             if (matchExpression is null)
@@ -58,7 +57,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
                     var property = entityType.FindProperty(arg.Member.Name);
                     if (property == null)
-                        throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.UnknownProperty, arg.Member.Name));
+                        throw new InvalidOperationException(Resources.FormatUnknownProperty(arg.Member.Name));
                     joinColumns.Add(property);
                 }
             }
@@ -68,7 +67,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
                 var property = entityType.FindProperty(memberExp.Member.Name);
                 if (property == null)
-                    throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.UnknownProperty, memberExp.Member.Name));
+                    throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExp.Member.Name));
                 joinColumns = new List<IProperty> { property };
             }
             else if (matchExpression.Body is MemberExpression memberExpression)
@@ -77,12 +76,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
                 var property = entityType.FindProperty(memberExpression.Member.Name);
                 if (property == null)
-                    throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.UnknownProperty, memberExpression.Member.Name));
+                    throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExpression.Member.Name));
                 joinColumns = new List<IProperty> { property };
             }
             else
             {
-                throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.ArgumentMustBeAnAnonymousObjectInitialiser, "match"), nameof(matchExpression));
+                throw new ArgumentException(Resources.FormatArgumentMustBeAnAnonymousObjectInitialiser("match"), nameof(matchExpression));
             }
 
             if (!queryOptions.AllowIdentityMatch && joinColumns.Any(p => p.ValueGenerated != ValueGenerated.Never))
