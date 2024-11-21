@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -52,7 +51,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <inheritdoc/>
         public IEnumerable<PropertyValue> GetPropertyValues()
         {
-            return Array.Empty<PropertyValue>();
+            return [];
         }
     }
 }

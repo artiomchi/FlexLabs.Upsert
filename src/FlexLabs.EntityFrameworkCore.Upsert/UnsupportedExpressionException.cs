@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert
 {
@@ -23,7 +22,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         }
 
         internal static UnsupportedExpressionException MySQLConditionalUpdate()
-            => new UnsupportedExpressionException(Resources.UsingConditionalUpdatesIsNotSupportedInMySQLDueToDatabaseSyntaxLimitations + " " + 
+            => new(Resources.UsingConditionalUpdatesIsNotSupportedInMySQLDueToDatabaseSyntaxLimitations + " " + 
                 Resources.FormatSeeLinkForMoreDetails(HelpLinks.MySQLConditionalUpdate),
                 HelpLinks.MySQLConditionalUpdate);
     }

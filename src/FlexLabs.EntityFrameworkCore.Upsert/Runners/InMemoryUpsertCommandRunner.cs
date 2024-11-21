@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -107,7 +106,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             public TEntity NewEntity;
         }
 
-        private static ICollection<EntityMatch<TEntity>> FindMatches<TEntity>(IEntityType entityType, IEnumerable<TEntity> entities, DbContext dbContext,
+        private static EntityMatch<TEntity>[] FindMatches<TEntity>(IEntityType entityType, IEnumerable<TEntity> entities, DbContext dbContext,
             Expression<Func<TEntity, object>>? matchExpression) where TEntity : class
         {
             if (matchExpression != null)
@@ -119,7 +118,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             // If we're resorting to matching on PKs, we'll have to load them manually
             var primaryKeyProperties = entityType.FindPrimaryKey()?.Properties;
             if (primaryKeyProperties == null)
-                return Array.Empty<EntityMatch<TEntity>>();
+                return [];
 
             object?[] getPKs(TEntity entity)
             {

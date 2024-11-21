@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
@@ -116,13 +115,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 if (updater.Body is not MemberInitExpression entityUpdater)
                     throw new ArgumentException(Resources.FormatUpdaterMustBeAnInitialiserOfTheTEntityType(nameof(updater)), nameof(updater));
 
-                updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
+                updateExpressions = [];
                 foreach (MemberAssignment binding in entityUpdater.Bindings)
                 {
-                    var property = entityType.FindProperty(binding.Member.Name);
-                    if (property == null)
-                        throw new InvalidOperationException("Unknown property " + binding.Member.Name);
-
+                    var property = entityType.FindProperty(binding.Member.Name)
+                        ?? throw new InvalidOperationException("Unknown property " + binding.Member.Name);
                     var value = binding.Expression.GetValue<TEntity>(updater, entityType.FindProperty, queryOptions.UseExpressionCompiler);
                     if (value is not IKnownValue knownVal)
                         knownVal = new ConstantValue(value, property);
@@ -132,7 +129,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
             else if (!queryOptions.NoUpdate)
             {
-                updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
+                updateExpressions = [];
                 foreach (var property in properties)
                 {
                     if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnName()))
@@ -399,7 +396,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             return result;
         }
 
-        private object PrepareDbCommandArgument(DbCommand dbCommand, IRelationalTypeMappingSource relationalTypeMappingSource, ConstantValue constantValue)
+        private DbParameter PrepareDbCommandArgument(DbCommand dbCommand, IRelationalTypeMappingSource relationalTypeMappingSource, ConstantValue constantValue)
         {
             RelationalTypeMapping? relationalTypeMapping = null;
 

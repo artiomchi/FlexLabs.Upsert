@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
@@ -171,10 +170,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             var dbProvider = _dbContext.GetService<IDatabaseProvider>();
             var commandRunner = _dbContext.GetInfrastructure().GetServices<IUpsertCommandRunner>()
                 .Concat(DefaultRunners.GetRunners())
-                .FirstOrDefault(r => r.Supports(dbProvider.Name));
-            if (commandRunner == null)
-                throw new NotSupportedException(Resources.DatabaseProviderNotSupportedYet);
-
+                .FirstOrDefault(r => r.Supports(dbProvider.Name))
+                ?? throw new NotSupportedException(Resources.DatabaseProviderNotSupportedYet);
             return commandRunner;
         }
 

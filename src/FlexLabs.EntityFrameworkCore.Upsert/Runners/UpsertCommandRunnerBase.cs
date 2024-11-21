@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -50,14 +49,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
             else if (matchExpression.Body is NewExpression newExpression)
             {
-                joinColumns = new List<IProperty>();
+                joinColumns = [];
                 foreach (MemberExpression arg in newExpression.Arguments)
                 {
                     if (arg == null || arg.Member is not PropertyInfo || !typeof(TEntity).Equals(arg.Expression?.Type))
                         throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
-                    var property = entityType.FindProperty(arg.Member.Name);
-                    if (property == null)
-                        throw new InvalidOperationException(Resources.FormatUnknownProperty(arg.Member.Name));
+                    var property = entityType.FindProperty(arg.Member.Name)
+                        ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(arg.Member.Name));
                     joinColumns.Add(property);
                 }
             }
@@ -65,19 +63,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 if (unaryExpression.Operand is not MemberExpression memberExp || memberExp.Member is not PropertyInfo || !typeof(TEntity).Equals(memberExp.Expression?.Type))
                     throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
-                var property = entityType.FindProperty(memberExp.Member.Name);
-                if (property == null)
-                    throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExp.Member.Name));
-                joinColumns = new List<IProperty> { property };
+                var property = entityType.FindProperty(memberExp.Member.Name)
+                    ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExp.Member.Name));
+                joinColumns = [property];
             }
             else if (matchExpression.Body is MemberExpression memberExpression)
             {
                 if (!typeof(TEntity).Equals(memberExpression.Expression?.Type) || memberExpression.Member is not PropertyInfo)
                     throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
-                var property = entityType.FindProperty(memberExpression.Member.Name);
-                if (property == null)
-                    throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExpression.Member.Name));
-                joinColumns = new List<IProperty> { property };
+                var property = entityType.FindProperty(memberExpression.Member.Name)
+                    ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExpression.Member.Name));
+                joinColumns = [property];
             }
             else
             {
