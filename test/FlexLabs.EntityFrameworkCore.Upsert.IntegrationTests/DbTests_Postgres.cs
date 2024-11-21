@@ -25,7 +25,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
                 var connectionString = (TestContainer as IDatabaseContainer)?.GetConnectionString()
                     ?? (BuildEnvironment.IsGitHub ? "Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=root" : null);
                 builder.UseNpgsql(new NpgsqlDataSourceBuilder(connectionString)
-                    .EnableDynamicJsonMappings()
+                    .EnableDynamicJson()
                     .Build());
             }
         }

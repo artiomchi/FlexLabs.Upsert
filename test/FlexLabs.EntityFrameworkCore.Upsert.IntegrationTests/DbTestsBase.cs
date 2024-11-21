@@ -442,8 +442,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(_dbVisitOld),
-                visit => visit.Should()
-                    .MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
         }
 
         [Fact]
@@ -473,8 +472,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(_dbVisitOld),
-                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false,
-                    expectedVisits: _dbVisit.Visits + increment));
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + increment));
         }
 
         [Fact]
@@ -503,8 +501,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(_dbVisitOld),
-                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false,
-                    expectedVisits: _dbVisit.Visits + _increment));
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + _increment));
         }
 
         [Fact]
@@ -533,8 +530,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(_dbVisitOld),
-                visit => visit.Should()
-                    .MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
         }
 
         [Fact]
@@ -563,8 +559,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(_dbVisitOld),
-                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false,
-                    expectedVisits: _dbVisit.Visits + newVisit.Visits));
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + newVisit.Visits));
         }
 
         [Fact]
@@ -593,8 +588,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(_dbVisitOld),
-                visit => visit.Should()
-                    .MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
         }
 
         [Fact]
@@ -623,8 +617,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(_dbVisitOld),
-                visit => visit.Should()
-                    .MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits - 2));
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits - 2));
         }
 
         [Fact]
@@ -653,8 +646,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(_dbVisitOld),
-                visit => visit.Should()
-                    .MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits * 3));
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits * 3));
         }
 
         [Fact]
@@ -683,8 +675,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(_dbVisitOld),
-                visit => visit.Should()
-                    .MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits | 3));
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits | 3));
         }
 
         [Fact]
@@ -713,8 +704,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(_dbVisitOld),
-                visit => visit.Should()
-                    .MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits & 3));
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits & 3));
         }
 
         [Fact]
@@ -743,8 +733,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(_dbVisitOld),
-                visit => visit.Should()
-                    .MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits / 4));
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits / 4));
         }
 
         [Fact]
@@ -773,8 +762,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(_dbVisitOld),
-                visit => visit.Should()
-                    .MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits % 4));
+                visit => visit.Should().MatchModel(newVisit, compareFirstVisit: false, expectedVisits: _dbVisit.Visits % 4));
         }
 
         [Fact]
@@ -811,8 +799,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(_dbVisitOld),
-                visit => visit.Should()
-                    .MatchModel(newVisit1, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1),
+                visit => visit.Should().MatchModel(newVisit1, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1),
                 visit => visit.Should().MatchModel(newVisit2));
         }
 
@@ -888,10 +875,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .Run();
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
-                visit => visit.Should().MatchModel(newVisit1, compareFirstVisit: false,
-                    expectedVisits: _dbVisitOld.Visits + 1),
-                visit => visit.Should()
-                    .MatchModel(newVisit2, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
+                visit => visit.Should().MatchModel(newVisit1, compareFirstVisit: false, expectedVisits: _dbVisitOld.Visits + 1),
+                visit => visit.Should().MatchModel(newVisit2, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
         }
 
         [Fact]
@@ -927,10 +912,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .Run();
 
             dbContext.PageVisits.OrderBy(c => c.Date).Should().SatisfyRespectively(
-                visit => visit.Should().MatchModel(newVisit1, compareFirstVisit: false,
-                    expectedVisits: _dbVisitOld.Visits + 1),
-                visit => visit.Should()
-                    .MatchModel(newVisit2, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
+                visit => visit.Should().MatchModel(newVisit1, compareFirstVisit: false, expectedVisits: _dbVisitOld.Visits + 1),
+                visit => visit.Should().MatchModel(newVisit2, compareFirstVisit: false, expectedVisits: _dbVisit.Visits + 1));
         }
 
         [Fact]

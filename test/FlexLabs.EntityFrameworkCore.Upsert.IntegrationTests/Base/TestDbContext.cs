@@ -50,15 +50,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
                 modelBuilder.Entity<JsonData>().Ignore(j => j.Child);
             }
 
-            if (dbProvider.Name !=
-                "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql
-                modelBuilder.Entity<NullableRequired>().Property(e => e.Text).HasDefaultValue("B");
-            if (dbProvider.Name is "Pomelo.EntityFrameworkCore.MySql"
-                or "Oracle.EntityFrameworkCore") // Can't have table schemas in MySql and Oracle
+            if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql
             {
-                modelBuilder.Entity<SchemaTable>().Metadata.SetSchema(null);
+                modelBuilder.Entity<NullableRequired>().Property(e => e.Text).HasDefaultValue("B");
             }
-            else
+
+            if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql" &&
+                dbProvider.Name != "Oracle.EntityFrameworkCore") // Can't have table schemas in MySql and Oracle
             {
                 modelBuilder.Entity<SchemaTable>().Metadata.SetSchema("testsch");
             }
