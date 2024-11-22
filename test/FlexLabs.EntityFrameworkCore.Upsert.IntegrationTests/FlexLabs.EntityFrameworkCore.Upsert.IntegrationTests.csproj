@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(POSTGRES_ONLY)'!=''">
-    <DefineConstants>$(DefineConstants);NOMSSQL;NOMYSQL;POSTGRES_ONLY</DefineConstants>
+    <DefineConstants>$(DefineConstants);NOMSSQL;NOMYSQL;NOORACLE;POSTGRES_ONLY</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
