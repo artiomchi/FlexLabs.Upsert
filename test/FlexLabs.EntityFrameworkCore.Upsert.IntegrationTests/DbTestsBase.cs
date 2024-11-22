@@ -25,6 +25,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ISO = "AU",
             Created = NewDateTime(1970, 1, 1),
         };
+
         readonly PageVisit _dbVisitOld = new()
         {
             UserID = 1,
@@ -33,6 +34,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             FirstVisit = NewDateTime(1970, 1, 1),
             LastVisit = NewDateTime(1970, 1, 1),
         };
+
         readonly PageVisit _dbVisit = new()
         {
             UserID = 1,
@@ -41,35 +43,43 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             FirstVisit = NewDateTime(1970, 1, 1),
             LastVisit = NewDateTime(1970, 1, 1),
         };
+
         readonly Status _dbStatus = new()
         {
             ID = 1,
             Name = "Created",
             LastChecked = NewDateTime(1970, 1, 1),
         };
+
         readonly Book _dbBook = new()
         {
             Name = "The Fellowship of the Ring",
             Genres = new[] { "Fantasy" },
         };
+
         readonly NullableCompositeKey _nullableKey1 = new()
         {
             ID1 = 1,
             ID2 = 2,
             Value = "First",
         };
+
         readonly NullableCompositeKey _nullableKey2 = new()
         {
             ID1 = 1,
             ID2 = null,
             Value = "Second",
         };
+
         readonly ComputedColumn _computedColumn = new()
         {
             Num1 = 1,
             Num2 = 7,
         };
-        readonly static DateTime _now = NewDateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
+
+        readonly static DateTime _now = NewDateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day,
+            DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
+
         readonly static DateTime _today = NewDateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
         readonly int _increment = 8;
 
@@ -1247,7 +1257,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [Fact]
         public void Upsert_NullableKeys()
         {
-            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Postgres || _fixture.DbDriver == DbDriver.Sqlite)
+            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Postgres ||
+                _fixture.DbDriver == DbDriver.Sqlite || _fixture.DbDriver == DbDriver.Oracle)
                 return;
 
             ResetDb();
@@ -1681,7 +1692,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [Fact]
         public void Upsert_UpdateCondition_ValueCheck_UpdateColumnFromCondition()
         {
-            if (BuildEnvironment.IsGitHub && _fixture.DbDriver == DbDriver.MySQL && Environment.OSVersion.Platform == PlatformID.Unix)
+            if (BuildEnvironment.IsGitHub && _fixture.DbDriver == DbDriver.MySQL &&
+                Environment.OSVersion.Platform == PlatformID.Unix)
             {
                 // Disabling this test on GitHub Ubuntu images - they're cursed?
                 return;

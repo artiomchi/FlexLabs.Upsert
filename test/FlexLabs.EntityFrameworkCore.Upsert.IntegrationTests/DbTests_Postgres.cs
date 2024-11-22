@@ -1,5 +1,4 @@
 ﻿using System.Linq;
-using DotNet.Testcontainers.Containers;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
 using FluentAssertions;
@@ -13,19 +12,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 #if !NOPOSTGRES
     public class DbTests_Postgres : DbTestsBase, IClassFixture<DbTests_Postgres.DatabaseInitializer>
     {
-        public sealed class DatabaseInitializer : DatabaseInitializerFixture
+        public sealed class DatabaseInitializer : ContainerisedDatabaseInitializerFixture<PostgreSqlContainer>
         {
             public override DbDriver DbDriver => DbDriver.Postgres;
 
-            protected override IContainer BuildContainer()
+            protected override PostgreSqlContainer BuildContainer()
                 => new PostgreSqlBuilder().Build();
 
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
             {
-                var connectionString = (TestContainer as IDatabaseContainer)?.GetConnectionString()
+                var connectionString = TestContainer?.GetConnectionString()
                     ?? (BuildEnvironment.IsGitHub ? "Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=root" : null);
                 builder.UseNpgsql(new NpgsqlDataSourceBuilder(connectionString)
-                    .EnableDynamicJsonMappings()
+                    .EnableDynamicJson()
                     .Build());
             }
         }
