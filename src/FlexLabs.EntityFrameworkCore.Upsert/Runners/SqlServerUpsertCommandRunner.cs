@@ -20,7 +20,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <inheritdoc/>
         protected override string? TargetPrefix => "[T].";
         /// <inheritdoc/>
-        protected override int? MaxQueryParams => 2100;
+        protected override int? MaxQueryParams => 2090;
 
         /// <inheritdoc/>
         public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
