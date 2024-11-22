@@ -110,7 +110,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .ToArray();
 
             List<(IProperty Property, IKnownValue Value)>? updateExpressions = null;
-            var upExpresParameterCount = 0;
             if (updater != null)
             {
                 if (updater.Body is not MemberInitExpression entityUpdater)
@@ -124,7 +123,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     var value = binding.Expression.GetValue<TEntity>(updater, entityType.FindProperty, queryOptions.UseExpressionCompiler);
                     if (value is not IKnownValue knownVal)
                         knownVal = new ConstantValue(value, property);
-                    upExpresParameterCount++;
                     updateExpressions.Add((property, knownVal));
                 }
             }
@@ -137,19 +135,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         continue;
 
                     var propertyAccess = new PropertyValue(property.Name, false, property);
-                    upExpresParameterCount++;
                     updateExpressions.Add((property, propertyAccess));
                 }
             }
-            var updateConditionParamenters = Array.Empty<ConstantValue>();
+
             KnownExpression? updateConditionExpression = null;
+            ConstantValue[]? updateConditionConstants = null;
             if (updateCondition != null)
             {
                 var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, entityType.FindProperty, queryOptions.UseExpressionCompiler);
                 if (updateConditionValue is not KnownExpression updateConditionExp)
                     throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
                 updateConditionExpression = updateConditionExp;
-                updateConditionParamenters = updateConditionExpression.GetConstantValues().Where(c => c.Value != null).ToArray();
+                updateConditionConstants = updateConditionExpression.GetConstantValues().Where(c => c.Value != null).ToArray();
             }
 
             var newEntities = entities
@@ -174,41 +172,29 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 .ToArray();
 
             var entitiesProcessed = 0;
-            var singleEntityArguments = newEntities[0].Count;
+            var singleEntityArguments = newEntities[0].Count + (updateExpressions?.Count ?? 0) + (updateConditionConstants?.Length ?? 0);
             while (entitiesProcessed < newEntities.Length)
             {
                 var arguments = new List<ConstantValue>();
-                var argumentCount = 0;
 
                 var entitiesHere = 0;
                 do
                 {
-                    arguments.AddRange(newEntities[entitiesProcessed].Select(p =>
-                    {
-                        p.Value.ArgumentIndex = argumentCount++;
-                        return p.Value;
-                    }));
+                    arguments.AddRange(newEntities[entitiesProcessed].Select(p => p.Value));
                     entitiesProcessed++;
                     entitiesHere++;
                 }
                 while (entitiesProcessed < newEntities.Length &&
-                    (MaxQueryParams == null || arguments.Count + singleEntityArguments + upExpresParameterCount + updateConditionParamenters.Length < MaxQueryParams));
+                    (MaxQueryParams == null || arguments.Count + singleEntityArguments < MaxQueryParams));
 
                 if (updateExpressions != null)
-                    arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues().Select(x =>
-                    {
-                        x.ArgumentIndex = argumentCount++;
-                        return x;
-                    })));
+                    arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues()));
 
-#pragma warning disable CA1508 // Avoid dead conditional code. Analyzer is drunk - this can clearly be not null!
-                if (updateConditionExpression != null)
-                    arguments.AddRange(updateConditionParamenters.Select(x =>
-                    {
-                        x.ArgumentIndex = argumentCount++;
-                        return x;
-                    }));
-#pragma warning restore CA1508 // Avoid dead conditional code
+                if (updateConditionConstants != null)
+                    arguments.AddRange(updateConditionConstants);
+
+                foreach (var (arg, index) in arguments.Select((a, i) => (a, i)))
+                    arg.ArgumentIndex = index;
 
                 var columnUpdateExpressions = updateExpressions?.Count > 0
                     ? updateExpressions.Select(x => (x.Property.GetColumnName(), x.Value)).ToArray()
