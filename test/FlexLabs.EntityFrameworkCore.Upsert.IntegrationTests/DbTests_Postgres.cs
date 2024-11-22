@@ -1,10 +1,12 @@
 ﻿using System.Linq;
+using DotNet.Testcontainers.Containers;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using Testcontainers.PostgreSql;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
@@ -13,9 +15,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
         {
-            public DatabaseInitializer(IMessageSink diagnosticMessageSink)
-                : base(diagnosticMessageSink, DbDriver.Postgres)
-            { }
+            public override DbDriver DbDriver => DbDriver.Postgres;
+
+            protected override IContainer BuildContainer()
+                => new PostgreSqlBuilder().Build();
+
+            protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
+            {
+                var connectionString = (TestContainer as IDatabaseContainer)?.GetConnectionString()
+                    ?? (BuildEnvironment.IsGitHub ? "Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=root" : null);
+                builder.UseNpgsql(new NpgsqlDataSourceBuilder(connectionString)
+                    .EnableDynamicJsonMappings()
+                    .Build());
+            }
         }
 
         public DbTests_Postgres(DatabaseInitializer contexts)

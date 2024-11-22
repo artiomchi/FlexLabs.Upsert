@@ -103,7 +103,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
                                     if (isLeftParam || memberExp.Expression.Equals(container.Parameters[1]))
                                     {
                                         var property = propertyFinder(pInfo.Name)
-                                            ?? throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.UnknownProperty, pInfo.Name));
+                                            ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(pInfo.Name));
                                         return new PropertyValue(pInfo.Name, isLeftParam, property);
                                     }
                                 }

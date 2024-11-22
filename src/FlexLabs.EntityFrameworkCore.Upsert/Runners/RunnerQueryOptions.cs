@@ -1,11 +1,8 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
+﻿namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
     /// <summary>
     /// Options to configure the query behaviour
     /// </summary>
-    [SuppressMessage("Performance", "CA1815:Override equals and operator equals on value types", Justification = "There would be no need to compare instances of these options")]
     public struct RunnerQueryOptions
     {
         /// <summary>
