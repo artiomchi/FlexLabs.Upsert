@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
@@ -40,7 +39,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <inheritdoc/>
         public IEnumerable<ConstantValue> GetConstantValues()
         {
-            return Array.Empty<ConstantValue>();
+            return [];
         }
 
         /// <inheritdoc/>

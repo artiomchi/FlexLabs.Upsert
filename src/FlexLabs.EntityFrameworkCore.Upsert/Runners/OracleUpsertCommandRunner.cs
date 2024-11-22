@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -37,7 +38,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             ArgumentNullException.ThrowIfNull(entities);
             var result = new StringBuilder();
 
-            result.Append($"MERGE INTO {tableName} t USING (");
+            result.Append(CultureInfo.InvariantCulture, $"MERGE INTO {tableName} t USING (");
             foreach (var item in entities.Select((e, ind) => new {e, ind}))
             {
                 result.Append(" SELECT ");
@@ -64,7 +65,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 result.Append(string.Join(", ", updateExpressions.Select(e => $"t.{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
                 if (updateCondition is not null)
                 {
-                    result.Append($" WHERE {ExpandExpression(updateCondition)} ");
+                    result.Append(CultureInfo.InvariantCulture, $" WHERE {ExpandExpression(updateCondition)} ");
                 }
             }
 

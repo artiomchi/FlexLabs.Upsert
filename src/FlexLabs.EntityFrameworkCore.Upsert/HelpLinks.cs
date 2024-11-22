@@ -1,6 +1,6 @@
 ﻿namespace FlexLabs.EntityFrameworkCore.Upsert
 {
-    internal class HelpLinks
+    internal static class HelpLinks
     {
         internal const string Sqlite3Instructions = "https://go.flexlabs.org/upsert.sqlite3";
         // Also referenced in the xml comment for InvalidMatchColumnsException
