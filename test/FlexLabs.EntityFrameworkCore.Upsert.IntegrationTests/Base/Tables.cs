@@ -67,8 +67,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public DateTime FirstVisit { get; set; }
         public DateTime LastVisit { get; set; }
     }
-
-    [Table("SchemaTable", Schema = "testsch")]
     public class SchemaTable
     {
         public int ID { get; set; }

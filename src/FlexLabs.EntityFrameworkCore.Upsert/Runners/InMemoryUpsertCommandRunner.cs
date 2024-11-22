@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -31,7 +30,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 // If update expression is specified, create an update delegate based on that
                 if (updateExpression.Body is not MemberInitExpression entityUpdater)
-                    throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.ArgumentMustBeAnInitialiserOfTheTEntityType, "updater"), nameof(updateExpression));
+                    throw new ArgumentException(Resources.FormatArgumentMustBeAnInitialiserOfTheTEntityType("updater"), nameof(updateExpression));
 
                 var properties = entityUpdater.Bindings.Select(b => b.Member).OfType<PropertyInfo>();
                 var updateFunc = updateExpression.Compile();
@@ -107,7 +106,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             public TEntity NewEntity;
         }
 
-        private static ICollection<EntityMatch<TEntity>> FindMatches<TEntity>(IEntityType entityType, IEnumerable<TEntity> entities, DbContext dbContext,
+        private static EntityMatch<TEntity>[] FindMatches<TEntity>(IEntityType entityType, IEnumerable<TEntity> entities, DbContext dbContext,
             Expression<Func<TEntity, object>>? matchExpression) where TEntity : class
         {
             if (matchExpression != null)
@@ -119,7 +118,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             // If we're resorting to matching on PKs, we'll have to load them manually
             var primaryKeyProperties = entityType.FindPrimaryKey()?.Properties;
             if (primaryKeyProperties == null)
-                return Array.Empty<EntityMatch<TEntity>>();
+                return [];
 
             object?[] getPKs(TEntity entity)
             {
@@ -136,10 +135,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
         {
-            if (dbContext is null)
-                throw new ArgumentNullException(nameof(dbContext));
-            if (entityType == null)
-                throw new ArgumentNullException(nameof(entityType));
+            ArgumentNullException.ThrowIfNull(dbContext);
+            ArgumentNullException.ThrowIfNull(entityType);
 
             RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
             return dbContext.SaveChanges();
@@ -150,10 +147,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
             CancellationToken cancellationToken)
         {
-            if (dbContext is null)
-                throw new ArgumentNullException(nameof(dbContext));
-            if (entityType == null)
-                throw new ArgumentNullException(nameof(entityType));
+            ArgumentNullException.ThrowIfNull(dbContext);
+            ArgumentNullException.ThrowIfNull(entityType);
 
             RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
             return dbContext.SaveChangesAsync(cancellationToken);

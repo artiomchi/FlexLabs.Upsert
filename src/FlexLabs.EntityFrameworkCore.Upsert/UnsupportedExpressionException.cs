@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert
 {
@@ -17,14 +16,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
 
         internal UnsupportedExpressionException(System.Linq.Expressions.Expression expression)
             : base(Resources.ThisTypeOfExpressionIsNotCurrentlySupported + " " + expression + ". " + Resources.SimplifyTheExpressionOrTryADifferentOne +
-                  string.Format(CultureInfo.InvariantCulture, Resources.SeeLinkForMoreDetails, HelpLinks.SupportedExpressions))
+                  Resources.FormatSeeLinkForMoreDetails(HelpLinks.SupportedExpressions))
         {
             HelpLink = HelpLinks.SupportedExpressions;
         }
 
         internal static UnsupportedExpressionException MySQLConditionalUpdate()
-            => new UnsupportedExpressionException(Resources.UsingConditionalUpdatesIsNotSupportedInMySQLDueToDatabaseSyntaxLimitations + " " + 
-                string.Format(CultureInfo.InvariantCulture, Resources.SeeLinkForMoreDetails, HelpLinks.MySQLConditionalUpdate),
+            => new(Resources.UsingConditionalUpdatesIsNotSupportedInMySQLDueToDatabaseSyntaxLimitations + " " + 
+                Resources.FormatSeeLinkForMoreDetails(HelpLinks.MySQLConditionalUpdate),
                 HelpLinks.MySQLConditionalUpdate);
     }
 }
