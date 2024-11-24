@@ -392,7 +392,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)).ToArray();
-                result.AddRange(dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).AsNoTracking().ToArray());
+                result.AddRange(dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).ToArray());
             }
             return result;
         }
@@ -433,7 +433,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)).ToArray();
-                result.AddRange(await dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).AsNoTracking().ToArrayAsync().ConfigureAwait(false));
+                result.AddRange(await dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).ToArrayAsync().ConfigureAwait(false));
             }
             return result;
         }

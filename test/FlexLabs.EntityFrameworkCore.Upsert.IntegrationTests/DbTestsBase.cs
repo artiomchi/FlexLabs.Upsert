@@ -284,6 +284,32 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Fact]
+        public void Upsert_ReturnResult_TracksChanges()
+        {
+            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Oracle)
+                return; // Returning records is not implemented in MySQL and Oracle runners
+
+            ResetDb(new DashTable { DataSet = "Test" });
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var dashTable = new DashTable
+            {
+                DataSet = "Test",
+                Updated = _now,
+            };
+
+            var result = dbContext.DashTable.Upsert(dashTable)
+                .On(c => c.DataSet)
+                .RunAndReturn();
+
+            result.Single().Updated = _now.AddYears(1);
+            dbContext.SaveChanges();
+
+            var updatedResult = dbContext.DashTable.Single();
+            updatedResult.Updated.Should().Be(_now.AddYears(1));
+        }
+
+        [Fact]
         public void Upsert_IdentityKey_ExplicitOn_AllowWithOverride()
         {
             ResetDb();

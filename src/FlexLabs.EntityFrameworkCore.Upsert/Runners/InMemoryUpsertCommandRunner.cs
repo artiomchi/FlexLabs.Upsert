@@ -91,9 +91,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     continue;
 
                 updateAction?.Invoke(match.DbEntity, match.NewEntity);
-
-                yield return match.NewEntity;
             }
+
+            return matches.Select(m => m.DbEntity ?? m.NewEntity);
         }
 
         private struct EntityMatch<TEntity>
