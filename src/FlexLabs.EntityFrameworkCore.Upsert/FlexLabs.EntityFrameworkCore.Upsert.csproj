@@ -20,6 +20,7 @@ Also supports injecting sql command generators to add support for other provider
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <VersionPrefix>8.1.0</VersionPrefix>
     <PackageReleaseNotes>
 v8.1.0
@@ -71,6 +72,10 @@ v4.0.0
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
   <ItemGroup>
