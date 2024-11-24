@@ -149,10 +149,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
             RunnerQueryOptions queryOptions)
         {
-            if (dbContext is null)
-                throw new ArgumentNullException(nameof(dbContext));
-            if (entityType == null)
-                throw new ArgumentNullException(nameof(entityType));
+            ArgumentNullException.ThrowIfNull(dbContext);
+            ArgumentNullException.ThrowIfNull(entityType);
 
             var result = RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
             dbContext.SaveChanges();
@@ -177,10 +175,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
             RunnerQueryOptions queryOptions)
         {
-            if (dbContext is null)
-                throw new ArgumentNullException(nameof(dbContext));
-            if (entityType == null)
-                throw new ArgumentNullException(nameof(entityType));
+            ArgumentNullException.ThrowIfNull(dbContext);
+            ArgumentNullException.ThrowIfNull(entityType);
 
             var result = RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
             await dbContext.SaveChangesAsync().ConfigureAwait(false);

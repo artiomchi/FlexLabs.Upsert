@@ -27,7 +27,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="joinColumns">The columns used to match existing items in the database</param>
         /// <param name="updateExpressions">The expressions that represent update commands for matched entities</param>
         /// <param name="updateCondition">The expression that tests whether existing entities should be updated</param>
-        /// <param name="returnResult"></param>
+        /// <param name="returnResult">If true, the generated command should return upserted entities</param>
         /// <returns>A fully formed database query</returns>
         public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
             ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
@@ -381,16 +381,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public override ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
         {
-            if (dbContext == null)
-                throw new ArgumentNullException(nameof(dbContext));
-            if (entityType == null)
-                throw new ArgumentNullException(nameof(entityType));
+            ArgumentNullException.ThrowIfNull(dbContext);
+            ArgumentNullException.ThrowIfNull(entityType);
 
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
             var commands = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions, true);
 
             var result = new List<TEntity>();
-
             foreach (var (sqlCommand, arguments) in commands)
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
@@ -425,16 +422,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public override async Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
         {
-            if (dbContext == null)
-                throw new ArgumentNullException(nameof(dbContext));
-            if (entityType == null)
-                throw new ArgumentNullException(nameof(entityType));
+            ArgumentNullException.ThrowIfNull(dbContext);
+            ArgumentNullException.ThrowIfNull(entityType);
 
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
             var commands = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions, true);
 
             var result = new List<TEntity>();
-
             foreach (var (sqlCommand, arguments) in commands)
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();

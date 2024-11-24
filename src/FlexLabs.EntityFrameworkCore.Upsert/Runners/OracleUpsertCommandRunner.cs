@@ -37,8 +37,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             bool returnResult = false)
         {
             ArgumentNullException.ThrowIfNull(entities);
-            var result = new StringBuilder();
 
+            if (returnResult)
+                throw new NotImplementedException("Oracle runner does not support returning the result of the upsert operation yet");
+
+            var result = new StringBuilder();
             result.Append(CultureInfo.InvariantCulture, $"MERGE INTO {tableName} t USING (");
             foreach (var item in entities.Select((e, ind) => new {e, ind}))
             {

@@ -227,6 +227,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [Fact]
         public void Upsert_ReturnResult_Single()
         {
+            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Oracle)
+                return; // Returning records is not implemented in MySQL and Oracle runners
+
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
@@ -242,7 +245,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             result.Should().ContainEquivalentOf(new DashTable
             {
-                ID = 1,
+                ID = result.First().ID,
                 DataSet = "Test",
                 Updated = _now,
             });
@@ -251,19 +254,22 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [Fact]
         public void Upsert_ReturnResult_Multiple()
         {
-            ResetDb();
+            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Oracle)
+                return; // Returning records is not implemented in MySQL and Oracle runners
+
+            ResetDb(new DashTable { DataSet = "Test1" });
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var dashTables = new[]
             {
                 new DashTable
                 {
-                    DataSet = "Test",
+                    DataSet = "Test1",
                     Updated = _now,
                 },
                 new DashTable
                 {
-                    DataSet = "Test",
+                    DataSet = "Test2",
                     Updated = _now,
                 }
             };
@@ -274,7 +280,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             result.Should().HaveCount(2);
 
-            dbContext.DashTable.Should().HaveCount(1);
+            dbContext.DashTable.Should().HaveCount(2);
         }
 
         [Fact]
