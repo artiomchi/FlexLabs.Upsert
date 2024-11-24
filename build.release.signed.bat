@@ -7,7 +7,7 @@ SET VERSION=%1
 )
 
 @ECHO -- Building solution in release mode
-dotnet pack -c Release -p:SignCertificateName="Open Source Developer%%2c Artiom Chilaru" %SUFFIX%
+dotnet pack -c Release -p:SignCertificateName="Open Source Developer%%2c Artiom Chilaru" -p:ContinuousIntegrationBuild=true %SUFFIX%
 @IF ERRORLEVEL 1 goto ERROR
 
 @ECHO -- Signing the nuget package

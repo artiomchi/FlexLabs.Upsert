@@ -1,18 +1,27 @@
 ﻿using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
+using Microsoft.EntityFrameworkCore;
+using Testcontainers.MsSql;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
 #if !NOMSSQL
     public class DbTests_SqlServer : DbTestsBase, IClassFixture<DbTests_SqlServer.DatabaseInitializer>
     {
-        public sealed class DatabaseInitializer : DatabaseInitializerFixture
+        public sealed class DatabaseInitializer : ContainerisedDatabaseInitializerFixture<MsSqlContainer>
         {
-            public DatabaseInitializer(IMessageSink diagnosticMessageSink)
-                : base(diagnosticMessageSink, DbDriver.MSSQL)
-            { }
+            public override DbDriver DbDriver => DbDriver.MSSQL;
+
+            protected override MsSqlContainer BuildContainer()
+                => new MsSqlBuilder().WithName("flexlabs_upsert_mssql").WithReuse(true).Build();
+
+            protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
+            {
+                var connectionString = TestContainer?.GetConnectionString()
+                    ?? "Server=(localdb)\\MSSqlLocalDB;Integrated Security=SSPI;Initial Catalog=FlexLabsUpsertTests;";
+                builder.UseSqlServer(connectionString);
+            }
         }
 
         public DbTests_SqlServer(DatabaseInitializer contexts)
