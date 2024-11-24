@@ -1449,6 +1449,58 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Fact]
+        public void Upsert_ConditionalExpression_CoalesceCheck()
+        {
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newItem = new TestEntity
+            {
+                Num1 = 1,
+                Num2 = 7,
+                Text1 = "hello",
+                Text2 = "world",
+            };
+
+            dbContext.TestEntities.Upsert(newItem)
+                .On(j => j.Num1)
+                .WhenMatched((old, ins) => new TestEntity
+                {
+                    Text1 = ins.Text1 ?? old.Text1,
+                })
+                .Run();
+
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(newItem));
+        }
+
+        [Fact]
+        public void Upsert_ConditionalExpression_NullValueCheck()
+        {
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newItem = new TestEntity
+            {
+                Num1 = 1,
+                Num2 = 7,
+                Text1 = "hello",
+                Text2 = "world",
+            };
+
+            dbContext.TestEntities.Upsert(newItem)
+                .On(j => j.Num1)
+                .WhenMatched((old, ins) => new TestEntity
+                {
+                    Text1 = ins.Text1 == null ? old.Text1 : ins.Text1,
+                })
+                .Run();
+
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(newItem));
+        }
+
+        [Fact]
         public void Upsert_UpdateCondition_Constant()
         {
             var dbItem = new TestEntity

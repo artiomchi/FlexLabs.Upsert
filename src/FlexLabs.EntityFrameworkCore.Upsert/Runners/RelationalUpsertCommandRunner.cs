@@ -140,14 +140,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
 
             KnownExpression? updateConditionExpression = null;
-            ConstantValue[]? updateConditionConstants = null;
             if (updateCondition != null)
             {
                 var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, entityType.FindProperty, queryOptions.UseExpressionCompiler);
                 if (updateConditionValue is not KnownExpression updateConditionExp)
                     throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
                 updateConditionExpression = updateConditionExp;
-                updateConditionConstants = updateConditionExpression.GetConstantValues().Where(c => c.Value != null).ToArray();
             }
 
             var newEntities = entities
@@ -171,8 +169,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     .ToArray() as ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>)
                 .ToArray();
 
+            var constantArgumentSourceValues = updateExpressions?.Select(e => e.Value);
+            if (updateConditionExpression != null)
+                constantArgumentSourceValues = constantArgumentSourceValues?.Append(updateConditionExpression) ?? [updateConditionExpression];
+            var expressionConstants = constantArgumentSourceValues
+                ?.SelectMany(v => v.GetConstantValues())
+                .Where(c => c.Value != null)
+                .ToArray();
+
             var entitiesProcessed = 0;
-            var singleEntityArguments = newEntities[0].Count + (updateExpressions?.Count ?? 0) + (updateConditionConstants?.Length ?? 0);
+            var singleEntityArguments = newEntities[0].Count + (expressionConstants?.Length ?? 0);
             while (entitiesProcessed < newEntities.Length)
             {
                 var arguments = new List<ConstantValue>();
@@ -187,11 +193,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 while (entitiesProcessed < newEntities.Length &&
                     (MaxQueryParams == null || arguments.Count + singleEntityArguments < MaxQueryParams));
 
-                if (updateExpressions != null)
-                    arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues()));
-
-                if (updateConditionConstants != null)
-                    arguments.AddRange(updateConditionConstants);
+                if (expressionConstants != null)
+                    arguments.AddRange(expressionConstants);
 
                 foreach (var (arg, index) in arguments.Select((a, i) => (a, i)))
                     arg.ArgumentIndex = index;

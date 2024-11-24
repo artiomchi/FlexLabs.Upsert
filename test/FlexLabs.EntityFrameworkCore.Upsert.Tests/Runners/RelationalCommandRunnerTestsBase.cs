@@ -300,5 +300,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 Update_Condition_NullCheck_Sql,
                 Arg.Any<IEnumerable<object>>());
         }
+
+        protected abstract string Update_WatchWithNullCheck_Sql { get; }
+        [Fact]
+        public void SqlSyntaxRunner_Update_WatchWithNullCheck()
+        {
+            _dbContext.Upsert(new TestEntity())
+                .WhenMatched((e, en) => new TestEntity
+                {
+                    Name = en.Name == null ? "new" : en.Name
+                })
+                .Run();
+
+            _rawSqlBuilder.Received().Build(
+                Update_WatchWithNullCheck_Sql,
+                Arg.Any<IEnumerable<object>>());
+        }
     }
 }

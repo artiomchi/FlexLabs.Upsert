@@ -41,7 +41,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             result.Append(CultureInfo.InvariantCulture, $"MERGE INTO {tableName} t USING (");
             foreach (var item in entities.Select((e, ind) => new {e, ind}))
             {
-                result.Append(" SELECT ");
+                result.Append("SELECT ");
                 result.Append(string.Join(", ", item.e.Select(ec => string.Join(" AS ", ExpandValue(ec.Value), EscapeName(ec.ColumnName)))));
                 result.Append(" FROM dual");
                 if (entities.Count > 1 && item.ind != entities.Count - 1)
@@ -51,21 +51,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
             result.Append(") s ON (");
             result.Append(string.Join(" AND ", joinColumns.Select(j => $"t.{EscapeName(j.ColumnName)} = s.{EscapeName(j.ColumnName)}")));
-            result.Append(") ");
-            result.Append(" WHEN NOT MATCHED THEN INSERT (");
+            result.Append(") WHEN NOT MATCHED THEN INSERT (");
             result.Append(string.Join(", ", entities.First().Where(e => e.AllowInserts).Select(e => EscapeName(e.ColumnName))));
             result.Append(") VALUES (");
             result.Append(string.Join(", ", entities.First().Where(e => e.AllowInserts).Select(e => $"s.{EscapeName(e.ColumnName)}")));
-            result.Append(") ");
+            result.Append(')');
             if (updateExpressions is not null)
             {
-                result.Append("WHEN MATCHED ");
-
-                result.Append("THEN UPDATE SET ");
+                result.Append(" WHEN MATCHED THEN UPDATE SET ");
                 result.Append(string.Join(", ", updateExpressions.Select(e => $"t.{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
                 if (updateCondition is not null)
                 {
-                    result.Append(CultureInfo.InvariantCulture, $" WHERE {ExpandExpression(updateCondition)} ");
+                    result.Append(CultureInfo.InvariantCulture, $" WHERE {ExpandExpression(updateCondition)}");
                 }
             }
 
