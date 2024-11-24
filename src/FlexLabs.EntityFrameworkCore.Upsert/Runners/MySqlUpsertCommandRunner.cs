@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
@@ -33,7 +34,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var result = new StringBuilder("INSERT ");
             if (updateExpressions == null)
                 result.Append("IGNORE ");
-            result.Append($"INTO {tableName} (");
+            result.Append(CultureInfo.InvariantCulture, $"INTO {tableName} (");
             result.Append(string.Join(", ", entities.First().Select(e => EscapeName(e.ColumnName))));
             result.Append(") VALUES (");
             result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => e.DefaultSql ?? Parameter(e.Value.ArgumentIndex))))));
@@ -44,7 +45,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 if (updateCondition != null)
                 {
                     var columns = updateCondition.GetPropertyValues()
-                        .Select(v => v.Property.GetColumnBaseName())
+                        .Select(v => v.Property.GetColumnName())
                         .ToArray();
 
                     var variables = string.Join(", ", updateExpressions

@@ -1,11 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -75,9 +74,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             {
                 entityType.AddProperty(property.Name, ConfigurationSource.Explicit);
             }
-            var idProperty = entityType.FindProperty("ID");
-            if (idProperty == null)
-                throw new InvalidOperationException("ID property missing on entity " + typeof(TEntity).Name);
+            var idProperty = entityType.FindProperty("ID") 
+                ?? throw new InvalidOperationException("ID property missing on entity " + typeof(TEntity).Name);
             entityType.AddKey(idProperty, ConfigurationSource.Convention);
             return entityType;
         }
@@ -300,6 +298,22 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 Update_Condition_NullCheck_Sql,
+                Arg.Any<IEnumerable<object>>());
+        }
+
+        protected abstract string Update_WatchWithNullCheck_Sql { get; }
+        [Fact]
+        public void SqlSyntaxRunner_Update_WatchWithNullCheck()
+        {
+            _dbContext.Upsert(new TestEntity())
+                .WhenMatched((e, en) => new TestEntity
+                {
+                    Name = en.Name == null ? "new" : en.Name
+                })
+                .Run();
+
+            _rawSqlBuilder.Received().Build(
+                Update_WatchWithNullCheck_Sql,
                 Arg.Any<IEnumerable<object>>());
         }
     }

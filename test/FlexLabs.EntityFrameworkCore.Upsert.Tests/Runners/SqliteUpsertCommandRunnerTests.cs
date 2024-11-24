@@ -81,5 +81,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "VALUES (@p0, @p1, @p2, @p3) ON CONFLICT (\"ID\") " +
             "DO UPDATE SET \"Name\" = @p4 " +
             "WHERE \"T\".\"Status\" IS NOT NULL";
+
+        protected override string Update_WatchWithNullCheck_Sql =>
+            "INSERT INTO \"TestEntity\" AS \"T\" (\"ID\", \"Name\", \"Status\", \"Total\") " +
+            "VALUES (@p0, @p1, @p2, @p3) ON CONFLICT (\"ID\") " +
+            "DO UPDATE SET \"Name\" = ( CASE WHEN ( EXCLUDED.\"Name\" IS NULL ) THEN @p4 ELSE EXCLUDED.\"Name\" END )";
     }
 }

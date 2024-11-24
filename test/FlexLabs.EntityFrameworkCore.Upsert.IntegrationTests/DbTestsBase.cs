@@ -25,6 +25,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             ISO = "AU",
             Created = NewDateTime(1970, 1, 1),
         };
+
         readonly PageVisit _dbVisitOld = new()
         {
             UserID = 1,
@@ -33,6 +34,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             FirstVisit = NewDateTime(1970, 1, 1),
             LastVisit = NewDateTime(1970, 1, 1),
         };
+
         readonly PageVisit _dbVisit = new()
         {
             UserID = 1,
@@ -41,40 +43,50 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             FirstVisit = NewDateTime(1970, 1, 1),
             LastVisit = NewDateTime(1970, 1, 1),
         };
+
         readonly Status _dbStatus = new()
         {
             ID = 1,
             Name = "Created",
             LastChecked = NewDateTime(1970, 1, 1),
         };
+
         readonly Book _dbBook = new()
         {
             Name = "The Fellowship of the Ring",
             Genres = new[] { "Fantasy" },
         };
+
         readonly NullableCompositeKey _nullableKey1 = new()
         {
             ID1 = 1,
             ID2 = 2,
             Value = "First",
         };
+
         readonly NullableCompositeKey _nullableKey2 = new()
         {
             ID1 = 1,
             ID2 = null,
             Value = "Second",
         };
+
         readonly ComputedColumn _computedColumn = new()
         {
             Num1 = 1,
             Num2 = 7,
         };
-        readonly static DateTime _now = NewDateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
+
+        readonly static DateTime _now = NewDateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day,
+            DateTime.Now.Hour, DateTime.Now.Minute, DateTime.Now.Second);
+
         readonly static DateTime _today = NewDateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day);
         readonly int _increment = 8;
 
         private static DateTime NewDateTime(int year, int month, int day, int hour = 0, int minute = 0, int second = 0)
             => new DateTime(year, month, day, hour, minute, second, DateTimeKind.Utc);
+
+        protected int GeneratedAlwaysAsIdentity_NextId { get; private set; }
 
         protected void ResetDb()
         {
@@ -107,6 +119,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.Add(_nullableKey1);
             dbContext.Add(_nullableKey2);
             dbContext.Add(_computedColumn);
+            dbContext.Add(new GeneratedAlwaysAsIdentity());
+            dbContext.SaveChanges();
+
+            GeneratedAlwaysAsIdentity_NextId = dbContext.GeneratedAlwaysAsIdentity.Max(e => e.ID) + 1;
+            dbContext.RemoveRange(dbContext.GeneratedAlwaysAsIdentity);
             dbContext.SaveChanges();
         }
 
@@ -1247,7 +1264,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [Fact]
         public void Upsert_NullableKeys()
         {
-            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Postgres || _fixture.DbDriver == DbDriver.Sqlite)
+            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Postgres ||
+                _fixture.DbDriver == DbDriver.Sqlite || _fixture.DbDriver == DbDriver.Oracle)
                 return;
 
             ResetDb();
@@ -1428,6 +1446,58 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
                 test => test.Should().MatchModel(dbItem, num2: 0));
+        }
+
+        [Fact]
+        public void Upsert_ConditionalExpression_CoalesceCheck()
+        {
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newItem = new TestEntity
+            {
+                Num1 = 1,
+                Num2 = 7,
+                Text1 = "hello",
+                Text2 = "world",
+            };
+
+            dbContext.TestEntities.Upsert(newItem)
+                .On(j => j.Num1)
+                .WhenMatched((old, ins) => new TestEntity
+                {
+                    Text1 = ins.Text1 ?? old.Text1,
+                })
+                .Run();
+
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(newItem));
+        }
+
+        [Fact]
+        public void Upsert_ConditionalExpression_NullValueCheck()
+        {
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newItem = new TestEntity
+            {
+                Num1 = 1,
+                Num2 = 7,
+                Text1 = "hello",
+                Text2 = "world",
+            };
+
+            dbContext.TestEntities.Upsert(newItem)
+                .On(j => j.Num1)
+                .WhenMatched((old, ins) => new TestEntity
+                {
+                    Text1 = ins.Text1 == null ? old.Text1 : ins.Text1,
+                })
+                .Run();
+
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(newItem));
         }
 
         [Fact]
@@ -1681,7 +1751,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [Fact]
         public void Upsert_UpdateCondition_ValueCheck_UpdateColumnFromCondition()
         {
-            if (BuildEnvironment.IsGitHub && _fixture.DbDriver == DbDriver.MySQL && Environment.OSVersion.Platform == PlatformID.Unix)
+            if (BuildEnvironment.IsGitHub && _fixture.DbDriver == DbDriver.MySQL &&
+                Environment.OSVersion.Platform == PlatformID.Unix)
             {
                 // Disabling this test on GitHub Ubuntu images - they're cursed?
                 return;
