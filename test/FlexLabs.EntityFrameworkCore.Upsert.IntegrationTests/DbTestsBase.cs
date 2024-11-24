@@ -86,6 +86,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         private static DateTime NewDateTime(int year, int month, int day, int hour = 0, int minute = 0, int second = 0)
             => new DateTime(year, month, day, hour, minute, second, DateTimeKind.Utc);
 
+        protected int GeneratedAlwaysAsIdentity_NextId { get; private set; }
+
         protected void ResetDb()
         {
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -117,6 +119,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.Add(_nullableKey1);
             dbContext.Add(_nullableKey2);
             dbContext.Add(_computedColumn);
+            dbContext.Add(new GeneratedAlwaysAsIdentity());
+            dbContext.SaveChanges();
+
+            GeneratedAlwaysAsIdentity_NextId = dbContext.GeneratedAlwaysAsIdentity.Max(e => e.ID) + 1;
+            dbContext.RemoveRange(dbContext.GeneratedAlwaysAsIdentity);
             dbContext.SaveChanges();
         }
 

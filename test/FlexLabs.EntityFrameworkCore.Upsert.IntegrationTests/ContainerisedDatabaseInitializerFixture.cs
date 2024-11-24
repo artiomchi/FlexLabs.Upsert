@@ -28,12 +28,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             await base.InitializeAsync();
         }
 
-        public override async Task DisposeAsync()
-        {
-            if (TestContainer is not null)
-            {
-                await TestContainer.StopAsync();
-            }
-        }
+        // Some containers don't start up properly if they're stopped and started again, so we will leave them running
+        // In CI environments, they will be cleared up automatically, when developing locally - you may need to clean up manually
+        //public override async Task DisposeAsync()
+        //{
+        //    if (TestContainer is not null)
+        //    {
+        //        await TestContainer.StopAsync();
+        //    }
+        //}
     }
 }

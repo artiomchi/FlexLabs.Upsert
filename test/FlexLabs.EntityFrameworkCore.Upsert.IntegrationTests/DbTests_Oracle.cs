@@ -15,7 +15,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             public override DbDriver DbDriver => DbDriver.Oracle;
 
             protected override OracleContainer BuildContainer()
-                => new OracleBuilder().Build();
+                => new OracleBuilder().WithName("flexlabs_upsert_oracle").WithReuse(true).Build();
 
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
             {

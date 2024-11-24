@@ -15,7 +15,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             public override DbDriver DbDriver => DbDriver.MySQL;
 
             protected override MySqlContainer BuildContainer()
-                => new MySqlBuilder().Build();
+                => new MySqlBuilder().WithName("flexlabs_upsert_mysql").WithReuse(true).Build();
 
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
             {
