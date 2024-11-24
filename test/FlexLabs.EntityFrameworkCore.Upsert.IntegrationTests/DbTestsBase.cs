@@ -225,6 +225,91 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Fact]
+        public void Upsert_ReturnResult_Single()
+        {
+            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Oracle)
+                return; // Returning records is not implemented in MySQL and Oracle runners
+
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var dashTable = new DashTable
+            {
+                DataSet = "Test",
+                Updated = _now,
+            };
+
+            var result = dbContext.DashTable.Upsert(dashTable)
+                .On(c => c.DataSet)
+                .RunAndReturn();
+
+            result.Should().ContainEquivalentOf(new DashTable
+            {
+                ID = result.First().ID,
+                DataSet = "Test",
+                Updated = _now,
+            });
+        }
+
+        [Fact]
+        public void Upsert_ReturnResult_Multiple()
+        {
+            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Oracle)
+                return; // Returning records is not implemented in MySQL and Oracle runners
+
+            ResetDb(new DashTable { DataSet = "Test1" });
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var dashTables = new[]
+            {
+                new DashTable
+                {
+                    DataSet = "Test1",
+                    Updated = _now,
+                },
+                new DashTable
+                {
+                    DataSet = "Test2",
+                    Updated = _now,
+                }
+            };
+
+            var result = dbContext.DashTable.UpsertRange(dashTables)
+                .On(c => c.DataSet)
+                .RunAndReturn();
+
+            result.Should().HaveCount(2);
+
+            dbContext.DashTable.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public void Upsert_ReturnResult_TracksChanges()
+        {
+            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Oracle)
+                return; // Returning records is not implemented in MySQL and Oracle runners
+
+            ResetDb(new DashTable { DataSet = "Test" });
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var dashTable = new DashTable
+            {
+                DataSet = "Test",
+                Updated = _now,
+            };
+
+            var result = dbContext.DashTable.Upsert(dashTable)
+                .On(c => c.DataSet)
+                .RunAndReturn();
+
+            result.Single().Updated = _now.AddYears(1);
+            dbContext.SaveChanges();
+
+            var updatedResult = dbContext.DashTable.Single();
+            updatedResult.Updated.Should().Be(_now.AddYears(1));
+        }
+
+        [Fact]
         public void Upsert_IdentityKey_ExplicitOn_AllowWithOverride()
         {
             ResetDb();

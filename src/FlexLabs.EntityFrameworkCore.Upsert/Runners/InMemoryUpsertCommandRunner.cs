@@ -18,7 +18,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <inheritdoc/>
         public override bool Supports(string providerName) => providerName == "Microsoft.EntityFrameworkCore.InMemory";
 
-        private static void RunCore<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+        private static IEnumerable<TEntity> RunCore<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions) where TEntity : class
         {
             // Find matching entities in the dbContext
@@ -92,6 +92,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
                 updateAction?.Invoke(match.DbEntity, match.NewEntity);
             }
+
+            return matches.Select(m => m.DbEntity ?? m.NewEntity);
         }
 
         private struct EntityMatch<TEntity>
@@ -143,6 +145,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         /// <inheritdoc/>
+        public override ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+            Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
+            RunnerQueryOptions queryOptions)
+        {
+            ArgumentNullException.ThrowIfNull(dbContext);
+            ArgumentNullException.ThrowIfNull(entityType);
+
+            var result = RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
+            dbContext.SaveChanges();
+
+            return result.ToArray();
+        }
+
+        /// <inheritdoc/>
         public override Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
             CancellationToken cancellationToken)
@@ -152,6 +168,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
             RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
             return dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        /// <inheritdoc/>
+        public override async Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+            Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
+            RunnerQueryOptions queryOptions)
+        {
+            ArgumentNullException.ThrowIfNull(dbContext);
+            ArgumentNullException.ThrowIfNull(entityType);
+
+            var result = RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
+            await dbContext.SaveChangesAsync().ConfigureAwait(false);
+
+            return result.ToArray();
         }
     }
 }

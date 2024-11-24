@@ -27,10 +27,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override int? MaxQueryParams => 65535;
 
         /// <inheritdoc/>
-        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
-            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
-            KnownExpression? updateCondition)
+        public override string GenerateCommand(
+            string tableName,
+            ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
+            ICollection<(string ColumnName, bool IsNullable)> joinColumns,
+            ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
+            KnownExpression? updateCondition,
+            bool returnResult = false)
         {
+            if (returnResult)
+                throw new NotImplementedException("MySql runner does not support returning the result of the upsert operation yet");
+
             var result = new StringBuilder("INSERT ");
             if (updateExpressions == null)
                 result.Append("IGNORE ");

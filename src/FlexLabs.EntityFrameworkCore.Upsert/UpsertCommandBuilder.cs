@@ -188,6 +188,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         }
 
         /// <summary>
+        /// Execute the upsert command against the database and return new or updated entities
+        /// </summary>
+        public ICollection<TEntity> RunAndReturn()
+        {
+            if (_entities.Count == 0)
+                return [];
+
+            var commandRunner = GetCommandRunner();
+            return commandRunner.RunAndReturn(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _updateCondition, _queryOptions);
+        }
+
+        /// <summary>
         /// Execute the upsert command against the database asynchronously
         /// </summary>
         /// <param name="token">The cancellation token for this transaction</param>
@@ -199,6 +211,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
 
             var commandRunner = GetCommandRunner();
             return commandRunner.RunAsync(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _updateCondition, _queryOptions, token);
+        }
+
+        /// <summary>
+        /// Execute the upsert command against the database and return new or updated entities
+        /// </summary>
+        public Task<ICollection<TEntity>> RunAndReturnAsync()
+        {
+            if (_entities.Count == 0)
+                return Task.FromResult<ICollection<TEntity>>([]);
+
+            var commandRunner = GetCommandRunner();
+            return commandRunner.RunAndReturnAsync(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _updateCondition, _queryOptions);
         }
     }
 }

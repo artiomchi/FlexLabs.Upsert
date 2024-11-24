@@ -23,9 +23,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected override int? MaxQueryParams => 2090;
 
         /// <inheritdoc/>
-        public override string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
-            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
-            KnownExpression? updateCondition)
+        public override string GenerateCommand(
+            string tableName,
+            ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
+            ICollection<(string ColumnName, bool IsNullable)> joinColumns,
+            ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
+            KnownExpression? updateCondition,
+            bool returnResult = false)
         {
             var result = new StringBuilder();
             result.Append(CultureInfo.InvariantCulture, $"MERGE INTO {tableName} WITH (HOLDLOCK) AS [T] USING ( VALUES (");
@@ -48,6 +52,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     result.Append(CultureInfo.InvariantCulture, $" AND {ExpandExpression(updateCondition)}");
                 result.Append(" THEN UPDATE SET ");
                 result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
+            }
+            if (returnResult)
+            {
+                result.Append(" OUTPUT inserted.*");
             }
             result.Append(';');
             return result.ToString();

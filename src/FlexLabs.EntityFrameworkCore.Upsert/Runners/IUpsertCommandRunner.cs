@@ -36,6 +36,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             where TEntity : class;
 
         /// <summary>
+        /// Run the upsert command for the entities passed and return new or updated entities
+        /// </summary>
+        /// <typeparam name="TEntity">Entity type of the entities</typeparam>
+        /// <param name="dbContext">Data context to be used</param>
+        /// <param name="entityType">Metadata for the entity</param>
+        /// <param name="entities">Array of entities to be upserted</param>
+        /// <param name="matchExpression">Expression that represents which properties will be used as a match clause for the upsert command</param>
+        /// <param name="updateExpression">Expression that represents which properties will be updated, and what values will be set</param>
+        /// <param name="updateCondition">Expression that checks whether the database entry should be updated</param>
+        /// <param name="queryOptions">Options for the current query that will affect it's behaviour</param>
+        ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+            where TEntity : class;
+
+        /// <summary>
         /// Run the upsert command for the entities passed
         /// </summary>
         /// <typeparam name="TEntity">Entity type of the entities</typeparam>
@@ -51,5 +66,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
             CancellationToken cancellationToken) where TEntity : class;
+
+        /// <summary>
+        /// Run the upsert command for the entities passed and return new or updated entities
+        /// </summary>
+        /// <typeparam name="TEntity">Entity type of the entities</typeparam>
+        /// <param name="dbContext">Data context to be used</param>
+        /// <param name="entityType">Metadata for the entity</param>
+        /// <param name="entities">Array of entities to be upserted</param>
+        /// <param name="matchExpression">Expression that represents which properties will be used as a match clause for the upsert command</param>
+        /// <param name="updateExpression">Expression that represents which properties will be updated, and what values will be set</param>
+        /// <param name="updateCondition">Expression that checks whether the database entry should be updated</param>
+        /// <param name="queryOptions">Options for the current query that will affect it's behaviour</param>
+        Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+            where TEntity : class;
     }
 }

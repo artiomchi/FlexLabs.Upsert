@@ -33,11 +33,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
             ICollection<(string ColumnName, bool IsNullable)> joinColumns,
             ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
-            KnownExpression? updateCondition)
+            KnownExpression? updateCondition,
+            bool returnResult = false)
         {
             ArgumentNullException.ThrowIfNull(entities);
-            var result = new StringBuilder();
 
+            if (returnResult)
+                throw new NotImplementedException("Oracle runner does not support returning the result of the upsert operation yet");
+
+            var result = new StringBuilder();
             result.Append(CultureInfo.InvariantCulture, $"MERGE INTO {tableName} t USING (");
             foreach (var item in entities.Select((e, ind) => new {e, ind}))
             {
