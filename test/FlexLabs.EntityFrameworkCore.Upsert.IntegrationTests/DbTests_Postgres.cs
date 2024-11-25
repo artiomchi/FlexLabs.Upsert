@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
 using FluentAssertions;

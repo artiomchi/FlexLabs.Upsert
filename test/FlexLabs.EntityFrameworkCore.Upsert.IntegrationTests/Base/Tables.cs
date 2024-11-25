@@ -39,6 +39,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public int ID { get; set; }
         public string Data { get; set; }
         public ChildObject Child { get; set; }
+        public ChildObject Poco { get; set; }
     }
 
     public class ChildObject
