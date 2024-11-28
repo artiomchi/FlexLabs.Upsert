@@ -21,7 +21,7 @@ Also supports injecting sql command generators to add support for other provider
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <VersionPrefix>8.1.1</VersionPrefix>
+    <VersionPrefix>8.1.2</VersionPrefix>
     <PackageReleaseNotes>
 v8.1.0
 + Adding initial support for Oracle DB! (Thanks to @dadyarri)
