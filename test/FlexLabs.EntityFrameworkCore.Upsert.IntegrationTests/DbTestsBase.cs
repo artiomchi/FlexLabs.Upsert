@@ -1380,6 +1380,34 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Fact]
+        public void Upsert_WithNullValues()
+        {
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newItem2 = new TestEntity();
+            var newItem = new TestEntity
+            {
+                Num1 = 1,
+                Num2 = 7,
+                Text1 = "Test",
+                Text2 = "Value",
+            };
+
+            dbContext.TestEntities.Upsert(newItem)
+                .On(j => j.Num1)
+                .WhenMatched((je, jn) => new TestEntity
+                {
+                    Text1 = newItem2.Text1,
+                    Text2 = null,
+                })
+                .Run();
+
+            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+                test => test.Should().MatchModel(newItem));
+        }
+
+        [Fact]
         public void Upsert_CompositeExpression_New()
         {
             ResetDb();

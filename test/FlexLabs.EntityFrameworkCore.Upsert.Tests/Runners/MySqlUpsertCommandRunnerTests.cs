@@ -75,7 +75,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             "VALUES (@p0, @p1, @p2, @p3) " +
             "ON DUPLICATE KEY UPDATE `Name` = IF (( `Total` > @p5 ) AND ( `Status` != VALUES(`Status`) ), @p4, `Name`)";
 
-        protected override string Update_Condition_NullCheck_Sql =>
+        protected override string Update_Condition_NullCheck_AlsoNullValue_Sql =>
             "INSERT INTO `TestEntity` (`ID`, `Name`, `Status`, `Total`) " +
             "VALUES (@p0, @p1, @p2, @p3) " +
             "ON DUPLICATE KEY UPDATE `Name` = IF (`Status` IS NOT NULL, @p4, `Name`)";

@@ -284,20 +284,25 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
                 Arg.Any<IEnumerable<object>>());
         }
 
-        protected abstract string Update_Condition_NullCheck_Sql { get; }
+        protected abstract string Update_Condition_NullCheck_AlsoNullValue_Sql { get; }
         [Fact]
-        public void SqlSyntaxRunner_Update_Condition_NullCheck()
+        public void SqlSyntaxRunner_Update_Condition_NullCheck_AlsoNullValue()
         {
+            var ent = new TestEntity
+            {
+                Name = null,
+            };
+
             _dbContext.Upsert(new TestEntity())
                 .WhenMatched(e => new TestEntity
                 {
-                    Name = "new"
+                    Name = ent.Name
                 })
                 .UpdateIf(e => e.Status != null)
                 .Run();
 
             _rawSqlBuilder.Received().Build(
-                Update_Condition_NullCheck_Sql,
+                Update_Condition_NullCheck_AlsoNullValue_Sql,
                 Arg.Any<IEnumerable<object>>());
         }
 

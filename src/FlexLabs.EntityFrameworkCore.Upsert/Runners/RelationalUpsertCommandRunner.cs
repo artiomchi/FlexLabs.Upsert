@@ -173,10 +173,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var constantArgumentSourceValues = updateExpressions?.Select(e => e.Value);
             if (updateConditionExpression != null)
                 constantArgumentSourceValues = constantArgumentSourceValues?.Append(updateConditionExpression) ?? [updateConditionExpression];
-            var expressionConstants = constantArgumentSourceValues
-                ?.SelectMany(v => v.GetConstantValues())
-                .Where(c => c.Value != null)
-                .ToArray();
+            var expressionConstants = constantArgumentSourceValues?.SelectMany(v => v.GetConstantValues()).ToArray();
 
             var entitiesProcessed = 0;
             var singleEntityArguments = newEntities[0].Count + (expressionConstants?.Length ?? 0);
@@ -456,7 +453,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 dbParameter = dbCommand.CreateParameter();
                 dbParameter.Direction = ParameterDirection.Input;
-                dbParameter.Value = constantValue.Value;
+                dbParameter.Value = constantValue.Value ?? DBNull.Value;
                 dbParameter.ParameterName = Parameter(constantValue.ArgumentIndex);
             }
             return dbParameter;
