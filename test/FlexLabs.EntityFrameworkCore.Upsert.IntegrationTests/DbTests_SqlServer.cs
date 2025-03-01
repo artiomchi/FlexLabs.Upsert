@@ -1,32 +1,38 @@
-﻿using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
+using System;
+using System.Data.Common;
+using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.MsSql;
+using Testcontainers.Xunit;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
 #if !NOMSSQL
-    public class DbTests_SqlServer : DbTestsBase, IClassFixture<DbTests_SqlServer.DatabaseInitializer>
+    public class DbTests_SqlServer(DbTests_SqlServer.DatabaseInitializer contexts) : DbTestsBase(contexts), IClassFixture<DbTests_SqlServer.DatabaseInitializer>
     {
-        public sealed class DatabaseInitializer : ContainerisedDatabaseInitializerFixture<MsSqlContainer>
+        public sealed class DatabaseInitializer(IMessageSink messageSink) : ContainerisedDatabaseInitializerFixture<MsSqlBuilder, MsSqlContainer>(new MsSqlFixture(messageSink))
         {
             public override DbDriver DbDriver => DbDriver.MSSQL;
 
-            protected override MsSqlContainer BuildContainer()
-                => new MsSqlBuilder().WithName("flexlabs_upsert_mssql").WithReuse(true).Build();
-
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
+                => builder.UseSqlServer(ConnectionString);
+
+            protected override string LocalServiceConnectionString
+                => OperatingSystem.IsWindows() ? "Server=(localdb)\\MSSqlLocalDB;Integrated Security=SSPI;Initial Catalog=FlexLabsUpsertTests;" : base.LocalServiceConnectionString;
+
+            private class MsSqlFixture(IMessageSink messageSink) : DbContainerFixture<MsSqlBuilder, MsSqlContainer>(messageSink)
             {
-                var connectionString = TestContainer?.GetConnectionString()
-                    ?? "Server=(localdb)\\MSSqlLocalDB;Integrated Security=SSPI;Initial Catalog=FlexLabsUpsertTests;";
-                builder.UseSqlServer(connectionString);
+                public override DbProviderFactory DbProviderFactory
+                    => SqlClientFactory.Instance;
+
+                protected override MsSqlBuilder Configure(MsSqlBuilder builder)
+                    => ConfigureContainer(builder);
             }
         }
-
-        public DbTests_SqlServer(DatabaseInitializer contexts)
-            : base(contexts)
-        { }
     }
 #endif
 }

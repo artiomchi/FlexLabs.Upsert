@@ -1,33 +1,34 @@
-﻿using System;
+﻿using System.Data.Common;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 using Testcontainers.MySql;
+using Testcontainers.Xunit;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
 #if !NOMYSQL
-    public class DbTests_MySql : DbTestsBase, IClassFixture<DbTests_MySql.DatabaseInitializer>
+    public class DbTests_MySql(DbTests_MySql.DatabaseInitializer contexts) : DbTestsBase(contexts), IClassFixture<DbTests_MySql.DatabaseInitializer>
     {
-        public sealed class DatabaseInitializer : ContainerisedDatabaseInitializerFixture<MySqlContainer>
+        public sealed class DatabaseInitializer(IMessageSink messageSink) : ContainerisedDatabaseInitializerFixture<MySqlBuilder, MySqlContainer>(new MySqlFixture(messageSink))
         {
             public override DbDriver DbDriver => DbDriver.MySQL;
 
-            protected override MySqlContainer BuildContainer()
-                => new MySqlBuilder().WithName("flexlabs_upsert_mysql").WithReuse(true).Build();
-
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
+                => builder.UseMySql(ConnectionString, ServerVersion.AutoDetect(ConnectionString));
+
+            private class MySqlFixture(IMessageSink messageSink) : DbContainerFixture<MySqlBuilder, MySqlContainer>(messageSink)
             {
-                var connectionString = TestContainer?.GetConnectionString()
-                    ?? throw new InvalidOperationException("Connection string was not initialised");
-                builder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+                public override DbProviderFactory DbProviderFactory
+                    => MySqlConnectorFactory.Instance;
+
+                protected override MySqlBuilder Configure(MySqlBuilder builder)
+                    => ConfigureContainer(builder);
             }
         }
-
-        public DbTests_MySql(DatabaseInitializer contexts)
-            : base(contexts)
-        { }
     }
 #endif
 }
