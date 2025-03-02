@@ -21,9 +21,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
             {
-                const string gitHubConnectionString = "Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=root";
-                var connectionString = BuildEnvironment.IsGitHub ? gitHubConnectionString : ConnectionString;
-                builder.UseNpgsql(new NpgsqlDataSourceBuilder(connectionString)
+                builder.UseNpgsql(new NpgsqlDataSourceBuilder(ConnectionString)
                     .EnableDynamicJson()
                     .Build());
             }
