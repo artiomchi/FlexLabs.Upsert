@@ -17,7 +17,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
         private readonly string _connectionString = Environment.GetEnvironmentVariable($"FLEXLABS_UPSERT_TESTS_{DbDriverName.ToUpperInvariant()}_CONNECTION_STRING");
 
         protected static TBuilder ConfigureContainer(TBuilder builder)
-            => builder.WithName($"flexlabs_upsert_{DbDriverName.ToLowerInvariant()}");
+            => builder.WithName($"flexlabs_upsert_{DbDriverName.ToLowerInvariant()}").WithReuse(true);
 
         protected string ConnectionString
             => _connectionString ?? dbContainerFixture.Container.GetConnectionString();
@@ -32,14 +32,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             await base.InitializeAsync();
         }
 
-        public override async Task DisposeAsync()
-        {
-            if (_connectionString == null)
-            {
-                await ((IAsyncLifetime)dbContainerFixture).DisposeAsync();
-            }
+        // Some containers don't start up properly if they're stopped and started again, so we will leave them running
+        // In CI environments, they will be cleared up automatically, when developing locally - you may need to clean up manually
+        //public override async Task DisposeAsync()
+        //{
+        //    if (_connectionString == null)
+        //    {
+        //        await ((IAsyncLifetime)dbContainerFixture).DisposeAsync();
+        //    }
 
-            await base.DisposeAsync();
-        }
+        //    await base.DisposeAsync();
+        //}
     }
 }
