@@ -21,8 +21,11 @@ Also supports injecting sql command generators to add support for other provider
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <VersionPrefix>8.1.2</VersionPrefix>
+    <VersionPrefix>9.0.0</VersionPrefix>
     <PackageReleaseNotes>
+v9.0.0
++ Adding support for EF Core 9
+
 v8.1.0
 + Adding initial support for Oracle DB! (Thanks to @dadyarri)
 + Adding test support for returning inserted objects (Thanks to @PhenX)
