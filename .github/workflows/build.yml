@@ -7,10 +7,10 @@ jobs:
     name: Build on Ubuntu (full)
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/setup-dotnet@v3
+    - uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0'
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
@@ -18,7 +18,7 @@ jobs:
     - name: Test
       run: dotnet test --no-build --logger "trx;LogFileName=test-results.trx"
     - name: Test Report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: success() || failure()
       with:
         name: test-results
@@ -28,10 +28,10 @@ jobs:
     name: Build on Windows
     runs-on: windows-latest
     steps:
-    - uses: actions/setup-dotnet@v3
+    - uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0'
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Enable Postgres
       run: sc config postgresql-x64-14 start= demand
     - name: Start Postgres
@@ -45,7 +45,7 @@ jobs:
         USE_LOCAL_SERVICE: 'true'
       run: dotnet test ./test/FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests --no-build --logger "trx;LogFileName=test-results.trx"
     - name: Test Report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: success() || failure()
       with:
         name: test-results-win

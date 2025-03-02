@@ -92,24 +92,24 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         {
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
-            dbContext.RemoveRange(dbContext.Books);
-            dbContext.RemoveRange(dbContext.Countries);
-            dbContext.RemoveRange(dbContext.DashTable);
-            dbContext.RemoveRange(dbContext.GuidKeys);
-            dbContext.RemoveRange(dbContext.GuidKeysAutoGen);
-            dbContext.RemoveRange(dbContext.JObjectDatas);
-            dbContext.RemoveRange(dbContext.JsonDatas);
-            dbContext.RemoveRange(dbContext.KeyOnlies);
-            dbContext.RemoveRange(dbContext.NullableCompositeKeys);
-            dbContext.RemoveRange(dbContext.NullableRequireds);
-            dbContext.RemoveRange(dbContext.PageVisits);
-            dbContext.RemoveRange(dbContext.SchemaTable);
-            dbContext.RemoveRange(dbContext.Statuses);
-            dbContext.RemoveRange(dbContext.StringKeys);
-            dbContext.RemoveRange(dbContext.StringKeysAutoGen);
-            dbContext.RemoveRange(dbContext.TestEntities);
-            dbContext.RemoveRange(dbContext.GeneratedAlwaysAsIdentity);
-            dbContext.RemoveRange(dbContext.ComputedColumns);
+            Reset(dbContext, e => e.Books);
+            Reset(dbContext, e => e.Countries);
+            Reset(dbContext, e => e.DashTable);
+            Reset(dbContext, e => e.GuidKeys);
+            Reset(dbContext, e => e.GuidKeysAutoGen);
+            Reset(dbContext, e => e.JObjectDatas);
+            Reset(dbContext, e => e.JsonDatas);
+            Reset(dbContext, e => e.KeyOnlies);
+            Reset(dbContext, e => e.NullableCompositeKeys);
+            Reset(dbContext, e => e.NullableRequireds);
+            Reset(dbContext, e => e.PageVisits);
+            Reset(dbContext, e => e.SchemaTable);
+            Reset(dbContext, e => e.Statuses);
+            Reset(dbContext, e => e.StringKeys);
+            Reset(dbContext, e => e.StringKeysAutoGen);
+            Reset(dbContext, e => e.TestEntities);
+            Reset(dbContext, e => e.GeneratedAlwaysAsIdentity);
+            Reset(dbContext, e => e.ComputedColumns);
 
             dbContext.Add(_dbCountry);
             dbContext.Add(_dbVisitOld);
@@ -123,8 +123,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.SaveChanges();
 
             GeneratedAlwaysAsIdentity_NextId = dbContext.GeneratedAlwaysAsIdentity.Max(e => e.ID) + 1;
-            dbContext.RemoveRange(dbContext.GeneratedAlwaysAsIdentity);
+            Reset(dbContext, e => e.GeneratedAlwaysAsIdentity);
             dbContext.SaveChanges();
+        }
+
+        private void Reset<T>(TestDbContext dbContext, Func<TestDbContext, DbSet<T>> selector) where T : class
+        {
+            var dbSet = selector(dbContext);
+            if (_fixture.DbDriver == DbDriver.InMemory)
+            {
+                dbContext.RemoveRange(dbSet);
+            }
+            else
+            {
+                dbSet.ExecuteDelete();
+            }
         }
 
         private void ResetDb<TEntity>(params TEntity[] seedValue)
