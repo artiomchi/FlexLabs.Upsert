@@ -81,7 +81,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             var value2 = "world";
             Expression<Func<TestEntity, TestEntity>> exp = e => new TestEntity
             {
-                Text1 = string.Join(", ", value1, value2),
+                Text1 = string.Join(", ", new string[] { value1, value2 }),
             };
 
             var memberAssig = GetMemberExpression(exp);

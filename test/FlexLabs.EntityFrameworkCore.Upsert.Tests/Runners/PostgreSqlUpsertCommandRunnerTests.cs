@@ -3,6 +3,7 @@ using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using NSubstitute;
 using Xunit;
 
@@ -120,7 +121,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 NoUpdate_WithSequence_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
     }
 }

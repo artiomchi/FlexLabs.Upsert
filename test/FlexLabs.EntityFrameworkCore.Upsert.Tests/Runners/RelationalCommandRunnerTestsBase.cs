@@ -44,7 +44,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             relationalConnection.DbConnection.Returns(Substitute.For<DbConnection>());
 
             _rawSqlBuilder = Substitute.For<IRawSqlCommandBuilder>();
-            _rawSqlBuilder.Build(default, default).ReturnsForAnyArgs(
+            _rawSqlBuilder.Build(default, default, default).ReturnsForAnyArgs(
                 new RawSqlCommand(Substitute.For<IRelationalCommand>(), new Dictionary<string, object>()));
 
             var concurrencyDetector = Substitute.For<IConcurrencyDetector>();
@@ -90,7 +90,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 NoUpdate_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string NoUpdate_Multiple_Sql { get; }
@@ -103,7 +104,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 NoUpdate_Multiple_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string NoUpdate_WithNullable_Sql { get; }
@@ -117,7 +119,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 NoUpdate_WithNullable_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string Update_Constant_Sql { get; }
@@ -133,7 +136,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 Update_Constant_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string Update_Constant_Multiple_Sql { get; }
@@ -149,7 +153,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 Update_Constant_Multiple_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string Update_Source_Sql { get; }
@@ -165,7 +170,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 Update_Source_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string Update_BinaryAdd_Sql { get; }
@@ -181,7 +187,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 Update_BinaryAdd_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string Update_Coalesce_Sql { get; }
@@ -197,7 +204,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 Update_Coalesce_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string Update_BinaryAddMultiply_Sql { get; }
@@ -213,7 +221,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 Update_BinaryAddMultiply_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string Update_BinaryAddMultiplyGroup_Sql { get; }
@@ -229,7 +238,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 Update_BinaryAddMultiplyGroup_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string Update_Condition_Sql { get; }
@@ -246,7 +256,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 Update_Condition_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string Update_Condition_UpdateConditionColumn_Sql { get; }
@@ -264,7 +275,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 Update_Condition_UpdateConditionColumn_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string Update_Condition_AndCondition_Sql { get; }
@@ -281,7 +293,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 Update_Condition_AndCondition_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string Update_Condition_NullCheck_AlsoNullValue_Sql { get; }
@@ -303,7 +316,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 Update_Condition_NullCheck_AlsoNullValue_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
 
         protected abstract string Update_WatchWithNullCheck_Sql { get; }
@@ -319,7 +333,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             _rawSqlBuilder.Received().Build(
                 Update_WatchWithNullCheck_Sql,
-                Arg.Any<IEnumerable<object>>());
+                Arg.Any<IEnumerable<object>>(),
+                Arg.Any<IModel>());
         }
     }
 }
