@@ -42,7 +42,7 @@ jobs:
       run: dotnet build --no-restore /p:POSTGRES_ONLY=true
     - name: Test
       env:
-        USE_LOCAL_SERVICE: 'true'
+        FLEXLABS_UPSERT_TESTS_POSTGRESQL_CONNECTION_STRING: 'Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=root'
       run: dotnet test ./test/FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests --no-build --logger "trx;LogFileName=test-results.trx"
     - name: Test Report
       uses: actions/upload-artifact@v4

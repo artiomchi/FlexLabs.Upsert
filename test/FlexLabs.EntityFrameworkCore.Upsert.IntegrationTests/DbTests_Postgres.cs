@@ -1,37 +1,40 @@
-﻿using System.Linq;
+﻿using System.Data.Common;
+using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Testcontainers.PostgreSql;
+using Testcontainers.Xunit;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
 #if !NOPOSTGRES
-    public class DbTests_Postgres : DbTestsBase, IClassFixture<DbTests_Postgres.DatabaseInitializer>
+    public class DbTests_Postgres(DbTests_Postgres.DatabaseInitializer contexts) : DbTestsBase(contexts), IClassFixture<DbTests_Postgres.DatabaseInitializer>
     {
-        public sealed class DatabaseInitializer : ContainerisedDatabaseInitializerFixture<PostgreSqlContainer>
+        public sealed class DatabaseInitializer(IMessageSink messageSink) : ContainerisedDatabaseInitializerFixture<PostgreSqlBuilder, PostgreSqlContainer>(new PostgresFixture(messageSink))
         {
             public override DbDriver DbDriver => DbDriver.Postgres;
 
-            protected override PostgreSqlContainer BuildContainer()
-                => new PostgreSqlBuilder().WithName("flexlabs_upsert_postgres").WithReuse(true).Build();
-
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
             {
-                var connectionString = TestContainer?.GetConnectionString()
-                    ?? (BuildEnvironment.IsGitHub ? "Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=root" : null);
-                builder.UseNpgsql(new NpgsqlDataSourceBuilder(connectionString)
+                builder.UseNpgsql(new NpgsqlDataSourceBuilder(ConnectionString)
                     .EnableDynamicJson()
                     .Build());
             }
-        }
 
-        public DbTests_Postgres(DatabaseInitializer contexts)
-            : base(contexts)
-        { }
+            private class PostgresFixture(IMessageSink messageSink) : DbContainerFixture<PostgreSqlBuilder, PostgreSqlContainer>(messageSink)
+            {
+                public override DbProviderFactory DbProviderFactory
+                    => NpgsqlFactory.Instance;
+
+                protected override PostgreSqlBuilder Configure(PostgreSqlBuilder builder)
+                    => ConfigureContainer(builder);
+            }
+        }
 
         [Fact]
         public void GeneratedAlwaysAsIdentity_NoUpdate_New()
