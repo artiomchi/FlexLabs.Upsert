@@ -237,11 +237,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.Countries.Should().HaveCount(2);
         }
 
-        [Fact]
+        [SkippableFact]
         public void Upsert_ReturnResult_Single()
         {
-            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Oracle)
-                return; // Returning records is not implemented in MySQL and Oracle runners
+            Skip.If(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -264,11 +263,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             });
         }
 
-        [Fact]
+        [SkippableFact]
         public void Upsert_ReturnResult_Multiple()
         {
-            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Oracle)
-                return; // Returning records is not implemented in MySQL and Oracle runners
+            Skip.If(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
 
             ResetDb(new DashTable { DataSet = "Test1" });
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -296,11 +294,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.DashTable.Should().HaveCount(2);
         }
 
-        [Fact]
+        [SkippableFact]
         public void Upsert_ReturnResult_TracksChanges()
         {
-            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Oracle)
-                return; // Returning records is not implemented in MySQL and Oracle runners
+            Skip.If(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
 
             ResetDb(new DashTable { DataSet = "Test" });
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -1235,11 +1232,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 j => JToken.DeepEquals(JObject.Parse(updatedJson.Data), JObject.Parse(j.Data)).Should().BeTrue());
         }
 
-        [Fact]
+        [SkippableFact]
         public void Upsert_JsonData_Update_ComplexObject()
         {
-            if (_fixture.DbDriver != DbDriver.Postgres)
-                return; // Default values on text columns not supported in MySQL
+            Skip.If(_fixture.DbDriver is not DbDriver.Postgres, "Default values on text columns are only supported in Postgres");
 
             var existingJson = new JsonData
             {
@@ -1359,12 +1355,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 k => (k.ID1, k.ID2).Should().Be((newItem.ID1, newItem.ID2)));
         }
 
-        [Fact]
+        [SkippableFact]
         public void Upsert_NullableKeys()
         {
-            if (_fixture.DbDriver == DbDriver.MySQL || _fixture.DbDriver == DbDriver.Postgres ||
-                _fixture.DbDriver == DbDriver.Sqlite || _fixture.DbDriver == DbDriver.Oracle)
-                return;
+            Skip.If(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Postgres or DbDriver.Sqlite or DbDriver.Oracle);
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -1877,13 +1871,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [Fact]
         public void Upsert_UpdateCondition_ValueCheck_UpdateColumnFromCondition()
         {
-            if (BuildEnvironment.IsGitHub && _fixture.DbDriver == DbDriver.MySQL &&
-                Environment.OSVersion.Platform == PlatformID.Unix)
-            {
-                // Disabling this test on GitHub Ubuntu images - they're cursed?
-                return;
-            }
-
             var dbItem1 = new TestEntity
             {
                 Num1 = 1,
@@ -1915,11 +1902,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 test => test.Should().MatchModel(dbItem2));
         }
 
-        [Fact]
+        [SkippableFact]
         public void Upsert_NullableRequired_Insert()
         {
-            if (_fixture.DbDriver == DbDriver.MySQL)
-                return; // Default values on text columns not supported in MySQL
+            Skip.If(_fixture.DbDriver == DbDriver.MySQL, "Default values on text columns not supported in MySQL");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -1956,11 +1942,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.NullableRequireds.Should().HaveCount(100_000);
         }
 
-        [Fact]
+        [SkippableFact]
         public void ComputedColumn_Updates()
         {
-            if (_fixture.DbDriver == DbDriver.InMemory)
-                return; // In memory db doesn't support sql computed columns
+            Skip.If(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support sql computed columns");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
