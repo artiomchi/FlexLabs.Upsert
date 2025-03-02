@@ -14,20 +14,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
     {
         private static readonly string DbDriverName = typeof(TContainer).Name.Replace("Container", "");
 
-        private readonly bool _useContainer = !BuildEnvironment.UseLocalService;
+        private readonly string _connectionString = Environment.GetEnvironmentVariable($"FLEXLABS_UPSERT_TESTS_{DbDriverName.ToUpperInvariant()}_CONNECTION_STRING");
 
         protected static TBuilder ConfigureContainer(TBuilder builder)
             => builder.WithName($"flexlabs_upsert_{DbDriverName.ToLowerInvariant()}");
 
         protected string ConnectionString
-            => _useContainer ? dbContainerFixture.Container.GetConnectionString() : LocalServiceConnectionString;
-
-        protected virtual string LocalServiceConnectionString
-            => throw new InvalidOperationException($"{DbDriverName} tests don't support the USE_LOCAL_SERVICE environment variable.");
+            => _connectionString ?? dbContainerFixture.Container.GetConnectionString();
 
         public override async Task InitializeAsync()
         {
-            if (_useContainer)
+            if (_connectionString == null)
             {
                 await ((IAsyncLifetime)dbContainerFixture).InitializeAsync();
             }
@@ -37,7 +34,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 
         public override async Task DisposeAsync()
         {
-            if (_useContainer)
+            if (_connectionString == null)
             {
                 await ((IAsyncLifetime)dbContainerFixture).DisposeAsync();
             }

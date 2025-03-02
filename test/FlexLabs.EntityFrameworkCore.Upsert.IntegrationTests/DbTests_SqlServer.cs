@@ -1,4 +1,3 @@
-using System;
 using System.Data.Common;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
@@ -20,9 +19,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
                 => builder.UseSqlServer(ConnectionString);
-
-            protected override string LocalServiceConnectionString
-                => OperatingSystem.IsWindows() ? "Server=(localdb)\\MSSqlLocalDB;Integrated Security=SSPI;Initial Catalog=FlexLabsUpsertTests;" : base.LocalServiceConnectionString;
 
             private class MsSqlFixture(IMessageSink messageSink) : DbContainerFixture<MsSqlBuilder, MsSqlContainer>(messageSink)
             {
