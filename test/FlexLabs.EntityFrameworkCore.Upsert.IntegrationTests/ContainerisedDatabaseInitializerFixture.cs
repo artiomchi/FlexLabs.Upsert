@@ -10,8 +10,7 @@ using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
-    public abstract class ContainerisedDatabaseInitializerFixture<TBuilder, TContainer>(DbContainerFixture<TBuilder, TContainer> dbContainerFixture)
-        : DatabaseInitializerFixture, IClassFixture<DbContainerFixture<TBuilder, TContainer>>
+    public abstract class ContainerisedDatabaseInitializerFixture<TBuilder, TContainer>(DbContainerFixture<TBuilder, TContainer> dbContainerFixture) : DatabaseInitializerFixture
         where TBuilder : IContainerBuilder<TBuilder, TContainer>, new()
         where TContainer : IContainer, IDatabaseContainer
     {
