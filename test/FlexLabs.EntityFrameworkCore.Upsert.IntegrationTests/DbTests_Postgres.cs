@@ -32,7 +32,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
                     => NpgsqlFactory.Instance;
 
                 protected override PostgreSqlBuilder Configure(PostgreSqlBuilder builder)
-                    => ConfigureContainer(builder);
+                    => ConfigureContainer(builder, DbProviderFactory);
             }
         }
 

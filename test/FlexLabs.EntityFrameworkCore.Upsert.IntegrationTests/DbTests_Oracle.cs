@@ -26,7 +26,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
                     => OracleClientFactory.Instance;
 
                 protected override OracleBuilder Configure(OracleBuilder builder)
-                    => ConfigureContainer(builder).WithImage("gvenzl/oracle-free:23-slim-faststart");
+                    => ConfigureContainer(builder, DbProviderFactory).WithImage("gvenzl/oracle-free:23-slim-faststart");
             }
         }
     }
