@@ -1254,7 +1254,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var timestamp = new DateTime(2021, 2, 3, 4, 5, 6, DateTimeKind.Utc);
             var updatedJson = new JsonData
             {
-                Child = new ChildObject { Value = "test", Time = timestamp }
+                Child = new ChildObject { Value = "test", Time = timestamp },
+                Poco = new ChildObject { Value = "test", Time = timestamp }
             };
 
             dbContext.JsonDatas.Upsert(updatedJson)
@@ -1262,6 +1263,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.JsonDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
                 j => j.Child.Time.Should().Be(timestamp));
+            dbContext.JsonDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                j => j.Poco.Time.Should().Be(timestamp));
         }
 
         [Fact]
