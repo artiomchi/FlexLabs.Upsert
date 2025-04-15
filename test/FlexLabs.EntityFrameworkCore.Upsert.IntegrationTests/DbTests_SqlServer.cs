@@ -26,7 +26,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
                     => SqlClientFactory.Instance;
 
                 protected override MsSqlBuilder Configure(MsSqlBuilder builder)
-                    => ConfigureContainer(builder, DbProviderFactory);
+                    => ConfigureContainer(builder);
             }
         }
     }

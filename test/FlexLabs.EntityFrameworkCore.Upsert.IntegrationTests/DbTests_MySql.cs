@@ -26,7 +26,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
                     => MySqlConnectorFactory.Instance;
 
                 protected override MySqlBuilder Configure(MySqlBuilder builder)
-                    => ConfigureContainer(builder, DbProviderFactory);
+                    => ConfigureContainer(builder);
             }
         }
     }
