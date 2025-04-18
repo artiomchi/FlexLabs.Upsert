@@ -16,6 +16,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
         public virtual async Task InitializeAsync()
         {
             var builder = new DbContextOptionsBuilder<TestDbContext>();
+            builder.EnableSensitiveDataLogging();
             ConfigureContextOptions(builder);
             DataContextOptions = builder.Options;
 

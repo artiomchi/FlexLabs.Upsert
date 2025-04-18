@@ -54,6 +54,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
                 modelBuilder.Entity<JsonData>().Ignore(j => j.Child);
             }
 
+            if (dbProvider.Name != "Npgsql.EntityFrameworkCore.PostgreSQL") {
+                modelBuilder.Entity<JsonDocumentData>().Ignore(_ => _.Data);
+            }
+
+            modelBuilder.Entity<CompanyOwnedJson>().OwnsOne(j => j.Meta, _ => {
+                _.ToJson();
+                _.OwnsOne(_ => _.Nested, _ => _.ToJson());
+                _.OwnsMany(_ => _.Properties, _ => _.ToJson());
+            });
+
             if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql
             {
                 modelBuilder.Entity<NullableRequired>().Property(e => e.Text).HasDefaultValue("B");
@@ -83,6 +93,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public DbSet<GuidKeyAutoGen> GuidKeysAutoGen { get; set; }
         public DbSet<JObjectData> JObjectDatas { get; set; }
         public DbSet<JsonData> JsonDatas { get; set; }
+        public DbSet<JsonDocumentData> JsonDocumentDatas { get; set; }
         public DbSet<KeyOnly> KeyOnlies { get; set; }
         public DbSet<NullableCompositeKey> NullableCompositeKeys { get; set; }
         public DbSet<NullableRequired> NullableRequireds { get; set; }
@@ -95,5 +106,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public DbSet<GeneratedAlwaysAsIdentity> GeneratedAlwaysAsIdentity { get; set; }
         public DbSet<ComputedColumn> ComputedColumns { get; set; }
         public DbSet<Parent> Parents { get; set; }
+        public DbSet<CompanyOwnedJson> CompanyOwnedJson { get; set; }
     }
 }

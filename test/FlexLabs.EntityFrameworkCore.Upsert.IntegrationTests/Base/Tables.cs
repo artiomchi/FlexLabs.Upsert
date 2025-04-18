@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq.Expressions;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Newtonsoft.Json.Linq;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
@@ -45,6 +48,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
     {
         public string Value { get; set; }
         public DateTimeOffset Time { get; set; }
+    }
+
+    public class JsonDocumentData : IDisposable
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int ID { get; set; }
+        public JsonDocument Data { get; set; }
+        public void Dispose() => Data?.Dispose();
     }
 
     public class JObjectData
@@ -174,5 +185,36 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
     public class SubChild
     {
         public string SubChildName { get; set; }
+    }
+
+    public class CompanyOwnedJson
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public CompanyMeta Meta { get; set; }
+    }
+
+    public class CompanyMeta
+    {
+        [Required]
+        public string Required { get; set; }
+        [JsonPropertyName("json_override")]
+        public string JsonOverride { get; set; }
+        [Column("column_override")]
+        public string ColumnOverride { get; set; }
+        public CompanyNestedMeta Nested { get; set; }
+        public List<CompanyMetaValue> Properties { get; set; }
+    }
+
+    public class CompanyNestedMeta
+    {
+        public string Title { get; set; }
+    }
+
+    public class CompanyMetaValue
+    {
+        public string Key { get; set; }
+        public string Value { get; set; }
     }
 }

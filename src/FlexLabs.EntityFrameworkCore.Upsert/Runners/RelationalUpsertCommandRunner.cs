@@ -450,6 +450,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 relationalTypeMapping = relationalTypeMappingSource.FindMapping(prop);
             }
+            else if (constantValue.Property is JsonColumn { Column: { } column })
+            {
+                relationalTypeMapping = relationalTypeMappingSource.FindMapping(column.StoreType);
+            }
             else if (constantValue.MemberInfo != null)
             {
                 relationalTypeMapping = relationalTypeMappingSource.FindMapping(constantValue.MemberInfo);

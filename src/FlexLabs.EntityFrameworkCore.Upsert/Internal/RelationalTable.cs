@@ -11,6 +11,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;
 internal sealed class RelationalTable {
     private readonly RunnerQueryOptions _queryOptions;
     private readonly SortedDictionary<LevelName, IColumnBase> _columns = new();
+    private readonly ITable _table;
 
     private readonly record struct LevelName(int Level, IEntityType Parent, string Name) : IComparable<LevelName> {
         public int CompareTo(LevelName other)
@@ -27,6 +28,7 @@ internal sealed class RelationalTable {
         _queryOptions = queryOptions;
         EntityType = entityType;
         TableName = tableName;
+        _table = GetTable(EntityType);
 
         var columns = GetColumns(entityType)
             .Concat(GetOwnedColumns(entityType));
@@ -57,6 +59,14 @@ internal sealed class RelationalTable {
     }
 
 
+    private static ITable GetTable(IEntityType entityType)
+    {
+        var tblName = entityType.GetTableName() ?? entityType.GetViewName();
+        var tblSchema = entityType.GetSchema();
+        return entityType.Model.GetRelationalModel().Tables.First(_ => _.Name == tblName && _.Schema == tblSchema);
+    }
+
+
     private IEnumerable<IColumnBase> GetColumns(IEntityType entityType)
     {
         var properties = entityType
@@ -82,7 +92,28 @@ internal sealed class RelationalTable {
         var owned = entityType.GetNavigations().Where(_ => _.ForeignKey.IsOwnership);
 
         foreach (var navigation in owned) {
-            if (true) {
+            if (navigation.TargetEntityType.IsMappedToJson()) {
+                var columnName = navigation.TargetEntityType.GetContainerColumnName();
+                if (columnName is null) {
+                    throw new NotSupportedException($"Unsupported owned json column: '{navigation.Name}'. Failed to get column name.");
+                }
+
+                var jsonColumn = GetTable(entityType).FindColumn(columnName);
+                if (jsonColumn is null) {
+                    throw new NotSupportedException($"Unsupported owned json column: '{navigation.Name}'. Failed to get relational column.");
+                }
+
+                yield return new JsonColumn(
+                    Parent: entityType,
+                    Column: jsonColumn,
+                    Navigation: navigation,
+                    Name: navigation.Name,
+                    ColumnName: columnName,
+                    Owned: Owned.Json,
+                    Level: level
+                );
+            }
+            else {
                 var currentLevel = level + 1;
                 var parent = navigation.TargetEntityType;
                 var currentGetter = (object entity) => navigation.GetGetter().GetClrValueUsingContainingEntity(getter is null ? entity : getter(entity)!);
@@ -127,18 +158,6 @@ internal sealed class RelationalTable {
                 foreach (var column in GetOwnedColumns(parent, level: currentLevel, currentGetter)) {
                     yield return column;
                 }
-            }
-            else {
-                // JSON
-                //yield return new RelationalColumn(
-                //    Table: this,
-                //    Parent: entityType,
-                //    Property: navigation,
-                //    Navigation: navigation,
-                //    ColumnName: navigation.GetDefaultColumnName(table.Value),
-                //    Owned: Owned.Json,
-                //    Level: level
-                //);
             }
         }
     }
@@ -206,6 +225,31 @@ internal sealed record OwnerColumn(
     int Level
 ) : IColumnBase {
     public (string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts) GetValue(object entity) => throw new NotSupportedException();
+}
+
+internal sealed record JsonColumn(
+    IEntityType Parent,
+    IColumn Column,
+    INavigation Navigation,
+    string Name,
+    string ColumnName,
+    Owned Owned,
+    int Level
+) : IColumnBase {
+    public (string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts) GetValue(object entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity, nameof(entity));
+
+        var rawValue = Navigation.GetGetter().GetClrValueUsingContainingEntity(entity);
+        var jsonValue = rawValue switch {
+            null => null,
+            _ => Column.StoreTypeMapping.GenerateProviderValueSqlLiteral(rawValue).Trim('\''),
+        };
+
+        var value = new ConstantValue(jsonValue, this);
+
+        return (ColumnName, value, DefaultSql: null, AllowInserts: true);
+    }
 }
 
 /// <summary>
