@@ -105,19 +105,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnName(), c.IsColumnNullable())).ToArray();
 
             var table = new RelationalTable(entityType, GetTableName(entityType), queryOptions);
+            var expressionParser = new ExpressionParser<TEntity>(table, queryOptions);
 
-            List<(IColumnBase Property, IKnownValue Value)>? updateExpressions = null;
+            List<PropertyMapping>? updateExpressions = null;
             if (updater != null)
             {
-                updateExpressions = ExpressionParser.ParseUpdaterExpression(table, updater, queryOptions);
+                updateExpressions = expressionParser.ParseUpdaterExpression(updater).ToList();
             }
             else if (!queryOptions.NoUpdate)
             {
                 updateExpressions = table.Columns
                     .Where(column => joinColumnNames.All(c => c.ColumnName != column.ColumnName))
-                    .Select(column => (
+                    .Select(column => new PropertyMapping(
                         Property: column,
-                        Value: (IKnownValue) new PropertyValue(column.Name, false, column)
+                        Value: new PropertyValue(column.Name, false, column)
                     ))
                     .ToList();
             }
