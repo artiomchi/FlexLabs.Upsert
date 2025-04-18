@@ -109,55 +109,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             List<(IColumnBase Property, IKnownValue Value)>? updateExpressions = null;
             if (updater != null)
             {
-                if (updater.Body is not MemberInitExpression entityUpdater)
-                    throw new ArgumentException(Resources.FormatUpdaterMustBeAnInitialiserOfTheTEntityType(nameof(updater)), nameof(updater));
-
-                updateExpressions = [];
-                foreach (var binding in entityUpdater.Bindings.Cast<MemberAssignment>())
-                {
-                    var property = table.FindColumn(binding.Member.Name);
-                    if (property == null)
-                    {
-                        throw new InvalidOperationException("Unknown property " + binding.Member.Name);
-                    }
-
-                    if (property.Owned == Owned.InlineOwner && binding.Expression is MemberInitExpression navigationUpdater) {
-                        foreach (var navigationBinding in navigationUpdater.Bindings.Cast<MemberAssignment>())
-                        {
-                            var navigationProperty = table.FindColumn(property, navigationBinding.Member.Name);
-                            if (navigationProperty == null)
-                            {
-                                throw new InvalidOperationException("Unknown navigation-property " + binding.Member.Name);
-                            }
-
-                            // TODO: Support navigation property expressions! (currently only allows direct values)
-                            var columnFinder = (string name) => table.FindColumn(property, name);
-                            var navigationValue = navigationBinding.Expression.GetValue<TEntity>(updater, columnFinder, queryOptions.UseExpressionCompiler);
-                            if (navigationValue is not IKnownValue knownNavigationVal)
-                                knownNavigationVal = new ConstantValue(navigationValue, property);
-
-                            updateExpressions.Add((navigationProperty, knownNavigationVal));
-                        }
-                    }
-                    else {
-                        var value = binding.Expression.GetValue<TEntity>(updater, table.FindColumn, queryOptions.UseExpressionCompiler);
-                        if (value is not IKnownValue knownVal)
-                            knownVal = new ConstantValue(value, property);
-                        updateExpressions.Add((property, knownVal));
-                    }
-                }
+                updateExpressions = ExpressionParser.ParseUpdaterExpression(table, updater, queryOptions);
             }
             else if (!queryOptions.NoUpdate)
             {
-                updateExpressions = [];
-                foreach (var column in table.Columns)
-                {
-                    if (joinColumnNames.Any(c => c.ColumnName == column.ColumnName))
-                        continue;
-
-                    var propertyAccess = new PropertyValue(column.Name, false, column);
-                    updateExpressions.Add((column, propertyAccess));
-                }
+                updateExpressions = table.Columns
+                    .Where(column => joinColumnNames.All(c => c.ColumnName != column.ColumnName))
+                    .Select(column => (
+                        Property: column,
+                        Value: (IKnownValue) new PropertyValue(column.Name, false, column)
+                    ))
+                    .ToList();
             }
 
             KnownExpression? updateConditionExpression = null;
