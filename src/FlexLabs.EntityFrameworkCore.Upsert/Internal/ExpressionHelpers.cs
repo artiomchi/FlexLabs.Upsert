@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {
@@ -22,10 +21,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <param name="useExpressionCompiler">Allows enabling the fallback expression compiler</param>
         /// <returns>An</returns>
         [SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "This will only be called internally. It's marked as public for the test class")]
-        public static object? GetValue<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty?> propertyFinder, bool useExpressionCompiler = false)
+        public static object? GetValue<TSource>(this Expression expression, LambdaExpression container, Func<string, IColumnBase?> propertyFinder, bool useExpressionCompiler = false)
             => GetValueInternal<TSource>(expression, container, propertyFinder, useExpressionCompiler, false);
 
-        private static object? GetValueInternal<TSource>(this Expression expression, LambdaExpression container, Func<string, IProperty?> propertyFinder, bool useExpressionCompiler, bool nested)
+        private static object? GetValueInternal<TSource>(this Expression expression, LambdaExpression container, Func<string, IColumnBase?> propertyFinder, bool useExpressionCompiler, bool nested)
         {
             switch (expression.NodeType)
             {

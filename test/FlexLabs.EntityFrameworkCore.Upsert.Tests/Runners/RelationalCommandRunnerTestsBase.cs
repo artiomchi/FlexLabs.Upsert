@@ -26,17 +26,25 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             _model = new Model();
             AddEntity<TestEntity>(_model);
             AddEntity<TestEntityWithNullableKey>(_model);
+            // ReSharper disable once VirtualMemberCallInConstructor
+            InitializeModel(_model);
 
             var dbProvider = Substitute.For<IDatabaseProvider>();
             dbProvider.Name.Returns(providerName);
 
             var services = new ServiceCollection();
+            new EntityFrameworkRelationalServicesBuilder(services).TryAddCoreServices();
+            services.AddSingleton(Substitute.For<ITypeMappingSource>());
             services.AddSingleton<IUpsertCommandRunner, TRunner>();
             services.AddSingleton<IModel>(_model);
             services.AddSingleton(dbProvider);
             services.AddSingleton(Substitute.For<IRelationalTypeMappingSource>());
+            services.AddSingleton<ITypeMappingSource>(_ => _.GetRequiredService<IRelationalTypeMappingSource>());
             var serviceProvider = services.BuildServiceProvider();
 
+            // initialize relational model:
+            serviceProvider.GetRequiredService<IModelRuntimeInitializer>().Initialize(_model);
+            
             _dbContext = Substitute.For<DbContext, IInfrastructure<IServiceProvider>>();
             ((IInfrastructure<IServiceProvider>)_dbContext).Instance.Returns(serviceProvider);
 
@@ -60,6 +68,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             ((IDatabaseFacadeDependenciesAccessor)dbFacade).Dependencies.Returns(dependencies);
 
             _dbContext.Database.Returns(dbFacade);
+        }
+
+        protected virtual void InitializeModel(Model model)
+        {
         }
 
         protected static EntityType AddEntity<TEntity>(Model model)

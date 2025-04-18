@@ -11,6 +11,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
+using IColumnBase = FlexLabs.EntityFrameworkCore.Upsert.Internal.IColumnBase;
+
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
@@ -29,7 +31,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="updateCondition">The expression that tests whether existing entities should be updated</param>
         /// <param name="returnResult">If true, the generated command should return upserted entities</param>
         /// <returns>A fully formed database query</returns>
-        public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
+        public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts)>> entities,
             ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
             KnownExpression? updateCondition, bool returnResult = false);
         /// <summary>
@@ -102,26 +104,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var joinColumns = ProcessMatchExpression(entityType, match, queryOptions);
             var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnName(), c.IsColumnNullable())).ToArray();
 
-            var properties = entityType.GetProperties()
-                .Where(p => queryOptions.AllowIdentityMatch || p.ValueGenerated == ValueGenerated.Never || p.GetAfterSaveBehavior() == PropertySaveBehavior.Save)
-                .Where(p => p.GetAnnotations()
-                    .FirstOrDefault(a => a.Name == "Npgsql:ValueGenerationStrategy")
-                    ?.Value?.ToString() != "IdentityAlwaysColumn")
-                .Where(p => p.PropertyInfo != null)
-                .ToArray();
+            var table = new RelationalTable(entityType, GetTableName(entityType), queryOptions);
 
-            List<(IProperty Property, IKnownValue Value)>? updateExpressions = null;
+            List<(IColumnBase Property, IKnownValue Value)>? updateExpressions = null;
             if (updater != null)
             {
                 if (updater.Body is not MemberInitExpression entityUpdater)
                     throw new ArgumentException(Resources.FormatUpdaterMustBeAnInitialiserOfTheTEntityType(nameof(updater)), nameof(updater));
 
                 updateExpressions = [];
-                foreach (MemberAssignment binding in entityUpdater.Bindings)
+                foreach (var binding in entityUpdater.Bindings.Cast<MemberAssignment>())
                 {
-                    var property = entityType.FindProperty(binding.Member.Name)
+                    var property = table.FindColumn(binding.Member.Name)
                         ?? throw new InvalidOperationException("Unknown property " + binding.Member.Name);
-                    var value = binding.Expression.GetValue<TEntity>(updater, entityType.FindProperty, queryOptions.UseExpressionCompiler);
+                    var value = binding.Expression.GetValue<TEntity>(updater, table.FindColumn, queryOptions.UseExpressionCompiler);
                     if (value is not IKnownValue knownVal)
                         knownVal = new ConstantValue(value, property);
                     updateExpressions.Add((property, knownVal));
@@ -130,44 +126,31 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             else if (!queryOptions.NoUpdate)
             {
                 updateExpressions = [];
-                foreach (var property in properties)
+                foreach (var column in table.Columns)
                 {
-                    if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnName()))
+                    if (joinColumnNames.Any(c => c.ColumnName == column.ColumnName))
                         continue;
 
-                    var propertyAccess = new PropertyValue(property.Name, false, property);
-                    updateExpressions.Add((property, propertyAccess));
+                    var propertyAccess = new PropertyValue(column.Name, false, column);
+                    updateExpressions.Add((column, propertyAccess));
                 }
             }
 
             KnownExpression? updateConditionExpression = null;
             if (updateCondition != null)
             {
-                var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, entityType.FindProperty, queryOptions.UseExpressionCompiler);
+                var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, table.FindColumn, queryOptions.UseExpressionCompiler);
                 if (updateConditionValue is not KnownExpression updateConditionExp)
                     throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
                 updateConditionExpression = updateConditionExp;
             }
 
             var newEntities = entities
-                .Select(e => properties
-                    .Select(p =>
-                    {
-                        var columnName = p.GetColumnName();
-                        var rawValue = p.PropertyInfo?.GetValue(e);
-                        string? defaultSql = null;
-                        if (rawValue == null)
-                        {
-                            if (p.GetDefaultValue() != null)
-                                rawValue = p.GetDefaultValue();
-                            else
-                                defaultSql = p.GetDefaultValueSql();
-                        }
-                        var value = new ConstantValue(rawValue, p);
-                        var allowInserts = p.ValueGenerated == ValueGenerated.Never || p.GetAfterSaveBehavior() == PropertySaveBehavior.Save;
-                        return (columnName, value, defaultSql, allowInserts);
-                    })
-                    .ToArray() as ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>)
+                .Select(ICollection<(string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts)> (e) =>
+                    table.Columns
+                        .Select(p => p.GetValue(e!))
+                        .ToArray()
+                )
                 .ToArray();
 
             var constantArgumentSourceValues = updateExpressions?.Select(e => e.Value);
@@ -198,9 +181,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     arg.ArgumentIndex = index;
 
                 var columnUpdateExpressions = updateExpressions?.Count > 0
-                    ? updateExpressions.Select(x => (x.Property.GetColumnName(), x.Value)).ToArray()
+                    ? updateExpressions.Select(x => (x.Property.ColumnName, x.Value)).ToArray()
                     : null;
-                var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression, returnResult);
+                var sqlCommand = GenerateCommand(table.TableName, newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression, returnResult);
                 yield return (sqlCommand, arguments);
             }
         }
@@ -216,7 +199,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             switch (value)
             {
                 case PropertyValue prop:
-                    var columnName = prop.Property.GetColumnName();
+                    var columnName = prop.Property.ColumnName;
                     if (expandLeftColumn != null && prop.IsLeftParameter)
                         return expandLeftColumn(columnName);
 
@@ -439,9 +422,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         {
             RelationalTypeMapping? relationalTypeMapping = null;
 
-            if (constantValue.Property != null)
+            if (constantValue.Property is RelationalColumn { Property: { } prop })
             {
-                relationalTypeMapping = relationalTypeMappingSource.FindMapping(constantValue.Property);
+                relationalTypeMapping = relationalTypeMappingSource.FindMapping(prop);
             }
             else if (constantValue.MemberInfo != null)
             {

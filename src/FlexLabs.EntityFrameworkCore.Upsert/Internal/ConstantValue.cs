@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {
@@ -15,7 +14,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <param name="value">The value used in the expression</param>
         /// <param name="property">The property from which the value is taken</param>
         /// <param name="memberInfo">The memberInfo from which the value is taken</param>
-        public ConstantValue(object? value, IProperty? property = null, MemberInfo? memberInfo = null)
+        public ConstantValue(object? value, IColumnBase? property = null, MemberInfo? memberInfo = null)
         {
             Value = value;
             Property = property;
@@ -30,7 +29,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <summary>
         /// The property from which the value is taken
         /// </summary>
-        public IProperty? Property { get; }
+        public IColumnBase? Property { get; }
 
         /// <summary>
         /// The memberInfo from which the value is taken
