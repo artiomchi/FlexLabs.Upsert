@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -39,6 +39,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             modelBuilder.Entity<ComputedColumn>().HasIndex(b => b.Num1).IsUnique();
             modelBuilder.Entity<ComputedColumn>().Property(e => e.Num3)
                 .HasComputedColumnSql($"{EscapeColumn(dbProvider, nameof(ComputedColumn.Num2))} + 1", stored: true);
+
+            modelBuilder.Entity<Parent>().OwnsOne(c => c.Child, _ => {
+                _.OwnsOne(_ => _.SubChild);
+            });
 
             if (dbProvider.Name == "Npgsql.EntityFrameworkCore.PostgreSQL")
             {
@@ -90,5 +94,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public DbSet<TestEntity> TestEntities { get; set; }
         public DbSet<GeneratedAlwaysAsIdentity> GeneratedAlwaysAsIdentity { get; set; }
         public DbSet<ComputedColumn> ComputedColumns { get; set; }
+        public DbSet<Parent> Parents { get; set; }
     }
 }

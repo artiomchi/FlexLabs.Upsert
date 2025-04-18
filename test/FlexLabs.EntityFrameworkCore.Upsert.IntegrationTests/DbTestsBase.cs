@@ -26,6 +26,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Created = NewDateTime(1970, 1, 1),
         };
 
+        readonly Parent _dbParent = new()
+        {
+            ID = 1,
+            Child = new Child
+            {
+                ChildName = "Child",
+                SubChild = new SubChild
+                {
+                    SubChildName = "Sub Child",
+                }
+            },
+        };
+
         readonly PageVisit _dbVisitOld = new()
         {
             UserID = 1,
@@ -110,6 +123,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Reset(dbContext, e => e.TestEntities);
             Reset(dbContext, e => e.GeneratedAlwaysAsIdentity);
             Reset(dbContext, e => e.ComputedColumns);
+            Reset(dbContext, e => e.Parents);
 
             dbContext.Add(_dbCountry);
             dbContext.Add(_dbVisitOld);
@@ -120,6 +134,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.Add(_nullableKey2);
             dbContext.Add(_computedColumn);
             dbContext.Add(new GeneratedAlwaysAsIdentity());
+            dbContext.Add(_dbParent);
             dbContext.SaveChanges();
 
             GeneratedAlwaysAsIdentity_NextId = dbContext.GeneratedAlwaysAsIdentity.Max(e => e.ID) + 1;
@@ -1962,6 +1977,137 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.ComputedColumns.OrderBy(c => c.Num1).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(item, num3: 10));
+        }
+
+        [SkippableFact]
+        public virtual void Upsert_Owned_Entity()
+        {
+            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newParent = new Parent
+            {
+                ID = 1,
+                Child = new Child
+                {
+                    ChildName = "Someone else",
+                    SubChild = new SubChild
+                    {
+                        SubChildName = "sub child",
+                    }
+                },
+                Counter = 3,
+            };
+
+            dbContext.Parents.Upsert(newParent)
+                .On(p => p.ID)
+                .Run();
+
+            Assert.Collection(dbContext.Parents.OrderBy(p => p.ID),
+                parent =>
+                {
+                    Assert.Equal(newParent.ID, parent.ID);
+                    Assert.Equal(newParent.Child.ChildName, parent.Child?.ChildName);
+                    Assert.Equal(newParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
+                    Assert.Equal(newParent.Counter, parent.Counter);
+                    Assert.Equal(3, parent.Counter);
+                });
+        }
+
+        [SkippableFact]
+        public virtual void Upsert_Owned_Entity_WhenMatched()
+        {
+            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newParent = new Parent
+            {
+                ID = 1,
+                Child = new Child
+                {
+                    ChildName = "Someone else",
+                    SubChild = new SubChild
+                    {
+                        SubChildName = "sub child",
+                    }
+                },
+            };
+
+            dbContext.Parents.Upsert(newParent)
+                .On(p => p.ID)
+                .WhenMatched((a, b) => new Parent
+                {
+                    Counter = b.Counter + 1,
+                    Child = new Child
+                    {
+                        ChildName = "Not me",
+                        // TODO expression not working:
+                        //SubChild = new SubChild {
+                        //    SubChildName = "someone else"
+                        //}
+                    },
+                    // TODO expression not working:
+                    //Child = new Child {
+                    //    ChildName = b.Child.ChildName,
+                    //    SubChild = a.Child.SubChild,
+                    //}
+                })
+                .Run();
+
+            Assert.Collection(dbContext.Parents.OrderBy(p => p.ID),
+                parent =>
+                {
+                    Assert.Equal(newParent.ID, parent.ID);
+                    Assert.NotEqual(newParent.Child.ChildName, parent.Child?.ChildName);
+                    Assert.NotEqual(newParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
+                    Assert.NotEqual(newParent.Counter, parent.Counter);
+                    Assert.Equal(1, parent.Counter);
+                    Assert.Equal("Not me", parent.Child?.ChildName);
+                    //Assert.Equal("someone else", parent.Child?.SubChild?.SubChildName);
+                    Assert.Equal(_dbParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
+                });
+        }
+
+        [SkippableFact]
+        public virtual void Upsert_Owned_Entity_NoUpdate()
+        {
+            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newParent = new Parent
+            {
+                ID = 1,
+                Child = new Child
+                {
+                    ChildName = "Someone else",
+                    SubChild = new SubChild
+                    {
+                        SubChildName = "sub child",
+                    }
+                },
+                Counter = 3,
+            };
+
+            dbContext.Parents.Upsert(newParent)
+                .On(p => p.ID)
+                .NoUpdate()
+                .Run();
+
+            Assert.Collection(dbContext.Parents.OrderBy(p => p.ID),
+                parent =>
+                {
+                    Assert.Equal(newParent.ID, parent.ID);
+                    Assert.NotEqual(newParent.Child.ChildName, parent.Child?.ChildName);
+                    Assert.NotEqual(newParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
+                    Assert.NotEqual(newParent.Counter, parent.Counter);
+                    Assert.Equal(0, parent.Counter);
+                });
         }
     }
 }

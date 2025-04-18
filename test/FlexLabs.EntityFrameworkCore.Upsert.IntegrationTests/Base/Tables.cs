@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq.Expressions;
@@ -154,5 +154,25 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public int Num1 { get; set; }
         public int Num2 { get; set; }
         public int Num3 { get; set; }
+    }
+
+    public class Parent
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int ID { get; set; }
+        public Child Child { get; set; }
+        public int Counter { get; set; }
+    }
+
+    public class Child
+    {
+        [Required]
+        public string ChildName { get; set; }
+        public SubChild SubChild { get; set; }
+    }
+
+    public class SubChild
+    {
+        public string SubChildName { get; set; }
     }
 }
