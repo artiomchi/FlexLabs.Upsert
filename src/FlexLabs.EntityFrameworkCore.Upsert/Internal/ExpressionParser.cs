@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -60,7 +60,7 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
             var value = binding.Expression.GetValue<TEntity>(updater, ColumnFinder, queryOptions.UseExpressionCompiler);
 
             if (value is not IKnownValue knownVal) {
-                knownVal = new ConstantValue(value, owner); // BUG?? owner should be property...
+                knownVal = new ConstantValue(value, property);
             }
 
             yield return new PropertyMapping(property, knownVal);
