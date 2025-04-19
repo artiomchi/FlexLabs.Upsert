@@ -7,8 +7,30 @@ using FluentAssertions.Primitives;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
 {
-    public static class ExpressionAssertionExtensions
+    internal static class ExpressionAssertionExtensions
     {
+        public static AndWhichConstraint<ObjectAssertions, PropertyMapping> BePropertyMapping(
+            this ObjectAssertions assertions,
+            Action<AndWhichConstraint<ObjectAssertions, PropertyMapping>> assert)
+        {
+            using var _ = new AssertionScope();
+            var x = assertions.BeOfType<PropertyMapping>();
+            assert(x);
+            return x;
+        }
+
+        public static AndWhichConstraint<ObjectAssertions, PropertyMapping> WithColumn(this AndWhichConstraint<ObjectAssertions, PropertyMapping> assertions, string name)
+        {
+            assertions.Which.Property.Name.Should().Be(name);
+            return assertions;
+        }
+
+        public static AndWhichConstraint<ObjectAssertions, T> WithValueOfType<T>(this AndWhichConstraint<ObjectAssertions, PropertyMapping> assertions) where T : IKnownValue
+        {
+            return assertions.Which.Value.Should().BeOfType<T>();
+        }
+
+
         public static AndWhichConstraint<ObjectAssertions, KnownExpression> BeKnownExpression(this ObjectAssertions assertions, ExpressionType expressionType)
         {
             using var _ = new AssertionScope();

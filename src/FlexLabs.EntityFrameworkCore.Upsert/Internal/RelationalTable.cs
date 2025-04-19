@@ -8,19 +8,8 @@ using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;
 
-internal sealed class RelationalTable {
+internal sealed class RelationalTable : RelationalTableBase {
     private readonly RunnerQueryOptions _queryOptions;
-    private readonly SortedDictionary<LevelName, IColumnBase> _columns = new();
-    private readonly ITable _table;
-
-    private readonly record struct LevelName(int Level, IEntityType Parent, string Name) : IComparable<LevelName> {
-        public int CompareTo(LevelName other)
-        {
-            var levelComparison = Level.CompareTo(other.Level);
-            if (levelComparison != 0) return levelComparison;
-            return string.Compare(Name, other.Name, StringComparison.Ordinal);
-        }
-    }
 
 
     internal RelationalTable(IEntityType entityType, string tableName, RunnerQueryOptions queryOptions)
@@ -28,35 +17,16 @@ internal sealed class RelationalTable {
         _queryOptions = queryOptions;
         EntityType = entityType;
         TableName = tableName;
-        _table = GetTable(EntityType);
 
         var columns = GetColumns(entityType)
             .Concat(GetOwnedColumns(entityType));
 
-        foreach (var column in columns) {
-            _columns.Add(new LevelName(column.Level, column.Parent, column.Name), column);
-        }
+        AddColumnRange(columns);
     }
 
 
     internal IEntityType EntityType { get; }
     internal string TableName { get; }
-    internal IEnumerable<IColumnBase> Columns => _columns.Values.Where(_ => _.Owned is not Owned.InlineOwner);
-
-
-    internal IColumnBase? FindColumn(string name)
-    {
-        return _columns.GetValueOrDefault(new LevelName(1, EntityType, name));
-    }
-
-    internal IColumnBase? FindColumn(IColumnBase column, string name)
-    {
-        if (column is OwnerColumn col) {
-            return _columns.GetValueOrDefault(new LevelName(col.Level + 1, col.Parent, name));
-        }
-
-        return null;
-    }
 
 
     private static ITable GetTable(IEntityType entityType)
@@ -75,18 +45,15 @@ internal sealed class RelationalTable {
 
         foreach (var property in properties) {
             yield return new RelationalColumn(
-                Parent: entityType,
-                EntityGetter: null,
                 Property: property,
                 ColumnName: property.GetColumnName(),
-                Owned: Owned.None,
-                Level: 1
+                Owned: Owned.None
             );
         }
     }
 
 
-    private IEnumerable<IColumnBase> GetOwnedColumns(IEntityType entityType, int level = 1, Func<object, object?>? getter = null)
+    private IEnumerable<IColumnBase> GetOwnedColumns(IEntityType entityType, string? path = null, Func<object, object?>? getter = null)
     {
         // Find all properties of Owned Entities
         var owned = entityType.GetNavigations().Where(_ => _.ForeignKey.IsOwnership);
@@ -104,28 +71,33 @@ internal sealed class RelationalTable {
                 }
 
                 yield return new JsonColumn(
-                    Parent: entityType,
                     Column: jsonColumn,
                     Navigation: navigation,
                     Name: navigation.Name,
                     ColumnName: columnName,
                     Owned: Owned.Json,
-                    Level: level
+                    Path: path
                 );
             }
             else {
-                var currentLevel = level + 1;
-                var parent = navigation.TargetEntityType;
-                var currentGetter = (object entity) => navigation.GetGetter().GetClrValueUsingContainingEntity(getter is null ? entity : getter(entity)!);
-
                 // create a shadow property for FindColumn()
                 yield return new OwnerColumn(
-                    Parent: parent,
                     Name: navigation.Name,
                     ColumnName: null!,
                     Owned: Owned.InlineOwner,
-                    Level: level
+                    Path: path
                 );
+
+                var parent = navigation.TargetEntityType;
+                var currentPath = $"{path}.{navigation.Name}";
+
+                var currentGetter = (object entity) => {
+                    var obj = getter is null ? entity : getter(entity);
+                    return obj switch {
+                        null => null,
+                        _ => navigation.GetGetter().GetClrValueUsingContainingEntity(obj),
+                    };
+                };
 
                 var properties = parent
                     .GetProperties()
@@ -146,16 +118,15 @@ internal sealed class RelationalTable {
                     }
 
                     yield return new RelationalColumn(
-                        Parent: parent,
                         Property: property,
-                        EntityGetter: currentGetter,
                         ColumnName: columnName,
                         Owned: Owned.Inline,
-                        Level: currentLevel
+                        Path: currentPath,
+                        EntityGetter: currentGetter
                     );
                 }
 
-                foreach (var column in GetOwnedColumns(parent, level: currentLevel, currentGetter)) {
+                foreach (var column in GetOwnedColumns(parent, currentPath, currentGetter)) {
                     yield return column;
                 }
             }
@@ -179,12 +150,11 @@ internal sealed class RelationalTable {
 }
 
 internal sealed record RelationalColumn(
-    IEntityType Parent,
     IProperty Property,
-    Func<object, object?>? EntityGetter,
     string ColumnName,
     Owned Owned,
-    int Level
+    string? Path = null,
+    Func<object, object?>? EntityGetter = null
 ) : IColumnBase {
     public string Name => Property.Name;
 
@@ -218,23 +188,21 @@ internal sealed record RelationalColumn(
 }
 
 internal sealed record OwnerColumn(
-    IEntityType Parent,
     string Name,
     string ColumnName,
     Owned Owned,
-    int Level
+    string? Path
 ) : IColumnBase {
     public (string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts) GetValue(object entity) => throw new NotSupportedException();
 }
 
 internal sealed record JsonColumn(
-    IEntityType Parent,
     IColumn Column,
     INavigation Navigation,
     string Name,
     string ColumnName,
     Owned Owned,
-    int Level
+    string? Path
 ) : IColumnBase {
     public (string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts) GetValue(object entity)
     {
@@ -257,9 +225,6 @@ internal sealed record JsonColumn(
 /// </summary>
 public interface IColumnBase {
     /// <summary>
-    /// </summary>
-    IEntityType Parent { get; }
-    /// <summary>
     /// The clr Name
     /// </summary>
     string Name { get; }
@@ -268,11 +233,14 @@ public interface IColumnBase {
     /// </summary>
     string ColumnName { get; }
     /// <summary>
+    /// The ownership mode
     /// </summary>
     Owned Owned { get; }
     /// <summary>
+    /// A hierarchical path for owned columns
     /// </summary>
-    int Level { get; }
+    string? Path { get; }
+
     /// <summary>
     /// Reads the column value from an entity.
     /// </summary>

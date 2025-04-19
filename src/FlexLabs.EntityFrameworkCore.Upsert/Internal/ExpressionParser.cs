@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -12,7 +12,7 @@ internal record struct PropertyMapping(
     IKnownValue Value
 );
 
-internal sealed class ExpressionParser<TEntity>(RelationalTable table, RunnerQueryOptions queryOptions) {
+internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, RunnerQueryOptions queryOptions) {
     public IEnumerable<PropertyMapping> ParseUpdaterExpression(Expression<Func<TEntity, TEntity, TEntity>> updater)
     {
         if (updater.Body is not MemberInitExpression entityUpdater) {

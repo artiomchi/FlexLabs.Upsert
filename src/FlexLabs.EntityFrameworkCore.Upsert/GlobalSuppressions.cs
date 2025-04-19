@@ -5,6 +5,11 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+
 
 [assembly: CLSCompliant(false)]
 [assembly: SuppressMessage("Design", "CA1032:Implement standard exception constructors", Justification = "These exceptions will only be thrown by internal code")]
+
+[assembly:InternalsVisibleTo("FlexLabs.EntityFrameworkCore.Upsert.Tests")]
+[assembly:InternalsVisibleTo("FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests")]
