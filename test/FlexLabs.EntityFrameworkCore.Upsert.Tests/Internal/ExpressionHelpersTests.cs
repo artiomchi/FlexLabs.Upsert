@@ -12,7 +12,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
         private static Expression GetMemberExpression(LambdaExpression expression)
             => ((MemberAssignment)((MemberInitExpression)expression.Body).Bindings[0]).Expression;
 
-        private IColumnBase NoProperty(string propertyName) => Substitute.For<IColumnBase>();
+        private IColumnBase NoProperty(string propertyName)
+        {
+            var col = Substitute.For<IColumnBase>();
+            col.ColumnName.Returns(propertyName);
+            return col;
+        }
 
         [Fact]
         public void ExpressionHelpersTests_Constant()

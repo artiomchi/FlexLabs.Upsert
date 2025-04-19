@@ -11,7 +11,7 @@ using Xunit.Abstractions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal;
 
-public class ExpressionTests(ITestOutputHelper output) {
+public partial class ExpressionTests(ITestOutputHelper output) {
     private readonly ExpressionParser<TestEntity> _parser = new(new TestRelationalTable(), new RunnerQueryOptions());
     private readonly ExpressionParser<TestEntity> _parserWithCompiler = new(new TestRelationalTable(), new RunnerQueryOptions { UseExpressionCompiler = true });
 

@@ -32,6 +32,8 @@ internal class TestRelationalTable : RelationalTableBase {
             Column<TestEntity>(_ => _.Child.Text2, Owned.Inline),
             Column<TestEntity>(_ => _.Child.Updated, Owned.Inline),
             Column<TestEntity>(_ => _.Child.NestedChild, Owned.InlineOwner),
+            Column<TestEntity>(_ => _.Child.NestedChild.Num1, Owned.Inline),
+            Column<TestEntity>(_ => _.Child.NestedChild.Num2, Owned.Inline),
             Column<TestEntity>(_ => _.Child.NestedChild.Text1, Owned.Inline),
         ]);
     }
@@ -71,7 +73,10 @@ public record TestColumn(
     Owned Owned,
     Func<object?, object?> ValueAccessor
 ) : IColumnBase {
-    public string ColumnName => Name;
+    public string ColumnName => Path switch {
+        null => Name,
+        _ => $"{Path}.{Name}".TrimStart('.').Replace('.', '_'),
+    };
 
     public (string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts) GetValue(object entity)
     {

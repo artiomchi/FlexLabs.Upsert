@@ -13,21 +13,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             this ObjectAssertions assertions,
             Action<AndWhichConstraint<ObjectAssertions, PropertyMapping>> assert)
         {
-            using var _ = new AssertionScope();
             var x = assertions.BeOfType<PropertyMapping>();
             assert(x);
             return x;
         }
 
-        public static AndWhichConstraint<ObjectAssertions, PropertyMapping> WithColumn(this AndWhichConstraint<ObjectAssertions, PropertyMapping> assertions, string name)
+        public static AndWhichConstraint<ObjectAssertions, PropertyMapping> WithColumn(this AndWhichConstraint<ObjectAssertions, PropertyMapping> mapping, string name)
         {
-            assertions.Which.Property.Name.Should().Be(name);
-            return assertions;
+            mapping.Which.Property.ColumnName.Should().Be(name);
+            return mapping;
         }
 
-        public static AndWhichConstraint<ObjectAssertions, T> WithValueOfType<T>(this AndWhichConstraint<ObjectAssertions, PropertyMapping> assertions) where T : IKnownValue
+        public static AndWhichConstraint<ObjectAssertions, T> WithValueOfType<T>(this AndWhichConstraint<ObjectAssertions, PropertyMapping> mapping) where T : IKnownValue
         {
-            return assertions.Which.Value.Should().BeOfType<T>();
+            return mapping.Which.Value.Should().BeOfType<T>();
         }
 
 
@@ -63,7 +62,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
         {
             using var _ = new AssertionScope();
             var result = assertions.Subject.Should().BeOfType<PropertyValue>();
-            result.Subject.PropertyName.Should().Be(name);
+            result.Subject.Property.ColumnName.Should().Be(name);
             result.Subject.IsLeftParameter.Should().Be(isLeftParam);
             return result;
         }
