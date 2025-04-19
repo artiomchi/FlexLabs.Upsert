@@ -21,6 +21,7 @@ internal class TestRelationalTable : RelationalTableBase {
             Column<TestEntity>(_ => _.NumNullable1),
             Column<TestEntity>(_ => _.Text1),
             Column<TestEntity>(_ => _.Text2),
+            Column<TestEntity>(_ => _.Boolean),
             Column<TestEntity>(_ => _.Updated),
             Column<TestEntity>(_ => _.Child, Owned.InlineOwner),
             Column<TestEntity>(_ => _.Child.ID, Owned.Inline),
