@@ -19,8 +19,8 @@ public partial class ExpressionTests(ITestOutputHelper output) {
     private PropertyMapping[] Parse(Expression<Func<TestEntity, TestEntity, TestEntity>> updater, bool useExpressionCompiler = false)
     {
         var result = useExpressionCompiler switch {
-            true => _parserWithCompiler.ParseUpdaterExpression(updater),
-            false => _parser.ParseUpdaterExpression(updater),
+            true => _parserWithCompiler.ParseUpdateExpression(updater),
+            false => _parser.ParseUpdateExpression(updater),
         };
         Print(result, updater);
         return result;

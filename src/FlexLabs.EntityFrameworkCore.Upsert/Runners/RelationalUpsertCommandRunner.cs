@@ -22,7 +22,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     {
         /// <summary>
-        /// Generate a full command for the opsert operation, given the inputs passed
+        /// Generate a full command for the upsert operation, given the inputs passed
         /// </summary>
         /// <param name="tableName">The name of the database table</param>
         /// <param name="entities">A collection of entity data (column names and values) to be upserted</param>
@@ -47,7 +47,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <returns>The reference to the parameter</returns>
         protected virtual string Parameter(int index) => "@p" + index;
         /// <summary>
-        /// Reference an named variable defined by the query runner
+        /// Reference a named variable defined by the query runner
         /// </summary>
         /// <param name="name">The name of the variable</param>
         /// <returns>The reference to the variable</returns>
@@ -101,42 +101,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             Expression<Func<TEntity, object>>? match, Expression<Func<TEntity, TEntity, TEntity>>? updater, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
             RunnerQueryOptions queryOptions, bool returnResult = false)
         {
-            var joinColumns = ProcessMatchExpression(entityType, match, queryOptions);
-            var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnName(), c.IsColumnNullable())).ToArray();
-
             var table = new RelationalTable(entityType, GetTableName(entityType), queryOptions);
             var expressionParser = new ExpressionParser<TEntity>(table, queryOptions);
 
-            PropertyMapping[]? updateExpressions = null;
-            if (updater != null)
-            {
-                updateExpressions = expressionParser.ParseUpdaterExpression(updater);
-            }
-            else if (!queryOptions.NoUpdate)
-            {
-                updateExpressions = table.Columns
-                    .Where(column => joinColumnNames.All(c => c.ColumnName != column.ColumnName))
-                    .Select(column => new PropertyMapping(
-                        Property: column,
-                        Value: new PropertyValue(column.Name, false, column)
-                    ))
-                    .ToArray();
-            }
+            var joinColumns = ProcessMatchExpression(entityType, match, queryOptions);
+            var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnName(), Nullable: c.IsColumnNullable())).ToArray();
 
-            KnownExpression? updateConditionExpression = null;
-            if (updateCondition != null)
-            {
-                var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, table.FindColumn, queryOptions.UseExpressionCompiler);
-                if (updateConditionValue is not KnownExpression updateConditionExp)
-                    throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
-                updateConditionExpression = updateConditionExp;
-            }
+            var updateExpressions = expressionParser.ParseUpdateExpression(updater, joinColumnNames);
+            var updateConditionExpression = expressionParser.ParseUpdateConditionExpression(updateCondition);
 
             var newEntities = entities
-                .Select(ICollection<(string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts)> (e) =>
-                    table.Columns
-                        .Select(p => p.GetValue(e!))
-                        .ToArray()
+                .Select(e => table.Columns
+                    .Select(p => p.GetValue(e!))
+                    .ToArray()
                 )
                 .ToArray();
 
@@ -146,7 +123,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var expressionConstants = constantArgumentSourceValues?.SelectMany(v => v.GetConstantValues()).ToArray();
 
             var entitiesProcessed = 0;
-            var singleEntityArguments = newEntities[0].Count + (expressionConstants?.Length ?? 0);
+            var singleEntityArguments = newEntities[0].Length + (expressionConstants?.Length ?? 0);
             while (entitiesProcessed < newEntities.Length)
             {
                 var arguments = new List<ConstantValue>();

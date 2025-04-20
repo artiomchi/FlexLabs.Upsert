@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -44,7 +44,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <typeparam name="TEntity">Type of the entity being upserted</typeparam>
         /// <param name="entityType">Metadata type of the entity being upserted</param>
         /// <param name="matchExpression">The match expression provided by the user</param>
-        /// <param name="queryOptions">Options for the current query that will affect it's behaviour</param>
+        /// <param name="queryOptions">Options for the current query that will affect its behaviour</param>
         /// <returns>A list of model properties used to match entities</returns>
         protected static ICollection<IProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>>? matchExpression, RunnerQueryOptions queryOptions)
         {

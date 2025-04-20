@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
@@ -13,7 +14,26 @@ internal record struct PropertyMapping(
 );
 
 internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, RunnerQueryOptions queryOptions) {
-    public PropertyMapping[] ParseUpdaterExpression(Expression<Func<TEntity, TEntity, TEntity>> updater)
+    public PropertyMapping[]? ParseUpdateExpression(Expression<Func<TEntity, TEntity, TEntity>>? updater, (string ColumnName, bool Nullable)[] joinColumnNames)
+    {
+        if (updater is not null) {
+            return ParseUpdateExpression(updater);
+        }
+
+        if (!queryOptions.NoUpdate) {
+            return table.Columns
+                .Where(column => joinColumnNames.All(c => c.ColumnName != column.ColumnName))
+                .Select(column => new PropertyMapping(
+                    Property: column,
+                    Value: new PropertyValue(column.Name, false, column)
+                ))
+                .ToArray();
+        }
+
+        return null;
+    }
+
+    public PropertyMapping[] ParseUpdateExpression(Expression<Func<TEntity, TEntity, TEntity>> updater)
     {
         if (updater.Body is not MemberInitExpression entityUpdater) {
             throw new ArgumentException(Resources.FormatUpdaterMustBeAnInitialiserOfTheTEntityType(nameof(updater)), nameof(updater));
@@ -23,6 +43,25 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
         var result = ParseMemberInitExpression(entityUpdater, visitor).ToArray();
         return result;
     }
+
+
+    [return: NotNullIfNotNull(nameof(updateCondition))]
+    public KnownExpression? ParseUpdateConditionExpression(Expression<Func<TEntity, TEntity, bool>>? updateCondition)
+    {
+        if (updateCondition is null) {
+            return null;
+        }
+
+        var visitor = new UpdateExpressionVisitor(table, updateCondition.Parameters[0], updateCondition.Parameters[1], queryOptions.UseExpressionCompiler);
+        var result = visitor.GetKnownValue(updateCondition.Body);
+
+        if (result is not KnownExpression knownExpression) {
+            throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
+        }
+
+        return knownExpression;
+    }
+
 
     private IEnumerable<PropertyMapping> ParseMemberInitExpression(MemberInitExpression node, UpdateExpressionVisitor visitor)
     {
