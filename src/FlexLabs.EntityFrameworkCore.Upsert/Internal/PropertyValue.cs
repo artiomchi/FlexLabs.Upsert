@@ -1,12 +1,20 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
+
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {
     /// <summary>
     /// This class represents access to a property within an expression
     /// </summary>
-    public class PropertyValue : IKnownValue
+    public class PropertyValue : Expression, IKnownValue
     {
+        /// <inheritdoc />
+        public override ExpressionType NodeType => ExpressionType.Constant;
+        /// <inheritdoc />
+        public override Type Type => typeof(ConstantExpression);
+
         /// <summary>
         /// Create an instance of the class
         /// </summary>
@@ -33,7 +41,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <summary>
         /// An instance of the model property class, that contains model metadata
         /// </summary>
-        public IColumnBase Property { get; }
+        public new IColumnBase Property { get; }
 
         /// <inheritdoc/>
         public IEnumerable<ConstantValue> GetConstantValues()
@@ -45,6 +53,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         public IEnumerable<PropertyValue> GetPropertyValues()
         {
             yield return this;
+        }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            return $"{nameof(PropertyValue)} ( PropertyName: {PropertyName}, Column: {Property.ColumnName}, IsLeftParameter: {IsLeftParameter} )";
         }
     }
 }

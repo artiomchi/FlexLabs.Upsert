@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
@@ -7,8 +8,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
     /// <summary>
     /// A class that represents a known type of expression
     /// </summary>
-    public class KnownExpression : IKnownValue
+    public class KnownExpression : Expression, IKnownValue
     {
+        /// <inheritdoc />
+        public override ExpressionType NodeType => ExpressionType.Constant;
+        /// <inheritdoc />
+        public override Type Type => typeof(ConstantExpression);
+
         /// <summary>
         /// Initialises a new instance of the class
         /// </summary>
@@ -83,5 +89,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 
         /// <inheritdoc/>
         public IEnumerable<PropertyValue> GetPropertyValues() => GetValues().Where(v => v != null).SelectMany(v => v.GetPropertyValues());
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            return $"{nameof(KnownExpression)} ( Op: {ExpressionType}, Value1: {Value1}, Value2: {Value2}, Value3: {Value3} )";
+        }
     }
 }

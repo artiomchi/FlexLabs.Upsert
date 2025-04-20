@@ -13,61 +13,72 @@ internal record struct PropertyMapping(
 );
 
 internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, RunnerQueryOptions queryOptions) {
-    public IEnumerable<PropertyMapping> ParseUpdaterExpression(Expression<Func<TEntity, TEntity, TEntity>> updater)
+    public PropertyMapping[] ParseUpdaterExpression(Expression<Func<TEntity, TEntity, TEntity>> updater)
     {
         if (updater.Body is not MemberInitExpression entityUpdater) {
             throw new ArgumentException(Resources.FormatUpdaterMustBeAnInitialiserOfTheTEntityType(nameof(updater)), nameof(updater));
         }
 
-        foreach (var binding in entityUpdater.Bindings.Cast<MemberAssignment>()) {
-            var property = table.FindColumn(binding.Member.Name);
-            if (property == null) {
-                throw new InvalidOperationException($"Unknown property {binding.Member.Name}");
-            }
+        var visitor = new UpdateExpressionVisitor(table, updater.Parameters[0], updater.Parameters[1], queryOptions.UseExpressionCompiler);
+        var result = ParseMemberInitExpression(entityUpdater, visitor).ToArray();
+        return result;
+    }
 
-            if (property.Owned == Owned.InlineOwner && binding.Expression is MemberInitExpression navigationUpdater) {
-                foreach (var mapping in ParseSubExpression(updater, property, navigationUpdater)) {
-                    yield return mapping;
-                }
-            }
-            else {
-                var value = binding.Expression.GetValue<TEntity>(updater, table.FindColumn, queryOptions.UseExpressionCompiler);
+    private IEnumerable<PropertyMapping> ParseMemberInitExpression(MemberInitExpression node, UpdateExpressionVisitor visitor)
+    {
+        foreach (var binding in node.Bindings.Cast<MemberAssignment>()) {
+            var column = table.FindColumn(binding.Member.Name) ?? throw UnknownPropertyInExpressionException(binding.Member.Name, binding.Expression);
+            var value = visitor.GetKnownValue(binding.Expression);
 
-                if (value is not IKnownValue knownVal) {
-                    knownVal = new ConstantValue(value, property);
-                }
-
-                yield return (new PropertyMapping(property, knownVal));
+            foreach (var mapping in ExpandKnownValue(column, value, binding.Expression)) {
+                yield return mapping;
             }
         }
     }
 
-
-    private IEnumerable<PropertyMapping> ParseSubExpression(
-        Expression<Func<TEntity, TEntity, TEntity>> updater,
-        IColumnBase owner,
-        MemberInitExpression navigationUpdater
-    )
+    /// <summary>
+    /// Expand and validate all known values.
+    /// </summary>
+    private IEnumerable<PropertyMapping> ExpandKnownValue(IColumnBase column, IKnownValue value, Expression expression)
     {
-        foreach (var binding in navigationUpdater.Bindings.Cast<MemberAssignment>()) {
-            var property = table.FindColumn(owner, binding.Member.Name);
-            if (property == null) {
-                throw new InvalidOperationException($"Unknown property {binding.Member.Name}");
+        if (value is BindingValue bindingValue) {
+            foreach (var mapping in ExpandBindingValue(column, bindingValue.Bindings, expression)) {
+                yield return mapping;
             }
-
-            // TODO: Support navigation property expressions! (currently only allows direct values)
-
-            var value = binding.Expression.GetValue<TEntity>(updater, ColumnFinder, queryOptions.UseExpressionCompiler);
-
-            if (value is not IKnownValue knownVal) {
-                knownVal = new ConstantValue(value, property);
-            }
-
-            yield return new PropertyMapping(property, knownVal);
         }
+        else if (value is PropertyValue or ConstantValue or KnownExpression) {
+            yield return new PropertyMapping(column, value);
+        }
+        else {
+            throw new UnsupportedExpressionException(expression);
+        }
+    }
 
-        yield break;
+    /// <summary>
+    /// Expands nested member bindings to support owned entities.
+    /// </summary>
+    private IEnumerable<PropertyMapping> ExpandBindingValue(IColumnBase owner, List<MemberBinding> bindings, Expression expression)
+    {
+        if (owner.Owned == Owned.InlineOwner) {
+            foreach (var binding in bindings) {
+                var column = table.FindColumn(owner, binding.MemberName) ?? throw UnknownPropertyInExpressionException(binding.MemberName, expression);
 
-        IColumnBase? ColumnFinder(string name) => table.FindColumn(owner, name);
+                foreach (var mapping in ExpandKnownValue(column, binding.Value, binding.Expression)) {
+                    yield return mapping;
+                }
+            }
+        }
+        else if (owner.Owned == Owned.Json) {
+            throw UnsupportedExpressionException.JsonMemberBinding(expression);
+        }
+        else {
+            throw new UnsupportedExpressionException(expression);
+        }
+    }
+
+
+    private static InvalidOperationException UnknownPropertyInExpressionException(string propertyName, Expression expression)
+    {
+        return new InvalidOperationException($"Unknown property {propertyName} in expression {expression}");
     }
 }

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
@@ -6,8 +8,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
     /// <summary>
     /// This class represents a constant value from an expression, which will be passed as a command argument
     /// </summary>
-    public class ConstantValue : IKnownValue
+    public class ConstantValue : Expression, IKnownValue
     {
+        /// <inheritdoc />
+        public override ExpressionType NodeType => ExpressionType.Constant;
+        /// <inheritdoc />
+        public override Type Type => typeof(ConstantExpression);
+
         /// <summary>
         /// Creates an instance of the ConstantValue class
         /// </summary>
@@ -29,7 +36,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <summary>
         /// The property from which the value is taken
         /// </summary>
-        public IColumnBase? Property { get; }
+        public new IColumnBase? Property { get; }
 
         /// <summary>
         /// The memberInfo from which the value is taken
@@ -51,6 +58,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         public IEnumerable<PropertyValue> GetPropertyValues()
         {
             return [];
+        }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            return $"{nameof(ConstantValue)} ( Value: {Value} )";
         }
     }
 }

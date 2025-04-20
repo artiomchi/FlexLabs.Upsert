@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
@@ -17,11 +16,11 @@ public partial class ExpressionTests(ITestOutputHelper output) {
 
     #region helper
 
-    private List<PropertyMapping> Parse(Expression<Func<TestEntity, TestEntity, TestEntity>> updater, bool useExpressionCompiler = false)
+    private PropertyMapping[] Parse(Expression<Func<TestEntity, TestEntity, TestEntity>> updater, bool useExpressionCompiler = false)
     {
         var result = useExpressionCompiler switch {
-            true => _parserWithCompiler.ParseUpdaterExpression(updater).ToList(),
-            false => _parser.ParseUpdaterExpression(updater).ToList(),
+            true => _parserWithCompiler.ParseUpdaterExpression(updater),
+            false => _parser.ParseUpdaterExpression(updater),
         };
         Print(result, updater);
         return result;

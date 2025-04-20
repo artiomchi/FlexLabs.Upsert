@@ -11,7 +11,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
-using IColumnBase = FlexLabs.EntityFrameworkCore.Upsert.Internal.IColumnBase;
 
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
@@ -107,10 +106,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var table = new RelationalTable(entityType, GetTableName(entityType), queryOptions);
             var expressionParser = new ExpressionParser<TEntity>(table, queryOptions);
 
-            List<PropertyMapping>? updateExpressions = null;
+            PropertyMapping[]? updateExpressions = null;
             if (updater != null)
             {
-                updateExpressions = expressionParser.ParseUpdaterExpression(updater).ToList();
+                updateExpressions = expressionParser.ParseUpdaterExpression(updater);
             }
             else if (!queryOptions.NoUpdate)
             {
@@ -120,7 +119,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                         Property: column,
                         Value: new PropertyValue(column.Name, false, column)
                     ))
-                    .ToList();
+                    .ToArray();
             }
 
             KnownExpression? updateConditionExpression = null;
@@ -167,7 +166,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 foreach (var (arg, index) in arguments.Select((a, i) => (a, i)))
                     arg.ArgumentIndex = index;
 
-                var columnUpdateExpressions = updateExpressions?.Count > 0
+                var columnUpdateExpressions = updateExpressions?.Length > 0
                     ? updateExpressions.Select(x => (x.Property.ColumnName, x.Value)).ToArray()
                     : null;
                 var sqlCommand = GenerateCommand(table.TableName, newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression, returnResult);
