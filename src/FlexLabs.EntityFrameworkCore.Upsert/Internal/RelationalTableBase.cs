@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;
@@ -46,6 +47,29 @@ internal abstract class RelationalTableBase {
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Return all columns of an owned entity including columns of nested owned entities.
+    /// </summary>
+    /// <param name="column">Must be InlineOwner</param>
+    public IEnumerable<IColumnBase> FindColumnFor(IColumnBase column)
+    {
+        if (column.Owned == Owned.InlineOwner) {
+            var path = $"{column.Path}.{column.Name}";
+            foreach (var (key, value) in _columns) {
+                if (key.Path == path) {
+                    if (value.Owned == Owned.InlineOwner) {
+                        foreach (var col in FindColumnFor(value)) {
+                            yield return value;
+                        }
+                    }
+                    else {
+                        yield return value;
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>

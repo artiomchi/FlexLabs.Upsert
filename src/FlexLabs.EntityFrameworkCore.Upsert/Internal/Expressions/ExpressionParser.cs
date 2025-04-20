@@ -86,7 +86,21 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
             }
         }
         else if (value is PropertyValue or ConstantValue or KnownExpression) {
-            yield return new PropertyMapping(column, value);
+            if (
+                column.Owned == Owned.InlineOwner &&
+                value is PropertyValue { Property: var source, IsLeftParameter: var isLeft } &&
+                column == source
+            ) {
+                foreach (var col in table.FindColumnFor(column)) {
+                    yield return new PropertyMapping(col, new PropertyValue(col.Name, isLeft, col));
+                }
+            }
+            else if (column.Owned is Owned.None or Owned.Inline or Owned.Json) {
+                yield return new PropertyMapping(column, value);
+            }
+            else {
+                throw new UnsupportedExpressionException(expression);
+            }
         }
         else {
             throw new UnsupportedExpressionException(expression);

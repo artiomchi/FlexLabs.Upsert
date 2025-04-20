@@ -2131,31 +2131,36 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .WhenMatched((a, b) => new Parent
                 {
                     Counter = b.Counter + 1,
+                    //Child = new Child
+                    //{
+                    //    ChildName = "Not me",
+                    //    // TODO expression not working:
+                    //    SubChild = new SubChild {
+                    //        SubChildName = "someone else"
+                    //    }
+                    //},
+                    // TODO expression not working:
                     Child = new Child
                     {
-                        ChildName = "Not me",
-                        // TODO expression not working:
-                        //SubChild = new SubChild {
-                        //    SubChildName = "someone else"
-                        //}
-                    },
-                    // TODO expression not working:
-                    //Child = new Child {
-                    //    ChildName = b.Child.ChildName,
-                    //    SubChild = a.Child.SubChild,
-                    //}
+                        ChildName = b.Child.ChildName,
+                        SubChild = a.Child.SubChild,
+                    }
                 })
                 .Run();
+
+            // TODO test assign owned child with itself - should expand to all columns...
+            // TODO test assign owned child with itself - should also expand nested owned children...
+            // TODO test individual member mapping...
 
             Assert.Collection(dbContext.Parents.OrderBy(p => p.ID),
                 parent =>
                 {
                     Assert.Equal(newParent.ID, parent.ID);
-                    Assert.NotEqual(newParent.Child.ChildName, parent.Child?.ChildName);
+                    Assert.Equal(newParent.Child.ChildName, parent.Child?.ChildName);
                     Assert.NotEqual(newParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
                     Assert.NotEqual(newParent.Counter, parent.Counter);
                     Assert.Equal(1, parent.Counter);
-                    Assert.Equal("Not me", parent.Child?.ChildName);
+                    //Assert.Equal("Not me", parent.Child?.ChildName);
                     //Assert.Equal("someone else", parent.Child?.SubChild?.SubChildName);
                     Assert.Equal(_dbParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
                 });
