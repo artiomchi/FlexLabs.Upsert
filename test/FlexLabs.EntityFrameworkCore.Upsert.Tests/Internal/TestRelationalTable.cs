@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using IColumnBase = FlexLabs.EntityFrameworkCore.Upsert.Internal.IColumnBase;
 
 

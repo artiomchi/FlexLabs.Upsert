@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
 {

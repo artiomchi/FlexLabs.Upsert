@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
 internal record struct PropertyMapping(
     IColumnBase Property,

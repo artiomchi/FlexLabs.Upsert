@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-using FlexLabs.EntityFrameworkCore.Upsert.Internal;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using Microsoft.EntityFrameworkCore;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners

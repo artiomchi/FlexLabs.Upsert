@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
 internal class UpdateExpressionVisitor(
     RelationalTableBase table,

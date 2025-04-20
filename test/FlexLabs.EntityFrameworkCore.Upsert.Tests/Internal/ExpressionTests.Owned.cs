@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using FlexLabs.EntityFrameworkCore.Upsert.Internal;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using FluentAssertions;
 using Xunit;
 

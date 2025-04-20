@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
-{
+
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions {
     /// <summary>
     /// This class represents a constant value from an expression, which will be passed as a command argument
     /// </summary>
-    public class ConstantValue : Expression, IKnownValue
-    {
+    public class ConstantValue : Expression, IKnownValue {
         /// <inheritdoc />
         public override ExpressionType NodeType => ExpressionType.Constant;
         /// <inheritdoc />

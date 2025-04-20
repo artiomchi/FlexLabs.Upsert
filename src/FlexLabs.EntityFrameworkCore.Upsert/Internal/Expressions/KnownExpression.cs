@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
-{
+
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions {
     /// <summary>
     /// A class that represents a known type of expression
     /// </summary>
-    public class KnownExpression : Expression, IKnownValue
-    {
+    public class KnownExpression : Expression, IKnownValue {
         /// <inheritdoc />
         public override ExpressionType NodeType => ExpressionType.Constant;
         /// <inheritdoc />

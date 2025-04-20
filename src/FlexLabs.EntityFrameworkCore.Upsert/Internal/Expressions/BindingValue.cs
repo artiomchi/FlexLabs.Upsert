@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
 /// <summary>
 /// This class represents property bindings of a MemberInitExpression within an expression

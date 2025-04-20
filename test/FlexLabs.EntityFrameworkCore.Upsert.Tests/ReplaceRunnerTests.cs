@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using FlexLabs.EntityFrameworkCore.Upsert.Internal;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
