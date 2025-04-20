@@ -64,6 +64,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 {
                     if (arg == null || arg.Member is not PropertyInfo || !typeof(TEntity).Equals(arg.Expression?.Type))
                         throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
+                    // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
                     var property = entityType.FindProperty(arg.Member.Name)
                         ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(arg.Member.Name));
                     joinColumns.Add(property);
@@ -73,6 +74,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 if (unaryExpression.Operand is not MemberExpression memberExp || memberExp.Member is not PropertyInfo || !typeof(TEntity).Equals(memberExp.Expression?.Type))
                     throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
+                // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
                 var property = entityType.FindProperty(memberExp.Member.Name)
                     ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExp.Member.Name));
                 joinColumns = [property];
@@ -81,6 +83,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 if (!typeof(TEntity).Equals(memberExpression.Expression?.Type) || memberExpression.Member is not PropertyInfo)
                     throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
+                // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
                 var property = entityType.FindProperty(memberExpression.Member.Name)
                     ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExpression.Member.Name));
                 joinColumns = [property];
