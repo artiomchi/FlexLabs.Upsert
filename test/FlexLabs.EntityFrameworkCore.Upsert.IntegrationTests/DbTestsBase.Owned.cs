@@ -9,6 +9,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 {
     public abstract partial class DbTestsBase
     {
+        readonly Parent _dbParent = new()
+        {
+            ID = 1,
+            Child = new Child
+            {
+                ChildName = "Child",
+                Age = 1,
+                SubChild = new SubChild
+                {
+                    SubChildName = "SubChild",
+                    Age = 1,
+                }
+            },
+        };
+
         [SkippableFact]
         public virtual void Upsert_Owned_Entity()
         {
@@ -25,7 +40,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     ChildName = "Someone else",
                     SubChild = new SubChild
                     {
-                        SubChildName = "sub child",
+                        SubChildName = "SubChild foobar",
                     }
                 },
                 Counter = 3,
@@ -47,7 +62,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [SkippableFact]
-        public virtual void Upsert_Owned_Entity_WhenMatched()
+        public virtual void Upsert_Owned_Entity_WhenMatched_Owned_Direct_Mapping()
         {
             Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
@@ -60,9 +75,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Child = new Child
                 {
                     ChildName = "Someone else",
+                    Age = 10,
                     SubChild = new SubChild
                     {
-                        SubChildName = "sub child",
+                        SubChildName = "SubChild foobar",
+                        Age = 10,
                     }
                 },
             };
@@ -72,38 +89,130 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .WhenMatched((a, b) => new Parent
                 {
                     Counter = b.Counter + 1,
-                    //Child = new Child
-                    //{
-                    //    ChildName = "Not me",
-                    //    // TODO expression not working:
-                    //    SubChild = new SubChild {
-                    //        SubChildName = "someone else"
-                    //    }
-                    //},
-                    // TODO expression not working:
-                    Child = new Child
-                    {
-                        ChildName = b.Child.ChildName,
-                        SubChild = a.Child.SubChild,
-                    }
+                    Child = b.Child, // owned direct mapping - should expand to all columns including sub nested.
                 })
                 .Run();
-
-            // TODO test assign owned child with itself - should expand to all columns...
-            // TODO test assign owned child with itself - should also expand nested owned children...
-            // TODO test individual member mapping...
 
             Assert.Collection(dbContext.Parents.OrderBy(p => p.ID),
                 parent =>
                 {
                     Assert.Equal(newParent.ID, parent.ID);
+                    // child props are updated:
                     Assert.Equal(newParent.Child.ChildName, parent.Child?.ChildName);
-                    Assert.NotEqual(newParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
-                    Assert.NotEqual(newParent.Counter, parent.Counter);
+                    Assert.Equal(newParent.Child.Age, parent.Child?.Age);
+                    // nested child props are updated:
+                    Assert.Equal(newParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
+                    Assert.Equal(newParent.Child.SubChild.Age, parent.Child?.SubChild?.Age);
+                    // nested child props now differ form default:
+                    Assert.NotEqual(_dbParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
+                    Assert.NotEqual(_dbParent.Child.SubChild.Age, parent.Child?.SubChild?.Age);
                     Assert.Equal(1, parent.Counter);
-                    //Assert.Equal("Not me", parent.Child?.ChildName);
-                    //Assert.Equal("someone else", parent.Child?.SubChild?.SubChildName);
+                });
+        }
+
+        [SkippableFact]
+        public virtual void Upsert_Owned_Entity_WhenMatched_Nested_Owned_Direct_Mapping()
+        {
+            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newParent = new Parent
+            {
+                ID = 1,
+                Child = new Child
+                {
+                    ChildName = "Someone else",
+                    Age = 10,
+                    SubChild = new SubChild
+                    {
+                        SubChildName = "SubChild foobar",
+                        Age = 10,
+                    }
+                },
+            };
+
+            dbContext.Parents.Upsert(newParent)
+                .On(p => p.ID)
+                .WhenMatched((a, b) => new Parent
+                {
+                    Counter = b.Counter + 1,
+                    Child = new Child
+                    {
+                        SubChild = b.Child.SubChild, // nested owned direct mapping - should expand to all columns.
+                    }
+                })
+                .Run();
+
+            Assert.Collection(dbContext.Parents.OrderBy(p => p.ID),
+                parent =>
+                {
+                    Assert.Equal(newParent.ID, parent.ID);
+                    // child props are NOT updated:
+                    Assert.Equal(_dbParent.Child.ChildName, parent.Child?.ChildName);
+                    Assert.Equal(_dbParent.Child.Age, parent.Child?.Age);
+                    // nested child props are updated:
+                    Assert.Equal(newParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
+                    Assert.Equal(newParent.Child.SubChild.Age, parent.Child?.SubChild?.Age);
+                    // nested child props now differ form default:
+                    Assert.NotEqual(_dbParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
+                    Assert.NotEqual(_dbParent.Child.SubChild.Age, parent.Child?.SubChild?.Age);
+                    Assert.Equal(1, parent.Counter);
+                });
+        }
+
+        [SkippableFact]
+        public virtual void Upsert_Owned_Entity_WhenMatched_Owned_Partial_Mapping()
+        {
+            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newParent = new Parent
+            {
+                ID = 1,
+                Child = new Child
+                {
+                    ChildName = "Someone else",
+                    Age = 10,
+                    SubChild = new SubChild
+                    {
+                        SubChildName = "SubChild foobar",
+                        Age = 10,
+                    }
+                },
+            };
+
+            dbContext.Parents.Upsert(newParent)
+                .On(p => p.ID)
+                .WhenMatched((a, b) => new Parent
+                {
+                    Counter = b.Counter + 1,
+                    Child = new Child
+                    {
+                        ChildName = b.Child.ChildName,
+                        SubChild = new SubChild {
+                            Age = b.Child.SubChild.Age,
+                        },
+                    }
+                })
+                .Run();
+
+            Assert.Collection(dbContext.Parents.OrderBy(p => p.ID),
+                parent =>
+                {
+                    Assert.Equal(newParent.ID, parent.ID);
+                    // child props: only name is updated:
+                    Assert.Equal(newParent.Child.ChildName, parent.Child?.ChildName);
+                    Assert.Equal(_dbParent.Child.Age, parent.Child?.Age);
+                    // nested child props: only age is updated:
                     Assert.Equal(_dbParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
+                    Assert.Equal(newParent.Child.SubChild.Age, parent.Child?.SubChild?.Age);
+                    // nested child age now differ form default:
+                    Assert.NotEqual(_dbParent.Child.SubChild.Age, parent.Child?.SubChild?.Age);
+                    Assert.Equal(1, parent.Counter);
                 });
         }
 
@@ -123,7 +232,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     ChildName = "Someone else",
                     SubChild = new SubChild
                     {
-                        SubChildName = "sub child",
+                        SubChildName = "SubChild foobar",
                     }
                 },
                 Counter = 3,

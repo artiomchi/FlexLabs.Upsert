@@ -179,12 +179,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
     {
         [Required]
         public string ChildName { get; set; }
+        public int Age { get; set; }
         public SubChild SubChild { get; set; }
     }
 
     public class SubChild
     {
         public string SubChildName { get; set; }
+        public int Age { get; set; }
     }
 
     public class CompanyOwnedJson

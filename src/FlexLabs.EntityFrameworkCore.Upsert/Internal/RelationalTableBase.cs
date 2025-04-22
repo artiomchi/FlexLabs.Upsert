@@ -61,7 +61,7 @@ internal abstract class RelationalTableBase {
                 if (key.Path == path) {
                     if (value.Owned == Owned.InlineOwner) {
                         foreach (var col in FindColumnFor(value)) {
-                            yield return value;
+                            yield return col;
                         }
                     }
                     else {

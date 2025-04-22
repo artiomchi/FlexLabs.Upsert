@@ -28,19 +28,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Created = NewDateTime(1970, 1, 1),
         };
 
-        readonly Parent _dbParent = new()
-        {
-            ID = 1,
-            Child = new Child
-            {
-                ChildName = "Child",
-                SubChild = new SubChild
-                {
-                    SubChildName = "Sub Child",
-                }
-            },
-        };
-
         readonly PageVisit _dbVisitOld = new()
         {
             UserID = 1,
