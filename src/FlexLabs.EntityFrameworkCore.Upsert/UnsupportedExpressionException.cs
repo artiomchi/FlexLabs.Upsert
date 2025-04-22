@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 
 
 namespace FlexLabs.EntityFrameworkCore.Upsert
@@ -31,6 +32,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         internal static Exception JsonMemberBinding(Expression expression)
         {
             return new UnsupportedExpressionException($"Modifying JSON members is not supported. Unsupported Expression: {expression}", HelpLinks.SupportedExpressions);
+        }
+
+        internal static Exception JsonMemberAccess(IColumnBase column, Expression expression)
+        {
+            return new UnsupportedExpressionException($"Reading JSON members is not supported. Unsupported Access Expression: {expression}", HelpLinks.SupportedExpressions);
         }
     }
 }

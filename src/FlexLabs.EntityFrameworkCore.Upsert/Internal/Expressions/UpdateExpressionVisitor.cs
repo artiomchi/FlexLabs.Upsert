@@ -144,7 +144,16 @@ internal class UpdateExpressionVisitor(
             return new PropertyValue(column.Name, parameter.IsLeftParameter, column);
         }
         else if (knownValue is PropertyValue { Property: var owner, IsLeftParameter: var isLeft }) {
-            var column = table.FindColumn(owner, node.Member.Name) ?? throw new InvalidOperationException($"Unknown property {node}");
+            var validOwner = owner switch {
+                { Owned: Owned.InlineOwner } => owner,
+                { Owned: Owned.Json } json => throw UnsupportedExpressionException.JsonMemberAccess(json, node),
+                _ => throw new InvalidOperationException($"Unsupported property access {node}"),
+            };
+            var column = table.FindColumn(validOwner, node.Member.Name) switch {
+                null => throw new InvalidOperationException($"Unknown property {node}"),
+                { Owned: Owned.Json } json => throw UnsupportedExpressionException.JsonMemberAccess(json, node),
+                var x => x,
+            };
             return new PropertyValue(column.Name, isLeftParameter: isLeft, column);
         }
 

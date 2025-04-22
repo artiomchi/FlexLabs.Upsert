@@ -350,14 +350,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .WhenMatched((a, b) => new CompanyOwnedJson
                 {
                     Name = b.Name,
-                    Meta = b.Meta,
-                    // NOTE: expression not working: translating this to SQL is hard to get right.
-                    //Meta = new CompanyMeta {
-                    //    Required = b.Meta.Required,
-                    //    Nested = new CompanyNestedMeta {
-                    //        Title = a.Meta.Nested.Title,
-                    //    }
-                    //}
+                    Meta = b.Meta, // assigning a JSON is supported.
                 })
                 .Run();
 
@@ -368,6 +361,138 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     var actual = JsonSerializer.Serialize(entity);
                     Assert.Equal(expected, actual);
                 });
+        }
+
+        [SkippableFact]
+        public virtual void Upsert_OwnedJson_Entity_WhenMatched_Json_Member_Access_Error()
+        {
+            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+
+            var company1 = new CompanyOwnedJson
+            {
+                Id = 1,
+                Name = "Company Default",
+                Meta = new CompanyMeta
+                {
+                    Required = "default-required-value",
+                }
+            };
+
+            ResetDb(company1);
+
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var company = new CompanyOwnedJson
+            {
+                Id = 1,
+                Name = "Company 1",
+                Meta = new CompanyMeta
+                {
+                    Required = "required-value",
+                    JsonOverride = "col with [JsonPropertyName]",
+                    ColumnOverride = "col with [Column(_name_)]",
+                    Nested = new CompanyNestedMeta
+                    {
+                        Title = "I'm a nested json",
+                    },
+                    Properties = [
+                        new CompanyMetaValue {
+                            Key = "foo",
+                            Value = "bar",
+                        },
+                        new CompanyMetaValue {
+                            Key = "cat",
+                            Value = "dog",
+                        }
+                    ],
+                }
+            };
+
+            var action = void () => dbContext.CompanyOwnedJson.Upsert(company)
+                .On(p => p.Id)
+                .WhenMatched((a, b) => new CompanyOwnedJson
+                {
+                    Name = b.Name,
+                    // NOTE: expression not working: translating this to SQL is hard to get right.
+                    Meta = new CompanyMeta
+                    {
+                        Required = b.Meta.Required, // Accessing deep JSON properties is not supported!
+                        Nested = new CompanyNestedMeta
+                        {
+                            Title = a.Meta.Nested.Title,
+                        }
+                    }
+                })
+                .Run();
+
+            var error = Assert.Throws<UnsupportedExpressionException>(action);
+            Assert.Equal("Reading JSON members is not supported. Unsupported Access Expression: b.Meta.Required", error.Message);
+        }
+
+        [SkippableFact]
+        public virtual void Upsert_OwnedJson_Entity_WhenMatched_Json_Member_Bind_Error()
+        {
+            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+
+            var company1 = new CompanyOwnedJson
+            {
+                Id = 1,
+                Name = "Company Default",
+                Meta = new CompanyMeta
+                {
+                    Required = "default-required-value",
+                }
+            };
+
+            ResetDb(company1);
+
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var company = new CompanyOwnedJson
+            {
+                Id = 1,
+                Name = "Company 1",
+                Meta = new CompanyMeta
+                {
+                    Required = "required-value",
+                    JsonOverride = "col with [JsonPropertyName]",
+                    ColumnOverride = "col with [Column(_name_)]",
+                    Nested = new CompanyNestedMeta
+                    {
+                        Title = "I'm a nested json",
+                    },
+                    Properties = [
+                        new CompanyMetaValue {
+                            Key = "foo",
+                            Value = "bar",
+                        },
+                        new CompanyMetaValue {
+                            Key = "cat",
+                            Value = "dog",
+                        }
+                    ],
+                }
+            };
+
+            var action = void () => dbContext.CompanyOwnedJson.Upsert(company)
+                .On(p => p.Id)
+                .WhenMatched((a, b) => new CompanyOwnedJson
+                {
+                    Name = b.Name,
+                    // NOTE: expression not working: translating this to SQL is hard to get right.
+                    Meta = new CompanyMeta
+                    {
+                        Required = "Some Text", // assigning JSON deep properties is not supported!
+                        Nested = new CompanyNestedMeta
+                        {
+                            Title = "Some Title", // assigning JSON deep properties is not supported!
+                        }
+                    }
+                })
+                .Run();
+
+            var error = Assert.Throws<UnsupportedExpressionException>(action);
+            Assert.Equal("Modifying JSON members is not supported. Unsupported Expression: new CompanyMeta() {Required = \"Some Text\", Nested = new CompanyNestedMeta() {Title = \"Some Title\"}}", error.Message);
         }
 
         [SkippableFact]
