@@ -78,8 +78,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="updateExpression">Expression that represents which properties will be updated, and what values will be set</param>
         /// <param name="updateCondition">Expression that checks whether the database entry should be updated</param>
         /// <param name="queryOptions">Options for the current query that will affect it's behaviour</param>
+        /// <param name="cancellationToken">The CancellationToken to observe while waiting for the task to complete.</param>
         Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions, CancellationToken cancellationToken)
             where TEntity : class;
     }
 }
