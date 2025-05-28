@@ -138,6 +138,9 @@
   <data name="EntityTypeMustBeMappedInDbContext" xml:space="preserve">
     <value>The TEntity type must be mapped in your DbContext.</value>
   </data>
+  <data name="ExcludeColumnsHaveToBePropertiesOfTheTEntityClass" xml:space="preserve">
+    <value>Exclude columns have to be properties of the TEntity class</value>
+  </data>
   <data name="MatchColumnsHaveToBePropertiesOfTheTEntityClass" xml:space="preserve">
     <value>Match columns have to be properties of the TEntity class</value>
   </data>

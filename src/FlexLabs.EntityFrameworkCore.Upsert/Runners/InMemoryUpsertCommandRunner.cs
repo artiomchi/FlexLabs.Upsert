@@ -18,7 +18,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <inheritdoc/>
         public override bool Supports(string providerName) => providerName == "Microsoft.EntityFrameworkCore.InMemory";
 
-        private static IEnumerable<TEntity> RunCore<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+        private static IEnumerable<TEntity> RunCore<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions) where TEntity : class
         {
             // Find matching entities in the dbContext
@@ -46,14 +46,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
             else if (!queryOptions.NoUpdate)
             {
-                // Otherwise create a default update delegate that updates all non match, non auto generated columns
+                // Otherwise create a default update delegate that updates all non match, non auto generated, non excluded columns
                 var joinColumns = ProcessMatchExpression(entityType, matchExpression, queryOptions);
+                var excludeColumns = ProcessExcludeExpression(entityType, excludeExpression);
 
                 var properties = entityType.GetProperties()
                     .Where(p => p.ValueGenerated == ValueGenerated.Never)
                     .Select(p => typeof(TEntity).GetProperty(p.Name))
                     .Where(p => p != null)
-                    .Except(joinColumns.Select(c => c.PropertyInfo));
+                    .Except(joinColumns.Select(c => c.PropertyInfo))
+                    .Except(excludeColumns.Select(c => c.PropertyInfo));
                 updateAction = (dbEntity, newEntity) =>
                 {
                     foreach (var prop in properties)
@@ -134,51 +136,51 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         /// <inheritdoc/>
-        public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+        public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
         {
             ArgumentNullException.ThrowIfNull(dbContext);
             ArgumentNullException.ThrowIfNull(entityType);
 
-            RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
+            RunCore(dbContext, entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions);
             return dbContext.SaveChanges();
         }
 
         /// <inheritdoc/>
         public override ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-            Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
+            Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
             RunnerQueryOptions queryOptions)
         {
             ArgumentNullException.ThrowIfNull(dbContext);
             ArgumentNullException.ThrowIfNull(entityType);
 
-            var result = RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
+            var result = RunCore(dbContext, entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions);
             dbContext.SaveChanges();
 
             return result.ToArray();
         }
 
         /// <inheritdoc/>
-        public override Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+        public override Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
             CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(dbContext);
             ArgumentNullException.ThrowIfNull(entityType);
 
-            RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
+            RunCore(dbContext, entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions);
             return dbContext.SaveChangesAsync(cancellationToken);
         }
 
         /// <inheritdoc/>
         public override async Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-            Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
+            Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
             RunnerQueryOptions queryOptions)
         {
             ArgumentNullException.ThrowIfNull(dbContext);
             ArgumentNullException.ThrowIfNull(entityType);
 
-            var result = RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
+            var result = RunCore(dbContext, entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions);
             await dbContext.SaveChangesAsync().ConfigureAwait(false);
 
             return result.ToArray();

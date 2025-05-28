@@ -23,6 +23,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         private readonly IEntityType _entityType;
         private readonly ICollection<TEntity> _entities;
         private Expression<Func<TEntity, object>>? _matchExpression;
+        private Expression<Func<TEntity, object>>? _excludeExpression;
         private Expression<Func<TEntity, TEntity, TEntity>>? _updateExpression;
         private Expression<Func<TEntity, TEntity, bool>>? _updateCondition;
         private RunnerQueryOptions _queryOptions;
@@ -61,6 +62,22 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public UpsertCommandBuilder<TEntity> AllowIdentityMatch()
         {
             _queryOptions.AllowIdentityMatch = true;
+            return this;
+        }
+
+        /// <summary>
+        /// Specifies which columns will be excluded from the update command. Ignored when used with WhenMatched()
+        /// </summary>
+        /// <param name="exclude">The expression that will identify the columns to exclude</param>
+        /// <returns>The current instance of the UpsertCommandBuilder</returns>
+        public UpsertCommandBuilder<TEntity> Exclude(Expression<Func<TEntity, object>> exclude)
+        {
+            if (_excludeExpression != null)
+            {
+                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(Exclude)));
+            }
+
+            _excludeExpression = exclude ?? throw new ArgumentNullException(nameof(exclude));
             return this;
         }
 
@@ -184,7 +201,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 return 0;
 
             var commandRunner = GetCommandRunner();
-            return commandRunner.Run(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _updateCondition, _queryOptions);
+            return commandRunner.Run(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions);
         }
 
         /// <summary>
@@ -196,7 +213,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 return [];
 
             var commandRunner = GetCommandRunner();
-            return commandRunner.RunAndReturn(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _updateCondition, _queryOptions);
+            return commandRunner.RunAndReturn(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions);
         }
 
         /// <summary>
@@ -210,7 +227,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 return Task.FromResult(0);
 
             var commandRunner = GetCommandRunner();
-            return commandRunner.RunAsync(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _updateCondition, _queryOptions, token);
+            return commandRunner.RunAsync(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions, token);
         }
 
         /// <summary>
@@ -222,7 +239,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 return Task.FromResult<ICollection<TEntity>>([]);
 
             var commandRunner = GetCommandRunner();
-            return commandRunner.RunAndReturnAsync(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _updateCondition, _queryOptions);
+            return commandRunner.RunAndReturnAsync(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions);
         }
     }
 }

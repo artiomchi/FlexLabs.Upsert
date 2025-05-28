@@ -19,22 +19,22 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public abstract bool Supports(string providerName);
 
         /// <inheritdoc/>
-        public abstract int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+        public abstract int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
             where TEntity : class;
 
         /// <inheritdoc/>
-        public abstract ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+        public abstract ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
             where TEntity : class;
 
         /// <inheritdoc/>
-        public abstract Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+        public abstract Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
             CancellationToken cancellationToken) where TEntity : class;
 
         /// <inheritdoc/>
-        public abstract Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+        public abstract Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
             where TEntity : class;
 
@@ -94,6 +94,69 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 throw new InvalidMatchColumnsException();
 
             return joinColumns;
+        }
+
+        /// <summary>
+        /// Extract property metadata from the exclude expression
+        /// </summary>
+        /// <typeparam name="TEntity">Type of the entity being upserted</typeparam>
+        /// <param name="entityType">Metadata type of the entity being upserted</param>
+        /// <param name="excludeExpression">The exclude expression provided by the user</param>
+        /// <returns>A list of model properties used to exclude columns entities</returns>
+        protected static ICollection<IProperty> ProcessExcludeExpression<TEntity>(
+            IEntityType entityType,
+            Expression<Func<TEntity, object>>? excludeExpression)
+        {
+            ArgumentNullException.ThrowIfNull(entityType);
+
+            List<IProperty> excludeColumns;
+            if (excludeExpression is null)
+            {
+                excludeColumns = [];
+            }
+            else if (excludeExpression.Body is NewExpression newExpression)
+            {
+                excludeColumns = [];
+                foreach (MemberExpression arg in newExpression.Arguments)
+                {
+                    if (arg == null || arg.Member is not PropertyInfo || !typeof(TEntity).Equals(arg.Expression?.Type))
+                    {
+                        throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
+                    }
+
+                    var property = entityType.FindProperty(arg.Member.Name)
+                        ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(arg.Member.Name));
+                    excludeColumns.Add(property);
+                }
+            }
+            else if (excludeExpression.Body is UnaryExpression unaryExpression)
+            {
+                if (unaryExpression.Operand is not MemberExpression memberExp || memberExp.Member is not PropertyInfo || !typeof(TEntity).Equals(memberExp.Expression?.Type))
+                {
+                    throw new InvalidOperationException(Resources.ExcludeColumnsHaveToBePropertiesOfTheTEntityClass);
+                }
+
+                var property = entityType.FindProperty(memberExp.Member.Name)
+                    ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExp.Member.Name));
+                excludeColumns = [property];
+            }
+            else if (excludeExpression.Body is MemberExpression memberExpression)
+            {
+                if (!typeof(TEntity).Equals(memberExpression.Expression?.Type) || memberExpression.Member is not PropertyInfo)
+                {
+                    throw new InvalidOperationException(Resources.ExcludeColumnsHaveToBePropertiesOfTheTEntityClass);
+                }
+
+                var property = entityType.FindProperty(memberExpression.Member.Name)
+                    ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExpression.Member.Name));
+                excludeColumns = [property];
+            }
+            else
+            {
+                throw new ArgumentException(Resources.FormatArgumentMustBeAnAnonymousObjectInitialiser("exclude"), nameof(excludeExpression));
+            }
+
+            return excludeColumns;
         }
     }
 }

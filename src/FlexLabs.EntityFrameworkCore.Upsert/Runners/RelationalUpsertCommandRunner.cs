@@ -96,7 +96,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected virtual int? MaxQueryParams => null;
 
         private IEnumerable<(string SqlCommand, IEnumerable<ConstantValue> Arguments)> PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
-            Expression<Func<TEntity, object>>? match, Expression<Func<TEntity, TEntity, TEntity>>? updater, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
+        Expression<Func<TEntity, object>>? match, Expression<Func<TEntity, object>>? exclude, Expression<Func<TEntity, TEntity, TEntity>>? updater, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
             RunnerQueryOptions queryOptions, bool returnResult = false)
         {
             var joinColumns = ProcessMatchExpression(entityType, match, queryOptions);
@@ -129,10 +129,16 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
             else if (!queryOptions.NoUpdate)
             {
+                var excludeColumns = ProcessExcludeExpression(entityType, exclude);
+                var excludeColumnNames = excludeColumns.Select(c => c.GetColumnName()).ToArray();
+
                 updateExpressions = [];
                 foreach (var property in properties)
                 {
-                    if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnName()))
+                    var columnName = property.GetColumnName();
+
+                    if (joinColumnNames.Any(c => c.ColumnName == columnName)
+                            || excludeColumnNames.Contains(columnName))
                         continue;
 
                     var propertyAccess = new PropertyValue(property.Name, false, property);
@@ -355,14 +361,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         /// <inheritdoc/>
-        public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+        public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
         {
             ArgumentNullException.ThrowIfNull(dbContext);
             ArgumentNullException.ThrowIfNull(entityType);
 
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-            var commands = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
+            var commands = PrepareCommand(entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions);
 
             int result = 0;
             foreach (var (sqlCommand, arguments) in commands)
@@ -375,14 +381,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         /// <inheritdoc/>
-        public override ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+        public override ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
         {
             ArgumentNullException.ThrowIfNull(dbContext);
             ArgumentNullException.ThrowIfNull(entityType);
 
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-            var commands = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions, true);
+            var commands = PrepareCommand(entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions, true);
 
             var result = new List<TEntity>();
             foreach (var (sqlCommand, arguments) in commands)
@@ -395,7 +401,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         /// <inheritdoc/>
-        public override async Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+        public override async Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
             CancellationToken cancellationToken)
         {
@@ -403,7 +409,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             ArgumentNullException.ThrowIfNull(entityType);
 
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-            var commands = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
+            var commands = PrepareCommand(entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions);
 
             int result = 0;
             foreach (var (sqlCommand, arguments) in commands)
@@ -416,14 +422,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         /// <inheritdoc/>
-        public override async Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+        public override async Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
         {
             ArgumentNullException.ThrowIfNull(dbContext);
             ArgumentNullException.ThrowIfNull(entityType);
 
             var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-            var commands = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions, true);
+            var commands = PrepareCommand(entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions, true);
 
             var result = new List<TEntity>();
             foreach (var (sqlCommand, arguments) in commands)
