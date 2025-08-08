@@ -5,7 +5,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 
-
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
 internal record struct PropertyMapping(
@@ -13,14 +12,17 @@ internal record struct PropertyMapping(
     IKnownValue Value
 );
 
-internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, RunnerQueryOptions queryOptions) {
+internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, RunnerQueryOptions queryOptions)
+{
     public PropertyMapping[]? ParseUpdateExpression(Expression<Func<TEntity, TEntity, TEntity>>? updater, (string ColumnName, bool Nullable)[] joinColumnNames)
     {
-        if (updater is not null) {
+        if (updater is not null)
+        {
             return ParseUpdateExpression(updater);
         }
 
-        if (!queryOptions.NoUpdate) {
+        if (!queryOptions.NoUpdate)
+        {
             return table.Columns
                 .Where(column => joinColumnNames.All(c => c.ColumnName != column.ColumnName))
                 .Select(column => new PropertyMapping(
@@ -35,7 +37,8 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
 
     public PropertyMapping[] ParseUpdateExpression(Expression<Func<TEntity, TEntity, TEntity>> updater)
     {
-        if (updater.Body is not MemberInitExpression entityUpdater) {
+        if (updater.Body is not MemberInitExpression entityUpdater)
+        {
             throw new ArgumentException(Resources.FormatUpdaterMustBeAnInitialiserOfTheTEntityType(nameof(updater)), nameof(updater));
         }
 
@@ -48,14 +51,16 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
     [return: NotNullIfNotNull(nameof(updateCondition))]
     public KnownExpression? ParseUpdateConditionExpression(Expression<Func<TEntity, TEntity, bool>>? updateCondition)
     {
-        if (updateCondition is null) {
+        if (updateCondition is null)
+        {
             return null;
         }
 
         var visitor = new UpdateExpressionVisitor(table, updateCondition.Parameters[0], updateCondition.Parameters[1], queryOptions.UseExpressionCompiler);
         var result = visitor.GetKnownValue(updateCondition.Body);
 
-        if (result is not KnownExpression knownExpression) {
+        if (result is not KnownExpression knownExpression)
+        {
             throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
         }
 
@@ -65,11 +70,13 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
 
     private IEnumerable<PropertyMapping> ParseMemberInitExpression(MemberInitExpression node, UpdateExpressionVisitor visitor)
     {
-        foreach (var binding in node.Bindings.Cast<MemberAssignment>()) {
+        foreach (var binding in node.Bindings.Cast<MemberAssignment>())
+        {
             var column = table.FindColumn(binding.Member.Name) ?? throw UnknownPropertyInExpressionException(binding.Member.Name, binding.Expression);
             var value = visitor.GetKnownValue(binding.Expression);
 
-            foreach (var mapping in ExpandKnownValue(column, value, binding.Expression)) {
+            foreach (var mapping in ExpandKnownValue(column, value, binding.Expression))
+            {
                 yield return mapping;
             }
         }
@@ -80,29 +87,37 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
     /// </summary>
     private IEnumerable<PropertyMapping> ExpandKnownValue(IColumnBase column, IKnownValue value, Expression expression)
     {
-        if (value is BindingValue bindingValue) {
-            foreach (var mapping in ExpandBindingValue(column, bindingValue.Bindings, expression)) {
+        if (value is BindingValue bindingValue)
+        {
+            foreach (var mapping in ExpandBindingValue(column, bindingValue.Bindings, expression))
+            {
                 yield return mapping;
             }
         }
-        else if (value is PropertyValue or ConstantValue or KnownExpression) {
+        else if (value is PropertyValue or ConstantValue or KnownExpression)
+        {
             if (
                 column.Owned == Owned.InlineOwner &&
                 value is PropertyValue { Property: var source, IsLeftParameter: var isLeft } &&
                 column == source
-            ) {
-                foreach (var col in table.FindColumnFor(column)) {
+            )
+            {
+                foreach (var col in table.FindColumnFor(column))
+                {
                     yield return new PropertyMapping(col, new PropertyValue(col.Name, isLeft, col));
                 }
             }
-            else if (column.Owned is Owned.None or Owned.Inline or Owned.Json) {
+            else if (column.Owned is Owned.None or Owned.Inline or Owned.Json)
+            {
                 yield return new PropertyMapping(column, value);
             }
-            else {
+            else
+            {
                 throw new UnsupportedExpressionException(expression);
             }
         }
-        else {
+        else
+        {
             throw new UnsupportedExpressionException(expression);
         }
     }
@@ -112,19 +127,24 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
     /// </summary>
     private IEnumerable<PropertyMapping> ExpandBindingValue(IColumnBase owner, List<MemberBinding> bindings, Expression expression)
     {
-        if (owner.Owned == Owned.InlineOwner) {
-            foreach (var binding in bindings) {
+        if (owner.Owned == Owned.InlineOwner)
+        {
+            foreach (var binding in bindings)
+            {
                 var column = table.FindColumn(owner, binding.MemberName) ?? throw UnknownPropertyInExpressionException(binding.MemberName, expression);
 
-                foreach (var mapping in ExpandKnownValue(column, binding.Value, binding.Expression)) {
+                foreach (var mapping in ExpandKnownValue(column, binding.Value, binding.Expression))
+                {
                     yield return mapping;
                 }
             }
         }
-        else if (owner.Owned == Owned.Json) {
-            throw UnsupportedExpressionException.JsonMemberBinding(expression);
+        else if (owner.Owned == Owned.Json)
+        {
+            throw UnsupportedExpressionException.ModifyingJsonMember(expression);
         }
-        else {
+        else
+        {
             throw new UnsupportedExpressionException(expression);
         }
     }

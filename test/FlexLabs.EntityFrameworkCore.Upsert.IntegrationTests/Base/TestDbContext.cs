@@ -40,9 +40,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             modelBuilder.Entity<ComputedColumn>().Property(e => e.Num3)
                 .HasComputedColumnSql($"{EscapeColumn(dbProvider, nameof(ComputedColumn.Num2))} + 1", stored: true);
 
-            modelBuilder.Entity<Parent>().OwnsOne(c => c.Child, _ => {
-                _.OwnsOne(_ => _.SubChild);
-            });
+            modelBuilder.Entity<Parent>()
+                .OwnsOne(
+                    c => c.Child,
+                    b => { b.OwnsOne(c => c.SubChild); });
 
             if (dbProvider.Name == "Npgsql.EntityFrameworkCore.PostgreSQL")
             {
@@ -54,15 +55,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
                 modelBuilder.Entity<JsonData>().Ignore(j => j.Child);
             }
 
-            if (dbProvider.Name != "Npgsql.EntityFrameworkCore.PostgreSQL") {
-                modelBuilder.Entity<JsonDocumentData>().Ignore(_ => _.Data);
+            if (dbProvider.Name != "Npgsql.EntityFrameworkCore.PostgreSQL")
+            {
+                modelBuilder.Entity<JsonDocumentData>().Ignore(j => j.Data);
             }
 
-            modelBuilder.Entity<CompanyOwnedJson>().OwnsOne(j => j.Meta, _ => {
-                _.ToJson();
-                _.OwnsOne(_ => _.Nested, _ => _.ToJson());
-                _.OwnsMany(_ => _.Properties, _ => _.ToJson());
-            });
+            modelBuilder.Entity<CompanyOwnedJson>()
+                .OwnsOne(
+                    j => j.Meta,
+                    b =>
+                    {
+                        b.ToJson();
+                        b.OwnsOne(c => c.Nested, cb => cb.ToJson());
+                        b.OwnsMany(c => c.Properties, cb => cb.ToJson());
+                    });
 
             if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql
             {

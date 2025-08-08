@@ -13,7 +13,6 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 
-
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
     /// <summary>

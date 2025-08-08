@@ -29,7 +29,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
             return mapping.Which.Value.Should().BeOfType<T>();
         }
 
-
         public static AndWhichConstraint<ObjectAssertions, KnownExpression> BeKnownExpression(this ObjectAssertions assertions, ExpressionType expressionType)
         {
             using var _ = new AssertionScope();

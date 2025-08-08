@@ -3,16 +3,19 @@ using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using FluentAssertions;
 using Xunit;
 
-
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal;
 
-public partial class ExpressionTests {
+public partial class ExpressionTests
+{
     [Fact, Trait("Category", "NestedOwned")]
     public void Supports_NestedOwned_Constant()
     {
-        var result = Parse((a, e) => new TestEntity {
-            Child = new OwnedChildEntity {
-                NestedChild = new NestedOwnedChildEntity {
+        var result = Parse((a, e) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
+                NestedChild = new NestedOwnedChildEntity
+                {
                     Num1 = 1
                 }
             }
@@ -29,9 +32,12 @@ public partial class ExpressionTests {
     public void Supports_NestedOwned_Field()
     {
         var value = 2;
-        var result = Parse((a, e) => new TestEntity {
-            Child = new OwnedChildEntity {
-                NestedChild = new NestedOwnedChildEntity {
+        var result = Parse((a, e) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
+                NestedChild = new NestedOwnedChildEntity
+                {
                     Num1 = value
                 }
             }
@@ -48,9 +54,12 @@ public partial class ExpressionTests {
     public void Supports_NestedOwned_FieldAndProperty()
     {
         var value = new { Num1 = 3 };
-        var result = Parse((a, e) => new TestEntity {
-            Child = new OwnedChildEntity {
-                NestedChild = new NestedOwnedChildEntity {
+        var result = Parse((a, e) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
+                NestedChild = new NestedOwnedChildEntity
+                {
                     Num1 = value.Num1
                 }
             }
@@ -67,9 +76,12 @@ public partial class ExpressionTests {
     public void Supports_NestedOwned_Method()
     {
         var value = "hello_world ";
-        var result = Parse((a, e) => new TestEntity {
-            Child = new OwnedChildEntity {
-                NestedChild = new NestedOwnedChildEntity {
+        var result = Parse((a, e) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
+                NestedChild = new NestedOwnedChildEntity
+                {
                     Text1 = value.Trim(),
                 }
             }
@@ -87,9 +99,12 @@ public partial class ExpressionTests {
     {
         var value1 = "hello";
         var value2 = "world";
-        var result = Parse((a, b) => new TestEntity {
-            Child = new OwnedChildEntity {
-                NestedChild = new NestedOwnedChildEntity {
+        var result = Parse((a, b) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
+                NestedChild = new NestedOwnedChildEntity
+                {
                     Text1 = string.Join(", ", new string[] { value1, value2 }),
                 }
             }
@@ -105,9 +120,12 @@ public partial class ExpressionTests {
     [Fact, Trait("Category", "NestedOwned")]
     public void Supports_NestedOwned_ValueIncrement()
     {
-        var result = Parse((a, b) => new TestEntity {
-            Child = new OwnedChildEntity {
-                NestedChild = new NestedOwnedChildEntity {
+        var result = Parse((a, b) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
+                NestedChild = new NestedOwnedChildEntity
+                {
                     Num1 = a.Child.NestedChild.Num1 + 1,
                 }
             }
@@ -125,9 +143,12 @@ public partial class ExpressionTests {
     [Fact, Trait("Category", "NestedOwned")]
     public void Supports_NestedOwned_Property()
     {
-        var result = Parse((a, e) => new TestEntity {
-            Child = new OwnedChildEntity {
-                NestedChild = new NestedOwnedChildEntity {
+        var result = Parse((a, e) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
+                NestedChild = new NestedOwnedChildEntity
+                {
                     Num1 = a.Child.NestedChild.Num2
                 }
             }
@@ -143,9 +164,12 @@ public partial class ExpressionTests {
     [Fact, Trait("Category", "NestedOwned")]
     public void Handles_Name_Collisions_With_NestedOwned_Entities()
     {
-        var result = Parse((a, e) => new TestEntity {
-            Child = new OwnedChildEntity {
-                NestedChild = new NestedOwnedChildEntity {
+        var result = Parse((a, e) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
+                NestedChild = new NestedOwnedChildEntity
+                {
                     Num1 = a.Num1
                 }
             }

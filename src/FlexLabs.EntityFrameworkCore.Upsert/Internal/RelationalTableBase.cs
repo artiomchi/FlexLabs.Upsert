@@ -1,17 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Xml.Linq;
-
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;
 
-internal abstract class RelationalTableBase {
+internal abstract class RelationalTableBase
+{
     private readonly SortedDictionary<LevelName, IColumnBase> _columns = new();
 
     public void AddColumnRange(IEnumerable<IColumnBase> columns)
     {
-        foreach (var column in columns) {
+        foreach (var column in columns)
+        {
             AddColumn(column);
         }
     }
@@ -42,7 +42,8 @@ internal abstract class RelationalTableBase {
     /// <param name="name">Clr name of the column to search</param>
     public IColumnBase? FindColumn(IColumnBase column, string name)
     {
-        if (column.Owned == Owned.InlineOwner) {
+        if (column.Owned == Owned.InlineOwner)
+        {
             return _columns.GetValueOrDefault(new LevelName(name, $"{column.Path}.{column.Name}"));
         }
 
@@ -55,16 +56,22 @@ internal abstract class RelationalTableBase {
     /// <param name="column">Must be InlineOwner</param>
     public IEnumerable<IColumnBase> FindColumnFor(IColumnBase column)
     {
-        if (column.Owned == Owned.InlineOwner) {
+        if (column.Owned == Owned.InlineOwner)
+        {
             var path = $"{column.Path}.{column.Name}";
-            foreach (var (key, value) in _columns) {
-                if (key.Path == path) {
-                    if (value.Owned == Owned.InlineOwner) {
-                        foreach (var col in FindColumnFor(value)) {
+            foreach (var (key, value) in _columns)
+            {
+                if (key.Path == path)
+                {
+                    if (value.Owned == Owned.InlineOwner)
+                    {
+                        foreach (var col in FindColumnFor(value))
+                        {
                             yield return col;
                         }
                     }
-                    else {
+                    else
+                    {
                         yield return value;
                     }
                 }
@@ -75,7 +82,8 @@ internal abstract class RelationalTableBase {
     /// <summary>
     /// Serves as a dictionary key for hierarchical access.
     /// </summary>
-    private readonly record struct LevelName(string Name, string? Path) : IComparable<LevelName> {
+    private readonly record struct LevelName(string Name, string? Path) : IComparable<LevelName>
+    {
         public int CompareTo(LevelName other)
         {
             var compare1 = string.Compare(Path, other.Path, StringComparison.Ordinal);

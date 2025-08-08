@@ -5,7 +5,6 @@ using System.Reflection;
 using System;
 using System.Collections.Generic;
 
-
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
 internal class UpdateExpressionVisitor(
@@ -13,10 +12,12 @@ internal class UpdateExpressionVisitor(
     ParameterExpression leftParameter,
     ParameterExpression rigthParameter,
     bool useExpressionCompiler
-) : ExpressionVisitor {
+) : ExpressionVisitor
+{
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
-        var context = node.Object switch {
+        var context = node.Object switch
+        {
             null => null,
             var x => GetValueObject(x),
         };
@@ -29,19 +30,22 @@ internal class UpdateExpressionVisitor(
 
     protected override Expression VisitBinary(BinaryExpression node)
     {
-        switch (node.NodeType) {
-            case ExpressionType.Coalesce: {
-                var left = GetKnownValue(node.Left);
-                var right = GetKnownValue(node.Right);
+        switch (node.NodeType)
+        {
+            case ExpressionType.Coalesce:
+                {
+                    var left = GetKnownValue(node.Left);
+                    var right = GetKnownValue(node.Right);
 
-                return left switch {
-                    // eg. null ?? right
-                    ConstantValue { Value: null } => (Expression) right,
-                    // eg. left_not_null ?? right
-                    ConstantValue { Value: not null } value => value,
-                    _ => new KnownExpression(node.NodeType, left, right)
-                };
-            }
+                    return left switch
+                    {
+                        // eg. null ?? right
+                        ConstantValue { Value: null } => (Expression)right,
+                        // eg. left_not_null ?? right
+                        ConstantValue { Value: not null } value => value,
+                        _ => new KnownExpression(node.NodeType, left, right)
+                    };
+                }
             case ExpressionType.Add:
             case ExpressionType.Divide:
             case ExpressionType.Modulo:
@@ -56,27 +60,29 @@ internal class UpdateExpressionVisitor(
             case ExpressionType.AndAlso:
             case ExpressionType.OrElse:
             case ExpressionType.And:
-            case ExpressionType.Or: {
-                var left = GetKnownValue(node.Left);
-                var right = GetKnownValue(node.Right);
+            case ExpressionType.Or:
+                {
+                    var left = GetKnownValue(node.Left);
+                    var right = GetKnownValue(node.Right);
 
-                if (
-                    left is ConstantValue { Value: var l } &&
-                    right is ConstantValue { Value: var r } &&
-                    node.Method != null
-                ) {
-                    var value = node.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null,
-                        parameters: [l, r],
-                        culture: CultureInfo.InvariantCulture
-                    );
-                    return new ConstantValue(value);
+                    if (
+                        left is ConstantValue { Value: var l } &&
+                        right is ConstantValue { Value: var r } &&
+                        node.Method != null
+                    )
+                    {
+                        var value = node.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null,
+                            parameters: [l, r],
+                            culture: CultureInfo.InvariantCulture
+                        );
+                        return new ConstantValue(value);
+                    }
+
+                    return new KnownExpression(node.NodeType, left, right);
                 }
-
-                return new KnownExpression(node.NodeType, left, right);
-            }
         }
 
-        return (Expression) GetValueCompiled(node);
+        return (Expression)GetValueCompiled(node);
     }
 
     protected override Expression VisitConditional(ConditionalExpression node)
@@ -90,8 +96,9 @@ internal class UpdateExpressionVisitor(
 
     protected override Expression VisitConstant(ConstantExpression node)
     {
-        return node.Value switch {
-            IKnownValue x => (Expression) x,
+        return node.Value switch
+        {
+            IKnownValue x => (Expression)x,
             var x => new ConstantValue(node.Value),
         };
     }
@@ -103,7 +110,8 @@ internal class UpdateExpressionVisitor(
         // handle: implicit operator method call
         if (
             node.Method != null
-        ) {
+        )
+        {
             var value = node.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null,
                 parameters: [source],
                 culture: CultureInfo.InvariantCulture
@@ -112,7 +120,8 @@ internal class UpdateExpressionVisitor(
         }
 
         // handle eg: int -> int?
-        if (node.Type.IsInstanceOfType(source)) {
+        if (node.Type.IsInstanceOfType(source))
+        {
             return new ConstantValue(source);
         }
 
@@ -122,10 +131,12 @@ internal class UpdateExpressionVisitor(
 
     protected override Expression VisitParameter(ParameterExpression node)
     {
-        if (node == leftParameter) {
+        if (node == leftParameter)
+        {
             return new ParameterValue(isLeftParameter: true);
         }
-        else if (node == rigthParameter) {
+        else if (node == rigthParameter)
+        {
             return new ParameterValue(isLeftParameter: false);
         }
 
@@ -134,24 +145,29 @@ internal class UpdateExpressionVisitor(
 
     protected override Expression VisitMember(MemberExpression node)
     {
-        var knownValue = node.Expression switch {
+        var knownValue = node.Expression switch
+        {
             null => null,
             _ => GetKnownValue(node.Expression),
         };
 
-        if (knownValue is ParameterValue parameter) {
+        if (knownValue is ParameterValue parameter)
+        {
             var column = table.FindColumn(node.Member.Name) ?? throw new InvalidOperationException($"Unknown property {node}");
             return new PropertyValue(column.Name, parameter.IsLeftParameter, column);
         }
-        else if (knownValue is PropertyValue { Property: var owner, IsLeftParameter: var isLeft }) {
-            var validOwner = owner switch {
+        else if (knownValue is PropertyValue { Property: var owner, IsLeftParameter: var isLeft })
+        {
+            var validOwner = owner switch
+            {
                 { Owned: Owned.InlineOwner } => owner,
-                { Owned: Owned.Json } json => throw UnsupportedExpressionException.JsonMemberAccess(json, node),
+                { Owned: Owned.Json } json => throw UnsupportedExpressionException.ReadingJsonMember(json, node),
                 _ => throw new InvalidOperationException($"Unsupported property access {node}"),
             };
-            var column = table.FindColumn(validOwner, node.Member.Name) switch {
+            var column = table.FindColumn(validOwner, node.Member.Name) switch
+            {
                 null => throw new InvalidOperationException($"Unknown property {node}"),
-                { Owned: Owned.Json } json => throw UnsupportedExpressionException.JsonMemberAccess(json, node),
+                { Owned: Owned.Json } json => throw UnsupportedExpressionException.ReadingJsonMember(json, node),
                 var x => x,
             };
             return new PropertyValue(column.Name, isLeftParameter: isLeft, column);
@@ -159,7 +175,8 @@ internal class UpdateExpressionVisitor(
 
         var target = GetValueObject(node.Expression);
 
-        var value = node.Member switch {
+        var value = node.Member switch
+        {
             FieldInfo x => x.GetValue(target),
             PropertyInfo x => x.GetValue(target),
             _ => throw new UnsupportedExpressionException(node)
@@ -171,7 +188,8 @@ internal class UpdateExpressionVisitor(
     protected override Expression VisitMemberInit(MemberInitExpression node)
     {
         var bindings = new List<MemberBinding>();
-        foreach (var binding in node.Bindings.Cast<MemberAssignment>()) {
+        foreach (var binding in node.Bindings.Cast<MemberAssignment>())
+        {
             var member = binding.Member;
             var value = GetKnownValue(binding.Expression);
             bindings.Add(new MemberBinding(member.Name, value, binding.Expression));
@@ -184,7 +202,8 @@ internal class UpdateExpressionVisitor(
     {
         var result = Array.CreateInstance(node.Type.GetElementType()!, node.Expressions.Count);
 
-        for (var i = 0; i < node.Expressions.Count; i++) {
+        for (var i = 0; i < node.Expressions.Count; i++)
+        {
             var value = GetValueObject(node.Expressions[i]);
             result.SetValue(value, i);
         }
@@ -195,16 +214,19 @@ internal class UpdateExpressionVisitor(
 
     public bool TryGetValueObject(Expression? expression, out object? value)
     {
-        var kn = expression switch {
+        var kn = expression switch
+        {
             null => null,
             _ => GetKnownValue(expression),
         };
 
-        if (kn is ConstantValue { Value: var v }) {
+        if (kn is ConstantValue { Value: var v })
+        {
             value = v;
             return true;
         }
-        else if (kn is null) {
+        else if (kn is null)
+        {
             value = null;
             return true;
         }
@@ -224,7 +246,8 @@ internal class UpdateExpressionVisitor(
     {
         var result = Visit(expression);
 
-        return result switch {
+        return result switch
+        {
             IKnownValue x => x,
             _ => GetValueCompiled(result),
         };
@@ -233,7 +256,8 @@ internal class UpdateExpressionVisitor(
     protected IKnownValue GetValueCompiled(Expression expression)
     {
         // TODO check if it is safe to compile - contains no IKnownValue!
-        if (useExpressionCompiler) {
+        if (useExpressionCompiler)
+        {
             var value = Expression.Lambda<Func<object>>(
                 Expression.Convert(expression, typeof(object))
             ).Compile()();

@@ -3,15 +3,17 @@ using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using FluentAssertions;
 using Xunit;
 
-
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal;
 
-public partial class ExpressionTests {
+public partial class ExpressionTests
+{
     [Fact, Trait("Category", "Owned")]
     public void Supports_Owned_Constant()
     {
-        var result = Parse((a, e) => new TestEntity {
-            Child = new OwnedChildEntity {
+        var result = Parse((a, e) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
                 Num1 = 1
             }
         });
@@ -27,8 +29,10 @@ public partial class ExpressionTests {
     public void Supports_Owned_Field()
     {
         var value = 2;
-        var result = Parse((a, e) => new TestEntity {
-            Child = new OwnedChildEntity {
+        var result = Parse((a, e) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
                 Num1 = value
             }
         });
@@ -44,8 +48,10 @@ public partial class ExpressionTests {
     public void Supports_Owned_FieldAndProperty()
     {
         var value = new { Num1 = 3 };
-        var result = Parse((a, e) => new TestEntity {
-            Child = new OwnedChildEntity {
+        var result = Parse((a, e) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
                 Num1 = value.Num1
             }
         });
@@ -61,8 +67,10 @@ public partial class ExpressionTests {
     public void Supports_Owned_Method()
     {
         var value = "hello_world ";
-        var result = Parse((a, e) => new TestEntity {
-            Child = new OwnedChildEntity {
+        var result = Parse((a, e) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
                 Text1 = value.Trim(),
             }
         });
@@ -79,8 +87,10 @@ public partial class ExpressionTests {
     {
         var value1 = "hello";
         var value2 = "world";
-        var result = Parse((a, b) => new TestEntity {
-            Child = new OwnedChildEntity {
+        var result = Parse((a, b) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
                 Text1 = string.Join(", ", new string[] { value1, value2 }),
             }
         });
@@ -95,8 +105,10 @@ public partial class ExpressionTests {
     [Fact, Trait("Category", "Owned")]
     public void Supports_Owned_ValueIncrement()
     {
-        var result = Parse((a, b) => new TestEntity {
-            Child = new OwnedChildEntity {
+        var result = Parse((a, b) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
                 Num1 = a.Child.Num1 + 1,
             }
         });
@@ -113,8 +125,10 @@ public partial class ExpressionTests {
     [Fact, Trait("Category", "Owned")]
     public void Supports_Owned_Property()
     {
-        var result = Parse((a, e) => new TestEntity {
-            Child = new OwnedChildEntity {
+        var result = Parse((a, e) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
                 Num1 = a.Child.Num2
             }
         });
@@ -129,8 +143,10 @@ public partial class ExpressionTests {
     [Fact, Trait("Category", "Owned")]
     public void Handles_Name_Collisions_With_Owned_Entities()
     {
-        var result = Parse((a, e) => new TestEntity {
-            Child = new OwnedChildEntity {
+        var result = Parse((a, e) => new TestEntity
+        {
+            Child = new OwnedChildEntity
+            {
                 Num1 = a.Num1
             }
         });

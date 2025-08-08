@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
-
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
 /// <summary>
 /// This class represents property mappings of a MemberInitExpression within an expression
 /// </summary>
-internal class ParameterValue(bool isLeftParameter) : Expression, IKnownValue {
+internal class ParameterValue(bool isLeftParameter) : Expression, IKnownValue
+{
     /// <inheritdoc />
     public override ExpressionType NodeType => ExpressionType.Constant;
     /// <inheritdoc />

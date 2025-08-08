@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Linq.Expressions;
 
-
-namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions {
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions
+{
     /// <summary>
     /// This class represents access to a property within an expression
     /// </summary>
-    public class PropertyValue : Expression, IKnownValue {
+    public class PropertyValue : Expression, IKnownValue
+    {
         /// <inheritdoc />
         public override ExpressionType NodeType => ExpressionType.Constant;
         /// <inheritdoc />

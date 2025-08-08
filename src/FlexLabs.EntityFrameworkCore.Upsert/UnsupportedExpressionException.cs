@@ -29,14 +29,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 Resources.FormatSeeLinkForMoreDetails(HelpLinks.MySQLConditionalUpdate),
                 HelpLinks.MySQLConditionalUpdate);
 
-        internal static Exception JsonMemberBinding(Expression expression)
-        {
-            return new UnsupportedExpressionException($"Modifying JSON members is not supported. Unsupported Expression: {expression}", HelpLinks.SupportedExpressions);
-        }
+        internal static UnsupportedExpressionException ModifyingJsonMember(Expression expression)
+            => new(Resources.FormatModifyingJsonMembersIsNotSupportedUnsupportedExpression(expression), HelpLinks.SupportedExpressions);
 
-        internal static Exception JsonMemberAccess(IColumnBase column, Expression expression)
-        {
-            return new UnsupportedExpressionException($"Reading JSON members is not supported. Unsupported Access Expression: {expression}", HelpLinks.SupportedExpressions);
-        }
+        internal static UnsupportedExpressionException ReadingJsonMember(IColumnBase column, Expression expression)
+            => new(Resources.FormatReadingJsonMembersIsNotSupportedUnsupportedExpression(expression), HelpLinks.SupportedExpressions);
     }
 }

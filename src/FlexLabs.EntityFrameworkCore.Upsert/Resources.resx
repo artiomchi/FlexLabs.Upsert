@@ -165,4 +165,10 @@
   <data name="UsingConditionalUpdatesIsNotSupportedInMySQLDueToDatabaseSyntaxLimitations" xml:space="preserve">
     <value>Using conditional updates is not supported in MySQL due to database syntax limitations.</value>
   </data>
+  <data name="ModifyingJsonMembersIsNotSupportedUnsupportedExpression" xml:space="preserve">
+    <value>Modifying JSON members is not supported. Unsupported Expression: {0}</value>
+  </data>
+  <data name="ReadingJsonMembersIsNotSupportedUnsupportedExpression" xml:space="preserve">
+    <value>Reading JSON members is not supported. Unsupported Access Expression: {0}</value>
+  </data>
 </root>

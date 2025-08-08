@@ -1346,11 +1346,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             };
 
             dbContext.JsonDocumentDatas.Upsert(updatedJson)
-                .WhenMatched((a, b) => new JsonDocumentData {
+                .WhenMatched((a, b) => new JsonDocumentData
+                {
                     Data = b.Data,
                 })
                 .Run();
-            
+
             dbContext.JsonDocumentDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
                 j => j.Data.RootElement.GetProperty("hello").GetString().Should().Be("world 2.0"));
         }

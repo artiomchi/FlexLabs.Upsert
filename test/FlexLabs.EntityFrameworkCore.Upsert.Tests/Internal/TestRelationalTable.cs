@@ -7,12 +7,12 @@ using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using IColumnBase = FlexLabs.EntityFrameworkCore.Upsert.Internal.IColumnBase;
 
-
 #nullable enable
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal;
 
-internal class TestRelationalTable : RelationalTableBase {
+internal class TestRelationalTable : RelationalTableBase
+{
     public TestRelationalTable()
     {
         AddColumnRange([
@@ -41,25 +41,29 @@ internal class TestRelationalTable : RelationalTableBase {
 
     private static TestColumn Column<T>(Expression<Func<T, object?>> property, Owned owned = Owned.None)
     {
-        var exp = property.Body switch {
+        var exp = property.Body switch
+        {
             UnaryExpression u => u.Operand,
             var x => x,
         };
 
         var members = new List<PropertyInfo>();
-        while (exp is MemberExpression memberExpression) {
-            var member = (PropertyInfo) memberExpression.Member;
+        while (exp is MemberExpression memberExpression)
+        {
+            var member = (PropertyInfo)memberExpression.Member;
             members.Add(member);
             exp = memberExpression.Expression;
         }
 
         var name = members.First().Name;
-        var path = string.Join(".", members.Skip(1).Reverse().Select(_ => _.Name)) switch {
+        var path = string.Join(".", members.Skip(1).Reverse().Select(_ => _.Name)) switch
+        {
             "" => null,
             var x => $".{x}",
         };
 
-        var accessor = members.AsEnumerable().Reverse().Aggregate<PropertyInfo, Func<object?, object?>>(x => x, (c, n) => _ => c(_) switch {
+        var accessor = members.AsEnumerable().Reverse().Aggregate<PropertyInfo, Func<object?, object?>>(x => x, (c, n) => _ => c(_) switch
+        {
             null => null,
             var x => n.GetValue(x)
         });
@@ -73,8 +77,10 @@ public record TestColumn(
     string? Path,
     Owned Owned,
     Func<object?, object?> ValueAccessor
-) : IColumnBase {
-    public string ColumnName => Path switch {
+) : IColumnBase
+{
+    public string ColumnName => Path switch
+    {
         null => Name,
         _ => $"{Path}.{Name}".TrimStart('.').Replace('.', '_'),
     };

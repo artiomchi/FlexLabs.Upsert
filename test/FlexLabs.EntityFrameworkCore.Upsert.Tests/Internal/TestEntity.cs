@@ -15,7 +15,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
         public OwnedChildEntity Child { get; set; }
     }
 
-    public class OwnedChildEntity {
+    public class OwnedChildEntity
+    {
         public int ID { get; set; }
         public int Num1 { get; set; }
         public int Num2 { get; set; }
@@ -26,7 +27,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
         public NestedOwnedChildEntity NestedChild { get; set; }
     }
 
-    public class NestedOwnedChildEntity {
+    public class NestedOwnedChildEntity
+    {
         public int Num1 { get; set; }
         public int Num2 { get; set; }
         public string Text1 { get; set; }

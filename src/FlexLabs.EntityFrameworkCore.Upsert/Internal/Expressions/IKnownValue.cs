@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
 
-
-namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions {
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions
+{
     /// <summary>
     /// Value of an expression
     /// </summary>
-    public interface IKnownValue {
+    public interface IKnownValue
+    {
         /// <summary>
         /// Get all the constants that are part of this value
         /// </summary>
