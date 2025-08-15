@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -31,23 +30,18 @@ internal sealed class RelationalTable : RelationalTableBase
     {
         var tblName = entityType.GetTableName() ?? entityType.GetViewName();
         var tblSchema = entityType.GetSchema();
-        return entityType.Model.GetRelationalModel().Tables.First(_ => _.Name == tblName && _.Schema == tblSchema);
+        return entityType.Model.GetRelationalModel().Tables.First(t => t.Name == tblName && t.Schema == tblSchema);
     }
 
     private IEnumerable<IColumnBase> GetColumns(IEntityType entityType)
     {
-        var properties = entityType
+        return entityType
             .GetProperties()
-            .Where(ValidProperty);
-
-        foreach (var property in properties)
-        {
-            yield return new RelationalColumn(
-                Property: property,
-                ColumnName: property.GetColumnName(),
-                Owned: Owned.None
-            );
-        }
+            .Where(IsPropertyValid)
+            .Select(p => new RelationalColumn(
+                Property: p,
+                ColumnName: p.GetColumnName(),
+                Owned: OwnershipType.None));
     }
 
     private IEnumerable<IColumnBase> GetOwnedColumns(IEntityType entityType, string? path = null, Func<object, object?>? getter = null)
@@ -57,28 +51,29 @@ internal sealed class RelationalTable : RelationalTableBase
 
         foreach (var navigation in owned)
         {
+            object? currentGetter(object entity)
+            {
+                var obj = getter is null ? entity : getter(entity);
+                return obj != null
+                    ? navigation.GetGetter().GetClrValueUsingContainingEntity(obj)
+                    : null;
+            }
+
             if (navigation.TargetEntityType.IsMappedToJson())
             {
-                var columnName = navigation.TargetEntityType.GetContainerColumnName();
-                if (columnName is null)
-                {
-                    throw new NotSupportedException($"Unsupported owned json column: '{navigation.Name}'. Failed to get column name.");
-                }
+                var columnName = navigation.TargetEntityType.GetContainerColumnName()
+                    ?? throw new NotSupportedException($"Unsupported owned json column: '{navigation.Name}'. Failed to get column name.");
 
-                var jsonColumn = GetTable(entityType).FindColumn(columnName);
-                if (jsonColumn is null)
-                {
-                    throw new NotSupportedException($"Unsupported owned json column: '{navigation.Name}'. Failed to get relational column.");
-                }
+                var jsonColumn = GetTable(entityType).FindColumn(columnName)
+                    ?? throw new NotSupportedException($"Unsupported owned json column: '{navigation.Name}'. Failed to get relational column.");
 
                 yield return new JsonColumn(
                     Column: jsonColumn,
                     Navigation: navigation,
                     Name: navigation.Name,
                     ColumnName: columnName,
-                    Owned: Owned.Json,
-                    Path: path
-                );
+                    Owned: OwnershipType.Json,
+                    Path: path);
             }
             else
             {
@@ -86,26 +81,15 @@ internal sealed class RelationalTable : RelationalTableBase
                 yield return new OwnerColumn(
                     Name: navigation.Name,
                     ColumnName: null!,
-                    Owned: Owned.InlineOwner,
-                    Path: path
-                );
+                    Owned: OwnershipType.InlineOwner,
+                    Path: path);
 
                 var parent = navigation.TargetEntityType;
                 var currentPath = $"{path}.{navigation.Name}";
 
-                var currentGetter = (object entity) =>
-                {
-                    var obj = getter is null ? entity : getter(entity);
-                    return obj switch
-                    {
-                        null => null,
-                        _ => navigation.GetGetter().GetClrValueUsingContainingEntity(obj),
-                    };
-                };
-
                 var properties = parent
                     .GetProperties()
-                    .Where(ValidProperty);
+                    .Where(IsPropertyValid);
 
                 foreach (var property in properties)
                 {
@@ -113,11 +97,7 @@ internal sealed class RelationalTable : RelationalTableBase
                     if (columnName is null)
                     {
                         var table = StoreObjectIdentifier.Create(property.DeclaringType, StoreObjectType.Table);
-                        columnName = table switch
-                        {
-                            null => null,
-                            _ => property.GetDefaultColumnName(table.Value),
-                        };
+                        columnName = table != null ? property.GetDefaultColumnName(table.Value) : null;
                     }
 
                     if (columnName is null)
@@ -128,10 +108,9 @@ internal sealed class RelationalTable : RelationalTableBase
                     yield return new RelationalColumn(
                         Property: property,
                         ColumnName: columnName,
-                        Owned: Owned.Inline,
+                        Owned: OwnershipType.Inline,
                         Path: currentPath,
-                        EntityGetter: currentGetter
-                    );
+                        EntityGetter: currentGetter);
                 }
 
                 foreach (var column in GetOwnedColumns(parent, currentPath, currentGetter))
@@ -142,146 +121,19 @@ internal sealed class RelationalTable : RelationalTableBase
         }
     }
 
-    private bool ValidProperty(IProperty property)
+    private bool IsPropertyValid(IProperty property)
     {
-        var valid = _queryOptions.AllowIdentityMatch ||
-                    property.ValueGenerated == ValueGenerated.Never ||
-                    property.GetAfterSaveBehavior() == PropertySaveBehavior.Save;
+        var valid =
+            _queryOptions.AllowIdentityMatch ||
+            property.ValueGenerated == ValueGenerated.Never ||
+            property.GetAfterSaveBehavior() == PropertySaveBehavior.Save;
+        if (!valid)
+            return false;
 
         var pgIdentity = property
             .GetAnnotations()
             .FirstOrDefault(a => a.Name == "Npgsql:ValueGenerationStrategy")
             ?.Value?.ToString() == "IdentityAlwaysColumn";
-
-        return valid && !pgIdentity && !property.IsShadowProperty();
+        return !pgIdentity && !property.IsShadowProperty();
     }
-}
-
-internal sealed record RelationalColumn(
-    IProperty Property,
-    string ColumnName,
-    Owned Owned,
-    string? Path = null,
-    Func<object, object?>? EntityGetter = null
-) : IColumnBase
-{
-    public string Name => Property.Name;
-
-    public (string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts) GetValue(object entity)
-    {
-        ArgumentNullException.ThrowIfNull(entity, nameof(entity));
-
-        var obj = entity;
-        if (EntityGetter is not null)
-        {
-            obj = EntityGetter(entity);
-        }
-
-        var rawValue = obj switch
-        {
-            null => null,
-            _ => Property.GetGetter().GetClrValueUsingContainingEntity(obj),
-        };
-
-        string? defaultSql = null;
-        if (rawValue == null)
-        {
-            if (Property.GetDefaultValue() != null)
-                rawValue = Property.GetDefaultValue();
-            else
-                defaultSql = Property.GetDefaultValueSql();
-        }
-
-        var value = new ConstantValue(rawValue, this);
-        var allowInserts = Property.ValueGenerated == ValueGenerated.Never || Property.GetAfterSaveBehavior() == PropertySaveBehavior.Save;
-
-        return (ColumnName, value, defaultSql, allowInserts);
-    }
-}
-
-internal sealed record OwnerColumn(
-    string Name,
-    string ColumnName,
-    Owned Owned,
-    string? Path
-) : IColumnBase
-{
-    public (string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts) GetValue(object entity) => throw new NotSupportedException();
-}
-
-internal sealed record JsonColumn(
-    IColumn Column,
-    INavigation Navigation,
-    string Name,
-    string ColumnName,
-    Owned Owned,
-    string? Path
-) : IColumnBase
-{
-    public (string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts) GetValue(object entity)
-    {
-        ArgumentNullException.ThrowIfNull(entity, nameof(entity));
-
-        var rawValue = Navigation.GetGetter().GetClrValueUsingContainingEntity(entity);
-        var jsonValue = rawValue switch
-        {
-            null => null,
-            _ => Column.StoreTypeMapping.GenerateProviderValueSqlLiteral(rawValue).Trim('\''),
-        };
-
-        var value = new ConstantValue(jsonValue, this);
-
-        return (ColumnName, value, DefaultSql: null, AllowInserts: true);
-    }
-}
-
-/// <summary>
-/// This class represents a database column
-/// </summary>
-public interface IColumnBase
-{
-    /// <summary>
-    /// The clr Name
-    /// </summary>
-    string Name { get; }
-    /// <summary>
-    /// The database name
-    /// </summary>
-    string ColumnName { get; }
-    /// <summary>
-    /// The ownership mode
-    /// </summary>
-    Owned Owned { get; }
-    /// <summary>
-    /// A hierarchical path for owned columns
-    /// </summary>
-    string? Path { get; }
-
-    /// <summary>
-    /// Reads the column value from an entity.
-    /// </summary>
-    (string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts) GetValue(object entity);
-}
-
-/// <summary>
-/// Represents various types of owned properties.
-/// </summary>
-public enum Owned
-{
-    /// <summary>
-    /// Not owned.
-    /// </summary>
-    None,
-    /// <summary>
-    /// Owned and inlined into the table.
-    /// </summary>
-    Inline,
-    /// <summary>
-    /// Owner of inlined properties.
-    /// </summary>
-    InlineOwner,
-    /// <summary>
-    /// Owned with json conversation.
-    /// </summary>
-    Json,
 }

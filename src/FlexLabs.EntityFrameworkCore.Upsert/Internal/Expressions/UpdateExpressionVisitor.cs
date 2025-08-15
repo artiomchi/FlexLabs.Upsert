@@ -16,12 +16,7 @@ internal class UpdateExpressionVisitor(
 {
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
-        var context = node.Object switch
-        {
-            null => null,
-            var x => GetValueObject(x),
-        };
-
+        var context = node.Object != null ? GetValueObject(node.Object) : null;
         var arguments = node.Arguments.Select(GetValueObject).ToArray();
         var result = node.Method.Invoke(context, arguments);
 
@@ -145,12 +140,7 @@ internal class UpdateExpressionVisitor(
 
     protected override Expression VisitMember(MemberExpression node)
     {
-        var knownValue = node.Expression switch
-        {
-            null => null,
-            _ => GetKnownValue(node.Expression),
-        };
-
+        var knownValue = node.Expression != null ? GetKnownValue(node.Expression) : null;
         if (knownValue is ParameterValue parameter)
         {
             var column = table.FindColumn(node.Member.Name) ?? throw new InvalidOperationException($"Unknown property {node}");
@@ -160,14 +150,14 @@ internal class UpdateExpressionVisitor(
         {
             var validOwner = owner switch
             {
-                { Owned: Owned.InlineOwner } => owner,
-                { Owned: Owned.Json } json => throw UnsupportedExpressionException.ReadingJsonMember(json, node),
+                { Owned: OwnershipType.InlineOwner } => owner,
+                { Owned: OwnershipType.Json } json => throw UnsupportedExpressionException.ReadingJsonMember(json, node),
                 _ => throw new InvalidOperationException($"Unsupported property access {node}"),
             };
             var column = table.FindColumn(validOwner, node.Member.Name) switch
             {
                 null => throw new InvalidOperationException($"Unknown property {node}"),
-                { Owned: Owned.Json } json => throw UnsupportedExpressionException.ReadingJsonMember(json, node),
+                { Owned: OwnershipType.Json } json => throw UnsupportedExpressionException.ReadingJsonMember(json, node),
                 var x => x,
             };
             return new PropertyValue(column.Name, isLeftParameter: isLeft, column);
@@ -214,12 +204,7 @@ internal class UpdateExpressionVisitor(
 
     public bool TryGetValueObject(Expression? expression, out object? value)
     {
-        var kn = expression switch
-        {
-            null => null,
-            _ => GetKnownValue(expression),
-        };
-
+        var kn = expression != null ? GetKnownValue(expression) : null;
         if (kn is ConstantValue { Value: var v })
         {
             value = v;

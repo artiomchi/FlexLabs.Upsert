@@ -97,7 +97,7 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
         else if (value is PropertyValue or ConstantValue or KnownExpression)
         {
             if (
-                column.Owned == Owned.InlineOwner &&
+                column.Owned == OwnershipType.InlineOwner &&
                 value is PropertyValue { Property: var source, IsLeftParameter: var isLeft } &&
                 column == source
             )
@@ -107,7 +107,7 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
                     yield return new PropertyMapping(col, new PropertyValue(col.Name, isLeft, col));
                 }
             }
-            else if (column.Owned is Owned.None or Owned.Inline or Owned.Json)
+            else if (column.Owned is OwnershipType.None or OwnershipType.Inline or OwnershipType.Json)
             {
                 yield return new PropertyMapping(column, value);
             }
@@ -127,7 +127,7 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
     /// </summary>
     private IEnumerable<PropertyMapping> ExpandBindingValue(IColumnBase owner, List<MemberBinding> bindings, Expression expression)
     {
-        if (owner.Owned == Owned.InlineOwner)
+        if (owner.Owned == OwnershipType.InlineOwner)
         {
             foreach (var binding in bindings)
             {
@@ -139,7 +139,7 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
                 }
             }
         }
-        else if (owner.Owned == Owned.Json)
+        else if (owner.Owned == OwnershipType.Json)
         {
             throw UnsupportedExpressionException.ModifyingJsonMember(expression);
         }

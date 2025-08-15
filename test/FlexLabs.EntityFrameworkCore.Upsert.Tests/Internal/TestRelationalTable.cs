@@ -24,22 +24,22 @@ internal class TestRelationalTable : RelationalTableBase
             Column<TestEntity>(_ => _.Text2),
             Column<TestEntity>(_ => _.Boolean),
             Column<TestEntity>(_ => _.Updated),
-            Column<TestEntity>(_ => _.Child, Owned.InlineOwner),
-            Column<TestEntity>(_ => _.Child.ID, Owned.Inline),
-            Column<TestEntity>(_ => _.Child.Num1, Owned.Inline),
-            Column<TestEntity>(_ => _.Child.Num2, Owned.Inline),
-            Column<TestEntity>(_ => _.Child.NumNullable1, Owned.Inline),
-            Column<TestEntity>(_ => _.Child.Text1, Owned.Inline),
-            Column<TestEntity>(_ => _.Child.Text2, Owned.Inline),
-            Column<TestEntity>(_ => _.Child.Updated, Owned.Inline),
-            Column<TestEntity>(_ => _.Child.NestedChild, Owned.InlineOwner),
-            Column<TestEntity>(_ => _.Child.NestedChild.Num1, Owned.Inline),
-            Column<TestEntity>(_ => _.Child.NestedChild.Num2, Owned.Inline),
-            Column<TestEntity>(_ => _.Child.NestedChild.Text1, Owned.Inline),
+            Column<TestEntity>(_ => _.Child, OwnershipType.InlineOwner),
+            Column<TestEntity>(_ => _.Child.ID, OwnershipType.Inline),
+            Column<TestEntity>(_ => _.Child.Num1, OwnershipType.Inline),
+            Column<TestEntity>(_ => _.Child.Num2, OwnershipType.Inline),
+            Column<TestEntity>(_ => _.Child.NumNullable1, OwnershipType.Inline),
+            Column<TestEntity>(_ => _.Child.Text1, OwnershipType.Inline),
+            Column<TestEntity>(_ => _.Child.Text2, OwnershipType.Inline),
+            Column<TestEntity>(_ => _.Child.Updated, OwnershipType.Inline),
+            Column<TestEntity>(_ => _.Child.NestedChild, OwnershipType.InlineOwner),
+            Column<TestEntity>(_ => _.Child.NestedChild.Num1, OwnershipType.Inline),
+            Column<TestEntity>(_ => _.Child.NestedChild.Num2, OwnershipType.Inline),
+            Column<TestEntity>(_ => _.Child.NestedChild.Text1, OwnershipType.Inline),
         ]);
     }
 
-    private static TestColumn Column<T>(Expression<Func<T, object?>> property, Owned owned = Owned.None)
+    private static TestColumn Column<T>(Expression<Func<T, object?>> property, OwnershipType owned = OwnershipType.None)
     {
         var exp = property.Body switch
         {
@@ -62,11 +62,15 @@ internal class TestRelationalTable : RelationalTableBase
             var x => $".{x}",
         };
 
-        var accessor = members.AsEnumerable().Reverse().Aggregate<PropertyInfo, Func<object?, object?>>(x => x, (c, n) => _ => c(_) switch
-        {
-            null => null,
-            var x => n.GetValue(x)
-        });
+        var accessor = members.AsEnumerable()
+            .Reverse()
+            .Aggregate<PropertyInfo, Func<object?, object?>>(
+                x => x,
+                (c, n) => _ =>
+                {
+                    var obj = c(_);
+                    return obj != null ? n.GetValue(obj) : null;
+                });
 
         return new TestColumn(name, path, owned, accessor);
     }
@@ -75,7 +79,7 @@ internal class TestRelationalTable : RelationalTableBase
 public record TestColumn(
     string Name,
     string? Path,
-    Owned Owned,
+    OwnershipType Owned,
     Func<object?, object?> ValueAccessor
 ) : IColumnBase
 {

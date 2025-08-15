@@ -6,8 +6,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;
 
 internal abstract class RelationalTableBase
 {
-    private readonly SortedDictionary<LevelName, IColumnBase> _columns = new();
+    // TODO: Does this need to be sorted by the key?
+    private readonly SortedDictionary<LevelName, IColumnBase> _columns = [];
 
+    // Do we need the range operator?
     public void AddColumnRange(IEnumerable<IColumnBase> columns)
     {
         foreach (var column in columns)
@@ -24,7 +26,7 @@ internal abstract class RelationalTableBase
     /// <summary>
     /// List of all table mapped columns.
     /// </summary>
-    public IEnumerable<IColumnBase> Columns => _columns.Values.Where(_ => _.Owned != Owned.InlineOwner);
+    public IEnumerable<IColumnBase> Columns => _columns.Values.Where(c => c.Owned != OwnershipType.InlineOwner);
 
     /// <summary>
     /// Search a table column.
@@ -42,7 +44,7 @@ internal abstract class RelationalTableBase
     /// <param name="name">Clr name of the column to search</param>
     public IColumnBase? FindColumn(IColumnBase column, string name)
     {
-        if (column.Owned == Owned.InlineOwner)
+        if (column.Owned == OwnershipType.InlineOwner)
         {
             return _columns.GetValueOrDefault(new LevelName(name, $"{column.Path}.{column.Name}"));
         }
@@ -56,14 +58,14 @@ internal abstract class RelationalTableBase
     /// <param name="column">Must be InlineOwner</param>
     public IEnumerable<IColumnBase> FindColumnFor(IColumnBase column)
     {
-        if (column.Owned == Owned.InlineOwner)
+        if (column.Owned == OwnershipType.InlineOwner)
         {
             var path = $"{column.Path}.{column.Name}";
             foreach (var (key, value) in _columns)
             {
                 if (key.Path == path)
                 {
-                    if (value.Owned == Owned.InlineOwner)
+                    if (value.Owned == OwnershipType.InlineOwner)
                     {
                         foreach (var col in FindColumnFor(value))
                         {
