@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
@@ -60,16 +61,16 @@ internal class UpdateExpressionVisitor(
                     var left = GetKnownValue(node.Left);
                     var right = GetKnownValue(node.Right);
 
-                    if (
-                        left is ConstantValue { Value: var l } &&
+                    if (left is ConstantValue { Value: var l } &&
                         right is ConstantValue { Value: var r } &&
-                        node.Method != null
-                    )
+                        node.Method != null)
                     {
-                        var value = node.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null,
+                        var value = node.Method.Invoke(
+                            null,
+                            BindingFlags.Static | BindingFlags.Public,
+                            null,
                             parameters: [l, r],
-                            culture: CultureInfo.InvariantCulture
-                        );
+                            culture: CultureInfo.InvariantCulture);
                         return new ConstantValue(value);
                     }
 
@@ -94,7 +95,7 @@ internal class UpdateExpressionVisitor(
         return node.Value switch
         {
             IKnownValue x => (Expression)x,
-            var x => new ConstantValue(node.Value),
+            _ => new ConstantValue(node.Value),
         };
     }
 
@@ -103,14 +104,14 @@ internal class UpdateExpressionVisitor(
         var source = GetValueObject(node.Operand);
 
         // handle: implicit operator method call
-        if (
-            node.Method != null
-        )
+        if (node.Method != null)
         {
-            var value = node.Method.Invoke(null, BindingFlags.Static | BindingFlags.Public, null,
+            var value = node.Method.Invoke(
+                null,
+                BindingFlags.Static | BindingFlags.Public,
+                null,
                 parameters: [source],
-                culture: CultureInfo.InvariantCulture
-            );
+                culture: CultureInfo.InvariantCulture);
             return new ConstantValue(value);
         }
 
@@ -143,21 +144,21 @@ internal class UpdateExpressionVisitor(
         var knownValue = node.Expression != null ? GetKnownValue(node.Expression) : null;
         if (knownValue is ParameterValue parameter)
         {
-            var column = table.FindColumn(node.Member.Name) ?? throw new InvalidOperationException($"Unknown property {node}");
+            var column = table.FindColumn(node.Member.Name) ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(node));
             return new PropertyValue(column.Name, parameter.IsLeftParameter, column);
         }
-        else if (knownValue is PropertyValue { Property: var owner, IsLeftParameter: var isLeft })
+        else if (knownValue is PropertyValue { Column: var owner, IsLeftParameter: var isLeft })
         {
             var validOwner = owner switch
             {
                 { Owned: OwnershipType.InlineOwner } => owner,
-                { Owned: OwnershipType.Json } json => throw UnsupportedExpressionException.ReadingJsonMember(json, node),
-                _ => throw new InvalidOperationException($"Unsupported property access {node}"),
+                { Owned: OwnershipType.Json } json => throw UnsupportedExpressionException.ReadingJsonMemberNotSupported(json, node),
+                _ => throw new InvalidOperationException(Resources.FormatUnsupportedPropertyAccess(node)),
             };
             var column = table.FindColumn(validOwner, node.Member.Name) switch
             {
-                null => throw new InvalidOperationException($"Unknown property {node}"),
-                { Owned: OwnershipType.Json } json => throw UnsupportedExpressionException.ReadingJsonMember(json, node),
+                null => throw new InvalidOperationException(Resources.FormatUnknownProperty(node)),
+                { Owned: OwnershipType.Json } json => throw UnsupportedExpressionException.ReadingJsonMemberNotSupported(json, node),
                 var x => x,
             };
             return new PropertyValue(column.Name, isLeftParameter: isLeft, column);
@@ -167,8 +168,8 @@ internal class UpdateExpressionVisitor(
 
         var value = node.Member switch
         {
-            FieldInfo x => x.GetValue(target),
-            PropertyInfo x => x.GetValue(target),
+            FieldInfo f => f.GetValue(target),
+            PropertyInfo p => p.GetValue(target),
             _ => throw new UnsupportedExpressionException(node)
         };
 
@@ -201,18 +202,18 @@ internal class UpdateExpressionVisitor(
         return new ConstantValue(result);
     }
 
-
-    public bool TryGetValueObject(Expression? expression, out object? value)
+    public bool TryGetValueObject([NotNullWhen(false)] Expression? expression, out object? value)
     {
-        var kn = expression != null ? GetKnownValue(expression) : null;
-        if (kn is ConstantValue { Value: var v })
-        {
-            value = v;
-            return true;
-        }
-        else if (kn is null)
+        if (expression is null)
         {
             value = null;
+            return true;
+        }
+
+        var knownValue = GetKnownValue(expression);
+        if (knownValue is ConstantValue constantValue)
+        {
+            value = constantValue.Value;
             return true;
         }
 
@@ -224,7 +225,7 @@ internal class UpdateExpressionVisitor(
     {
         return TryGetValueObject(expression, out var value)
             ? value
-            : throw new UnsupportedExpressionException(expression!);
+            : throw new UnsupportedExpressionException(expression);
     }
 
     public IKnownValue GetKnownValue(Expression expression)

@@ -15,7 +15,7 @@ internal sealed record JsonColumn(
 {
     public (string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts) GetValue(object entity)
     {
-        ArgumentNullException.ThrowIfNull(entity, nameof(entity));
+        ArgumentNullException.ThrowIfNull(entity);
 
         var rawValue = Navigation.GetGetter().GetClrValueUsingContainingEntity(entity);
         var jsonValue = rawValue != null

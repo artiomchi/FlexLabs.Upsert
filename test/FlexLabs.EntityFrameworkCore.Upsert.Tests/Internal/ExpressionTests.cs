@@ -45,7 +45,7 @@ public partial class ExpressionTests(ITestOutputHelper output) {
         {
             return value switch {
                 ConstantValue x => x.Value,
-                PropertyValue x => $"{(x.IsLeftParameter ? "a" : "b")}{x.Property.Path}.{x.Property.Name}",
+                PropertyValue x => $"{(x.IsLeftParameter ? "a" : "b")}{x.Column.Path}.{x.Column.Name}",
                 KnownExpression x => x.ExpressionType switch {
                     ExpressionType.Conditional => $"{Expand(x.Value3)} ? {Expand(x.Value1)} : {Expand(x.Value2)}",
                     ExpressionType.LessThan => $"{Expand(x.Value1)} < {Expand(x.Value2)}",

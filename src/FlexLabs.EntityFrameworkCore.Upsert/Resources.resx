@@ -156,6 +156,12 @@
   <data name="UnknownProperty" xml:space="preserve">
     <value>Unknown property {0}</value>
   </data>
+  <data name="UnknownPropertyInExpression" xml:space="preserve">
+    <value>Unknown property {0} in expression {1}</value>
+  </data>
+  <data name="UnsupportedPropertyAccess" xml:space="preserve">
+    <value>Unsupported property access {0}</value>
+  </data>
   <data name="UpdaterMustBeAnInitialiserOfTheTEntityType" xml:space="preserve">
     <value>{0} must be an Initialiser of the TEntity type</value>
   </data>
@@ -170,5 +176,17 @@
   </data>
   <data name="ReadingJsonMembersIsNotSupportedUnsupportedExpression" xml:space="preserve">
     <value>Reading JSON members is not supported. Unsupported Access Expression: {0}</value>
+  </data>
+  <data name="NotSupportedFor" xml:space="preserve">
+    <value>Not supported for {0}</value>
+  </data>
+  <data name="UnsupportedOwnedJsonColumnFailedToGetColumnName" xml:space="preserve">
+    <value>Unsupported owned json column: '{0}'. Failed to get column name.</value>
+  </data>
+  <data name="UnsupportedOwnedJsonColumnFailedToGetRelationalColumn" xml:space="preserve">
+    <value>Unsupported owned json column: '{0}'. Failed to get relational column.</value>
+  </data>
+  <data name="UnsupportedOwnedEntityColumnNameNotFoundForProperty" xml:space="preserve">
+    <value>Unsupported owned entity: '{0}'. Column name not found for property '{1}'.</value>
   </data>
 </root>

@@ -24,7 +24,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions
         {
             PropertyName = propertyName;
             IsLeftParameter = isLeftParameter;
-            Property = property;
+            Column = property;
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions
         /// <summary>
         /// An instance of the model property class, that contains model metadata
         /// </summary>
-        public new IColumnBase Property { get; }
+        public IColumnBase Column { get; }
 
         /// <inheritdoc/>
         public IEnumerable<ConstantValue> GetConstantValues()
@@ -57,7 +57,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions
         /// <inheritdoc />
         public override string ToString()
         {
-            return $"{nameof(PropertyValue)} ( PropertyName: {PropertyName}, Column: {Property.ColumnName}, IsLeftParameter: {IsLeftParameter} )";
+            return $"{nameof(PropertyValue)} ( PropertyName: {PropertyName}, Column: {Column.ColumnName}, IsLeftParameter: {IsLeftParameter} )";
         }
     }
 }

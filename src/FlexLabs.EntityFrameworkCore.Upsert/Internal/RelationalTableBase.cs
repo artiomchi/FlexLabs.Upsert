@@ -6,21 +6,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;
 
 internal abstract class RelationalTableBase
 {
-    // TODO: Does this need to be sorted by the key?
-    private readonly SortedDictionary<LevelName, IColumnBase> _columns = [];
+    private readonly Dictionary<LevelName, IColumnBase> _columns = [];
 
-    // Do we need the range operator?
+    public void AddColumn(IColumnBase column)
+    {
+        _columns.Add(new LevelName(column.Name, column.Path), column);
+    }
+
     public void AddColumnRange(IEnumerable<IColumnBase> columns)
     {
         foreach (var column in columns)
         {
             AddColumn(column);
         }
-    }
-
-    public void AddColumn(IColumnBase column)
-    {
-        _columns.Add(new LevelName(column.Name, column.Path), column);
     }
 
     /// <summary>

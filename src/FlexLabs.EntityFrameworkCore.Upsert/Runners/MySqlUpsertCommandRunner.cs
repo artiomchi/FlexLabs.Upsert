@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
-using Microsoft.EntityFrameworkCore;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
@@ -55,7 +54,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 if (updateCondition != null)
                 {
                     var columns = updateCondition.GetPropertyValues()
-                        .Select(v => v.Property.ColumnName)
+                        .Select(v => v.Column.ColumnName)
                         .ToArray();
 
                     var variables = string.Join(", ", updateExpressions

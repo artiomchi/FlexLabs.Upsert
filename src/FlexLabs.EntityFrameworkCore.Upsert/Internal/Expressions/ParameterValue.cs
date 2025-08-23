@@ -19,12 +19,12 @@ internal class ParameterValue(bool isLeftParameter) : Expression, IKnownValue
     /// <summary>
     /// Invalid Operation
     /// </summary>
-    public IEnumerable<ConstantValue> GetConstantValues() => throw new InvalidOperationException("Not Supported for ParameterValue");
+    public IEnumerable<ConstantValue> GetConstantValues() => throw new InvalidOperationException(Resources.FormatNotSupportedFor(nameof(ParameterValue)));
 
     /// <summary>
     /// Invalid Operation
     /// </summary>
-    public IEnumerable<PropertyValue> GetPropertyValues() => throw new InvalidOperationException("Not Supported for ParameterValue");
+    public IEnumerable<PropertyValue> GetPropertyValues() => throw new InvalidOperationException(Resources.FormatNotSupportedFor(nameof(ParameterValue)));
 
     /// <inheritdoc />
     public override string ToString()

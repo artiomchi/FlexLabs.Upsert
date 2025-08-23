@@ -2,7 +2,6 @@
 using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 
-
 namespace FlexLabs.EntityFrameworkCore.Upsert
 {
     /// <summary>
@@ -17,7 +16,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             HelpLink = helpLink;
         }
 
-        internal UnsupportedExpressionException(System.Linq.Expressions.Expression expression)
+        internal UnsupportedExpressionException(Expression expression)
             : base(Resources.ThisTypeOfExpressionIsNotCurrentlySupported + " " + expression + ". " + Resources.SimplifyTheExpressionOrTryADifferentOne +
                   Resources.FormatSeeLinkForMoreDetails(HelpLinks.SupportedExpressions))
         {
@@ -25,14 +24,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         }
 
         internal static UnsupportedExpressionException MySQLConditionalUpdate()
-            => new(Resources.UsingConditionalUpdatesIsNotSupportedInMySQLDueToDatabaseSyntaxLimitations + " " + 
+            => new(Resources.UsingConditionalUpdatesIsNotSupportedInMySQLDueToDatabaseSyntaxLimitations + " " +
                 Resources.FormatSeeLinkForMoreDetails(HelpLinks.MySQLConditionalUpdate),
                 HelpLinks.MySQLConditionalUpdate);
 
-        internal static UnsupportedExpressionException ModifyingJsonMember(Expression expression)
+        internal static UnsupportedExpressionException ModifyingJsonMemberNotSupported(Expression expression)
             => new(Resources.FormatModifyingJsonMembersIsNotSupportedUnsupportedExpression(expression), HelpLinks.SupportedExpressions);
 
-        internal static UnsupportedExpressionException ReadingJsonMember(IColumnBase column, Expression expression)
+        internal static UnsupportedExpressionException ReadingJsonMemberNotSupported(IColumnBase column, Expression expression)
             => new(Resources.FormatReadingJsonMembersIsNotSupportedUnsupportedExpression(expression), HelpLinks.SupportedExpressions);
     }
 }

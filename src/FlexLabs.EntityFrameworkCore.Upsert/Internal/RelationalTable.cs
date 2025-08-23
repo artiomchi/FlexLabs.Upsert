@@ -62,10 +62,10 @@ internal sealed class RelationalTable : RelationalTableBase
             if (navigation.TargetEntityType.IsMappedToJson())
             {
                 var columnName = navigation.TargetEntityType.GetContainerColumnName()
-                    ?? throw new NotSupportedException($"Unsupported owned json column: '{navigation.Name}'. Failed to get column name.");
+                    ?? throw new NotSupportedException(Resources.FormatUnsupportedOwnedJsonColumnFailedToGetColumnName(navigation.Name));
 
                 var jsonColumn = GetTable(entityType).FindColumn(columnName)
-                    ?? throw new NotSupportedException($"Unsupported owned json column: '{navigation.Name}'. Failed to get relational column.");
+                    ?? throw new NotSupportedException(Resources.FormatUnsupportedOwnedJsonColumnFailedToGetRelationalColumn(navigation.Name));
 
                 yield return new JsonColumn(
                     Column: jsonColumn,
@@ -102,7 +102,7 @@ internal sealed class RelationalTable : RelationalTableBase
 
                     if (columnName is null)
                     {
-                        throw new NotSupportedException($"Unsupported Owned Entity '{navigation.Name}'. Column name not found for {property.Name}.");
+                        throw new NotSupportedException(Resources.FormatUnsupportedOwnedEntityColumnNameNotFoundForProperty(navigation.Name, property.Name));
                     }
 
                     yield return new RelationalColumn(

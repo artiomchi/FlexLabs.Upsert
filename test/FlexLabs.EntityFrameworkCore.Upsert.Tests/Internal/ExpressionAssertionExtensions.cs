@@ -61,7 +61,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
         {
             using var _ = new AssertionScope();
             var result = assertions.Subject.Should().BeOfType<PropertyValue>();
-            result.Subject.Property.ColumnName.Should().Be(name);
+            result.Subject.Column.ColumnName.Should().Be(name);
             result.Subject.IsLeftParameter.Should().Be(isLeftParam);
             return result;
         }

@@ -24,7 +24,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions
         public ConstantValue(object? value, IColumnBase? property = null, MemberInfo? memberInfo = null)
         {
             Value = value;
-            Property = property;
+            ColumnProperty = property;
             MemberInfo = memberInfo;
         }
 
@@ -36,7 +36,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions
         /// <summary>
         /// The property from which the value is taken
         /// </summary>
-        public new IColumnBase? Property { get; }
+        public IColumnBase? ColumnProperty { get; }
 
         /// <summary>
         /// The memberInfo from which the value is taken

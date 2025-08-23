@@ -32,9 +32,3 @@ internal class BindingValue(List<MemberBinding> bindings) : Expression, IKnownVa
         return $"{nameof(BindingValue)} ( Count: {Bindings.Count} )";
     }
 }
-
-internal record struct MemberBinding(
-    string MemberName,
-    IKnownValue Value,
-    Expression Expression
-);

@@ -106,14 +106,15 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var joinColumns = ProcessMatchExpression(entityType, match, queryOptions);
             var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnName(), Nullable: c.IsColumnNullable())).ToArray();
 
-            var updateExpressions = expressionParser.ParseUpdateExpression(updater, joinColumnNames);
+            var updateExpressions = updater != null
+                ? expressionParser.ParseUpdateExpression(updater)
+                : expressionParser.GetUpdateMappings(joinColumnNames);
             var updateConditionExpression = expressionParser.ParseUpdateConditionExpression(updateCondition);
 
             var newEntities = entities
                 .Select(e => table.Columns
                     .Select(p => p.GetValue(e!))
-                    .ToArray()
-                )
+                    .ToArray())
                 .ToArray();
 
             var constantArgumentSourceValues = updateExpressions?.Select(e => e.Value);
@@ -162,7 +163,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             switch (value)
             {
                 case PropertyValue prop:
-                    var columnName = prop.Property.ColumnName;
+                    var columnName = prop.Column.ColumnName;
                     if (expandLeftColumn != null && prop.IsLeftParameter)
                         return expandLeftColumn(columnName);
 
@@ -385,13 +386,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         {
             RelationalTypeMapping? relationalTypeMapping = null;
 
-            if (constantValue.Property is RelationalColumn { Property: { } prop })
+            if (constantValue.ColumnProperty is RelationalColumn relational)
             {
-                relationalTypeMapping = relationalTypeMappingSource.FindMapping(prop);
+                relationalTypeMapping = relationalTypeMappingSource.FindMapping(relational.Property);
             }
-            else if (constantValue.Property is JsonColumn { Column: { } column })
+            else if (constantValue.ColumnProperty is JsonColumn json)
             {
-                relationalTypeMapping = relationalTypeMappingSource.FindMapping(column.StoreType);
+                relationalTypeMapping = relationalTypeMappingSource.FindMapping(json.Column.StoreType);
             }
             else if (constantValue.MemberInfo != null)
             {
