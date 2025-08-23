@@ -53,10 +53,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             else
             {
                 modelBuilder.Entity<JsonData>().Ignore(j => j.Child);
-            }
-
-            if (dbProvider.Name != "Npgsql.EntityFrameworkCore.PostgreSQL")
-            {
                 modelBuilder.Entity<JsonDocumentData>().Ignore(j => j.Data);
             }
 

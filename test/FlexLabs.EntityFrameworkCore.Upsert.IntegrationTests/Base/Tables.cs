@@ -44,18 +44,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public ChildObject Child { get; set; }
     }
 
-    public class ChildObject
-    {
-        public string Value { get; set; }
-        public DateTimeOffset Time { get; set; }
-    }
-
     public class JsonDocumentData : IDisposable
     {
         [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
         public int ID { get; set; }
         public JsonDocument Data { get; set; }
         public void Dispose() => Data?.Dispose();
+    }
+
+    public class ChildObject
+    {
+        public string Value { get; set; }
+        public DateTimeOffset Time { get; set; }
     }
 
     public class JObjectData

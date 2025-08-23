@@ -1,9 +1,9 @@
 using System.Linq;
+using System.Text.Json;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
+using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
-using JsonSerializer = System.Text.Json.JsonSerializer;
-
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 {
@@ -50,14 +50,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .On(p => p.ID)
                 .Run();
 
-            Assert.Collection(dbContext.Parents.OrderBy(p => p.ID),
+            dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
                 parent =>
                 {
-                    Assert.Equal(newParent.ID, parent.ID);
-                    Assert.Equal(newParent.Child.ChildName, parent.Child?.ChildName);
-                    Assert.Equal(newParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
-                    Assert.Equal(newParent.Counter, parent.Counter);
-                    Assert.Equal(3, parent.Counter);
+                    parent.ID.Should().Be(newParent.ID);
+                    parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
+                    parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
+                    parent.Counter.Should().Be(newParent.Counter);
+                    parent.Counter.Should().Be(3);
                 });
         }
 
@@ -93,20 +93,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.Parents.OrderBy(p => p.ID),
+            dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
                 parent =>
                 {
-                    Assert.Equal(newParent.ID, parent.ID);
+                    parent.ID.Should().Be(newParent.ID);
                     // child props are updated:
-                    Assert.Equal(newParent.Child.ChildName, parent.Child?.ChildName);
-                    Assert.Equal(newParent.Child.Age, parent.Child?.Age);
+                    parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
+                    parent.Child?.Age.Should().Be(newParent.Child.Age);
                     // nested child props are updated:
-                    Assert.Equal(newParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
-                    Assert.Equal(newParent.Child.SubChild.Age, parent.Child?.SubChild?.Age);
+                    parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
+                    parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
                     // nested child props now differ form default:
-                    Assert.NotEqual(_dbParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
-                    Assert.NotEqual(_dbParent.Child.SubChild.Age, parent.Child?.SubChild?.Age);
-                    Assert.Equal(1, parent.Counter);
+                    parent.Child?.SubChild?.SubChildName.Should().NotBe(_dbParent.Child.SubChild.SubChildName);
+                    parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
+                    parent.Counter.Should().Be(1);
                 });
         }
 
@@ -145,20 +145,20 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.Parents.OrderBy(p => p.ID),
+            dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
                 parent =>
                 {
-                    Assert.Equal(newParent.ID, parent.ID);
+                    parent.ID.Should().Be(newParent.ID);
                     // child props are NOT updated:
-                    Assert.Equal(_dbParent.Child.ChildName, parent.Child?.ChildName);
-                    Assert.Equal(_dbParent.Child.Age, parent.Child?.Age);
+                    parent.Child?.ChildName.Should().Be(_dbParent.Child.ChildName);
+                    parent.Child?.Age.Should().Be(_dbParent.Child.Age);
                     // nested child props are updated:
-                    Assert.Equal(newParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
-                    Assert.Equal(newParent.Child.SubChild.Age, parent.Child?.SubChild?.Age);
+                    parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
+                    parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
                     // nested child props now differ form default:
-                    Assert.NotEqual(_dbParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
-                    Assert.NotEqual(_dbParent.Child.SubChild.Age, parent.Child?.SubChild?.Age);
-                    Assert.Equal(1, parent.Counter);
+                    parent.Child?.SubChild?.SubChildName.Should().NotBe(_dbParent.Child.SubChild.SubChildName);
+                    parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
+                    parent.Counter.Should().Be(1);
                 });
         }
 
@@ -200,19 +200,19 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.Parents.OrderBy(p => p.ID),
+            dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
                 parent =>
                 {
-                    Assert.Equal(newParent.ID, parent.ID);
+                    parent.ID.Should().Be(newParent.ID);
                     // child props: only name is updated:
-                    Assert.Equal(newParent.Child.ChildName, parent.Child?.ChildName);
-                    Assert.Equal(_dbParent.Child.Age, parent.Child?.Age);
+                    parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
+                    parent.Child?.Age.Should().Be(_dbParent.Child.Age);
                     // nested child props: only age is updated:
-                    Assert.Equal(_dbParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
-                    Assert.Equal(newParent.Child.SubChild.Age, parent.Child?.SubChild?.Age);
+                    parent.Child?.SubChild?.SubChildName.Should().Be(_dbParent.Child.SubChild.SubChildName);
+                    parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
                     // nested child age now differ form default:
-                    Assert.NotEqual(_dbParent.Child.SubChild.Age, parent.Child?.SubChild?.Age);
-                    Assert.Equal(1, parent.Counter);
+                    parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
+                    parent.Counter.Should().Be(1);
                 });
         }
 
@@ -243,14 +243,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .NoUpdate()
                 .Run();
 
-            Assert.Collection(dbContext.Parents.OrderBy(p => p.ID),
+            dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
                 parent =>
                 {
-                    Assert.Equal(newParent.ID, parent.ID);
-                    Assert.NotEqual(newParent.Child.ChildName, parent.Child?.ChildName);
-                    Assert.NotEqual(newParent.Child.SubChild.SubChildName, parent.Child?.SubChild?.SubChildName);
-                    Assert.NotEqual(newParent.Counter, parent.Counter);
-                    Assert.Equal(0, parent.Counter);
+                    parent.ID.Should().Be(newParent.ID);
+                    parent.Child?.ChildName.Should().NotBe(newParent.Child.ChildName);
+                    parent.Child?.SubChild?.SubChildName.Should().NotBe(newParent.Child.SubChild.SubChildName);
+                    parent.Counter.Should().NotBe(newParent.Counter);
+                    parent.Counter.Should().Be(0);
                 });
         }
 
@@ -292,11 +292,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .On(p => p.Id)
                 .Run();
 
-            Assert.Collection(dbContext.CompanyOwnedJson.OrderBy(p => p.Id),
+            dbContext.CompanyOwnedJson.OrderBy(p => p.Id).Should().SatisfyRespectively(
                 entity => {
                     var expected = JsonSerializer.Serialize(company);
                     var actual = JsonSerializer.Serialize(entity);
-                    Assert.Equal(expected, actual);
+                    actual.Should().Be(expected);
                 });
         }
 
@@ -354,12 +354,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            Assert.Collection(dbContext.CompanyOwnedJson.OrderBy(p => p.Id),
+            dbContext.CompanyOwnedJson.OrderBy(p => p.Id).Should().SatisfyRespectively(
                 entity =>
                 {
                     var expected = JsonSerializer.Serialize(company);
                     var actual = JsonSerializer.Serialize(entity);
-                    Assert.Equal(expected, actual);
+                    actual.Should().Be(expected);
                 });
         }
 
@@ -425,8 +425,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            var error = Assert.Throws<UnsupportedExpressionException>(action);
-            Assert.Equal("Reading JSON members is not supported. Unsupported Access Expression: b.Meta.Required", error.Message);
+            action.Should().Throw<UnsupportedExpressionException>()
+                .WithMessage("Reading JSON members is not supported. Unsupported Access Expression: b.Meta.Required");
         }
 
         [SkippableFact]
@@ -491,8 +491,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .Run();
 
-            var error = Assert.Throws<UnsupportedExpressionException>(action);
-            Assert.Equal("Modifying JSON members is not supported. Unsupported Expression: new CompanyMeta() {Required = \"Some Text\", Nested = new CompanyNestedMeta() {Title = \"Some Title\"}}", error.Message);
+            action.Should().Throw<UnsupportedExpressionException>()
+                .WithMessage("Modifying JSON members is not supported. Unsupported Expression: new CompanyMeta() {Required = \"Some Text\", Nested = new CompanyNestedMeta() {Title = \"Some Title\"}}");
         }
 
         [SkippableFact]
@@ -534,12 +534,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .NoUpdate()
                 .Run();
 
-            Assert.Collection(dbContext.CompanyOwnedJson.OrderBy(p => p.Id),
+            dbContext.CompanyOwnedJson.OrderBy(p => p.Id).Should().SatisfyRespectively(
                 entity =>
                 {
                     var expected = JsonSerializer.Serialize(company);
                     var actual = JsonSerializer.Serialize(entity);
-                    Assert.Equal(expected, actual);
+                    actual.Should().Be(expected);
                 });
         }
     }

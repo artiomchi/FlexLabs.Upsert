@@ -7,8 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
-using JsonSerializer = System.Text.Json.JsonSerializer;
-
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 {
@@ -1280,14 +1278,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             var newJson = new JsonDocumentData
             {
-                Data = JsonSerializer.SerializeToDocument(new { hello = "world" }),
+                Data = System.Text.Json.JsonSerializer.SerializeToDocument(new { hello = "world" }),
             };
 
             dbContext.JsonDocumentDatas.Upsert(newJson)
                 .Run();
 
             dbContext.JsonDocumentDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
-                j => JsonSerializer.Serialize(newJson.Data).Should().Be(JsonSerializer.Serialize(j.Data)));
+                j => System.Text.Json.JsonSerializer.Serialize(newJson.Data).Should().Be(System.Text.Json.JsonSerializer.Serialize(j.Data)));
         }
 
         [SkippableFact]
@@ -1328,21 +1326,21 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             var existingJson = new JsonDocumentData
             {
-                Data = JsonSerializer.SerializeToDocument(new { hello = "world" }),
+                Data = System.Text.Json.JsonSerializer.SerializeToDocument(new { hello = "world" }),
             };
 
             ResetDb(existingJson);
             using (var testContext = new TestDbContext(_fixture.DataContextOptions))
             {
                 testContext.JsonDocumentDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
-                    j => JsonSerializer.Serialize(existingJson.Data).Should().Be(JsonSerializer.Serialize(j.Data)));
+                    j => System.Text.Json.JsonSerializer.Serialize(existingJson.Data).Should().Be(System.Text.Json.JsonSerializer.Serialize(j.Data)));
             }
 
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var updatedJson = new JsonDocumentData
             {
-                Data = JsonSerializer.SerializeToDocument(new { hello = "world 2.0" }),
+                Data = System.Text.Json.JsonSerializer.SerializeToDocument(new { hello = "world 2.0" }),
             };
 
             dbContext.JsonDocumentDatas.Upsert(updatedJson)
