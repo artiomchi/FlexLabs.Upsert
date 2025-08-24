@@ -216,13 +216,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// <summary>
         /// Execute the upsert command against the database and return new or updated entities
         /// </summary>
-        public Task<ICollection<TEntity>> RunAndReturnAsync()
+        /// <param name="token">The cancellation token for this transaction</param>
+        public Task<ICollection<TEntity>> RunAndReturnAsync(CancellationToken token = default)
         {
             if (_entities.Count == 0)
                 return Task.FromResult<ICollection<TEntity>>([]);
 
             var commandRunner = GetCommandRunner();
-            return commandRunner.RunAndReturnAsync(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _updateCondition, _queryOptions);
+            return commandRunner.RunAndReturnAsync(_dbContext, _entityType, _entities, _matchExpression, _updateExpression, _updateCondition, _queryOptions, token);
         }
     }
 }
