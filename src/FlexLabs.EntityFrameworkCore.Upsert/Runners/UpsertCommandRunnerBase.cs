@@ -35,7 +35,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         /// <inheritdoc/>
         public abstract Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions, CancellationToken cancellationToken)
             where TEntity : class;
 
         /// <summary>

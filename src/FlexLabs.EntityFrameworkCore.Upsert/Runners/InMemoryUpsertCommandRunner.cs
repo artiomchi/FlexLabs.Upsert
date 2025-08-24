@@ -166,13 +166,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <inheritdoc/>
         public override async Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
             Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
-            RunnerQueryOptions queryOptions)
+            RunnerQueryOptions queryOptions, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(dbContext);
             ArgumentNullException.ThrowIfNull(entityType);
 
             var result = RunCore(dbContext, entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
-            await dbContext.SaveChangesAsync().ConfigureAwait(false);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             return result.ToArray();
         }

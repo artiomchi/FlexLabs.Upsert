@@ -7,7 +7,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
     [Trait("Category", "in-memory")]
     [Collection("InMemory")]
-    public class DbTests_InMemory : DbTestsBase, IClassFixture<DbTests_InMemory.DatabaseInitializer>
+    public class DbTests_InMemory(DbTests_InMemory.DatabaseInitializer contexts) : DbTestsBase(contexts), IClassFixture<DbTests_InMemory.DatabaseInitializer>
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
         {
@@ -16,9 +16,5 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
                 => builder.UseInMemoryDatabase("Upsert_TestDbContext_Tests");
         }
-
-        public DbTests_InMemory(DatabaseInitializer contexts)
-            : base(contexts)
-        { }
     }
 }

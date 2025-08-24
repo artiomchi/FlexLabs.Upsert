@@ -364,7 +364,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
         /// <inheritdoc/>
         public override async Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(dbContext);
             ArgumentNullException.ThrowIfNull(entityType);
@@ -377,7 +377,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)).ToArray();
-                result.AddRange(await dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).ToArrayAsync().ConfigureAwait(false));
+                result.AddRange(await dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).ToArrayAsync(cancellationToken).ConfigureAwait(false));
             }
             return result;
         }
