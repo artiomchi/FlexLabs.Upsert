@@ -1,41 +1,46 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
+using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
+using Testcontainers.Xunit;
+using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
-    public abstract class ContainerisedDatabaseInitializerFixture<TContainer> : DatabaseInitializerFixture
+    public abstract class ContainerisedDatabaseInitializerFixture<TBuilder, TContainer>(DbContainerFixture<TBuilder, TContainer> dbContainerFixture) : DatabaseInitializerFixture
+        where TBuilder : IContainerBuilder<TBuilder, TContainer>, new()
         where TContainer : IContainer, IDatabaseContainer
     {
-        public TContainer TestContainer { get; }
+        private static readonly string DbDriverName = typeof(TContainer).Name.Replace("Container", "");
 
-        public ContainerisedDatabaseInitializerFixture()
-        {
-            if (!BuildEnvironment.UseLocalService)
-            {
-                TestContainer = BuildContainer();
-            }
-        }
+        private readonly string _connectionString = Environment.GetEnvironmentVariable($"FLEXLABS_UPSERT_TESTS_{DbDriverName.ToUpperInvariant()}_CONNECTION_STRING");
 
-        protected abstract TContainer BuildContainer();
+        protected static TBuilder ConfigureContainer(TBuilder builder)
+            => builder
+                .WithName($"flexlabs_upsert_{DbDriverName.ToLowerInvariant()}")
+                .WithReuse(true);
+
+        protected string ConnectionString
+            => _connectionString ?? dbContainerFixture.Container.GetConnectionString();
 
         public override async Task InitializeAsync()
         {
-            if (TestContainer is not null)
+            if (_connectionString == null)
             {
-                await TestContainer.StartAsync();
+                await ((IAsyncLifetime)dbContainerFixture).InitializeAsync();
             }
 
             await base.InitializeAsync();
         }
 
-        // Some containers don't start up properly if they're stopped and started again, so we will leave them running
-        // In CI environments, they will be cleared up automatically, when developing locally - you may need to clean up manually
-        //public override async Task DisposeAsync()
-        //{
-        //    if (TestContainer is not null)
-        //    {
-        //        await TestContainer.StopAsync();
-        //    }
-        //}
+        public override async Task DisposeAsync()
+        {
+            if (_connectionString == null)
+            {
+                await ((IAsyncLifetime)dbContainerFixture).DisposeAsync();
+            }
+
+            await base.DisposeAsync();
+        }
     }
 }

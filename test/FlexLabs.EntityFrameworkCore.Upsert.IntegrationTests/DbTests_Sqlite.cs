@@ -5,7 +5,7 @@ using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
-    public class DbTests_Sqlite : DbTestsBase, IClassFixture<DbTests_Sqlite.DatabaseInitializer>
+    public class DbTests_Sqlite(DbTests_Sqlite.DatabaseInitializer contexts) : DbTestsBase(contexts), IClassFixture<DbTests_Sqlite.DatabaseInitializer>
     {
         public sealed class DatabaseInitializer : DatabaseInitializerFixture
         {
@@ -14,9 +14,5 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
                 => builder.UseSqlite("Data Source=testdb.db");
         }
-
-        public DbTests_Sqlite(DatabaseInitializer contexts)
-            : base(contexts)
-        { }
     }
 }

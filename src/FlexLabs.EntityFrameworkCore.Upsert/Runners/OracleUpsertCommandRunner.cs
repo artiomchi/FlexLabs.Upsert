@@ -5,7 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
-using FlexLabs.EntityFrameworkCore.Upsert.Internal;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
@@ -30,7 +30,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <inheritdoc />
         public override string GenerateCommand(
             string tableName,
-            ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
+            ICollection<ICollection<(string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts)>> entities,
             ICollection<(string ColumnName, bool IsNullable)> joinColumns,
             ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
             KnownExpression? updateCondition,

@@ -10,7 +10,7 @@ using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 {
-    public abstract class DbTestsBase
+    public abstract partial class DbTestsBase
     {
         protected readonly DatabaseInitializerFixture _fixture;
 
@@ -99,6 +99,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Reset(dbContext, e => e.GuidKeysAutoGen);
             Reset(dbContext, e => e.JObjectDatas);
             Reset(dbContext, e => e.JsonDatas);
+            Reset(dbContext, e => e.JsonDocumentDatas);
             Reset(dbContext, e => e.KeyOnlies);
             Reset(dbContext, e => e.NullableCompositeKeys);
             Reset(dbContext, e => e.NullableRequireds);
@@ -110,6 +111,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Reset(dbContext, e => e.TestEntities);
             Reset(dbContext, e => e.GeneratedAlwaysAsIdentity);
             Reset(dbContext, e => e.ComputedColumns);
+            Reset(dbContext, e => e.Parents);
+            Reset(dbContext, e => e.CompanyOwnedJson);
 
             dbContext.Add(_dbCountry);
             dbContext.Add(_dbVisitOld);
@@ -120,6 +123,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.Add(_nullableKey2);
             dbContext.Add(_computedColumn);
             dbContext.Add(new GeneratedAlwaysAsIdentity());
+            dbContext.Add(_dbParent);
             dbContext.SaveChanges();
 
             GeneratedAlwaysAsIdentity_NextId = dbContext.GeneratedAlwaysAsIdentity.Max(e => e.ID) + 1;
@@ -1264,6 +1268,92 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 j => j.Child.Time.Should().Be(timestamp));
         }
 
+        [SkippableFact]
+        public void Upsert_JsonDocumentData()
+        {
+            Skip.If(_fixture.DbDriver is not DbDriver.Postgres, "Owned json is only supported for postgres");
+
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newJson = new JsonDocumentData
+            {
+                Data = System.Text.Json.JsonSerializer.SerializeToDocument(new { hello = "world" }),
+            };
+
+            dbContext.JsonDocumentDatas.Upsert(newJson)
+                .Run();
+
+            dbContext.JsonDocumentDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                j => System.Text.Json.JsonSerializer.Serialize(newJson.Data).Should().Be(System.Text.Json.JsonSerializer.Serialize(j.Data)));
+        }
+
+        [SkippableFact]
+        public void Upsert_JsonDocumentData_Update()
+        {
+            Skip.If(_fixture.DbDriver is not DbDriver.Postgres, "Owned json is only supported for postgres");
+
+            var existingJson = new JsonDocumentData
+            {
+                Data = System.Text.Json.JsonSerializer.SerializeToDocument(new { hello = "world" }),
+            };
+
+            ResetDb(existingJson);
+            using (var testContext = new TestDbContext(_fixture.DataContextOptions))
+            {
+                testContext.JsonDocumentDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                    j => System.Text.Json.JsonSerializer.Serialize(existingJson.Data).Should().Be(System.Text.Json.JsonSerializer.Serialize(j.Data)));
+            }
+
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var updatedJson = new JsonDocumentData
+            {
+                Data = System.Text.Json.JsonSerializer.SerializeToDocument(new { welcome = "world 2.0" }),
+            };
+
+            dbContext.JsonDocumentDatas.Upsert(updatedJson)
+                .Run();
+
+            dbContext.JsonDocumentDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                j => System.Text.Json.JsonSerializer.Serialize(updatedJson.Data).Should().Be(System.Text.Json.JsonSerializer.Serialize(j.Data)));
+        }
+
+        [SkippableFact]
+        public void Upsert_JsonDocumentData_Update_ComplexObject()
+        {
+            Skip.If(_fixture.DbDriver is not DbDriver.Postgres, "Owned json is only supported for postgres");
+
+            var existingJson = new JsonDocumentData
+            {
+                Data = System.Text.Json.JsonSerializer.SerializeToDocument(new { hello = "world" }),
+            };
+
+            ResetDb(existingJson);
+            using (var testContext = new TestDbContext(_fixture.DataContextOptions))
+            {
+                testContext.JsonDocumentDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                    j => System.Text.Json.JsonSerializer.Serialize(existingJson.Data).Should().Be(System.Text.Json.JsonSerializer.Serialize(j.Data)));
+            }
+
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var updatedJson = new JsonDocumentData
+            {
+                Data = System.Text.Json.JsonSerializer.SerializeToDocument(new { hello = "world 2.0" }),
+            };
+
+            dbContext.JsonDocumentDatas.Upsert(updatedJson)
+                .WhenMatched((a, b) => new JsonDocumentData
+                {
+                    Data = b.Data,
+                })
+                .Run();
+
+            dbContext.JsonDocumentDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                j => j.Data.RootElement.GetProperty("hello").GetString().Should().Be("world 2.0"));
+        }
+
         [Fact]
         public void Upsert_GuidKey_AutoGenThrows()
         {
@@ -1668,7 +1758,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Fact]
-        public void Upsert_ExcludeExpression_IgnoredWithUpdateExpression()
+        public void Upsert_Exclude_WithUpdate_ThrowsInvalidOperationException()
         {
             var dbItem = new TestEntity
             {
@@ -1686,7 +1776,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 Text1 = "who",
                 Text2 = "where",
             };
-            dbContext.TestEntities.Upsert(newItem)
+            var action = () => dbContext.TestEntities.Upsert(newItem)
                 .On(j => j.Num1)
                 .Exclude(e => e.Text2)
                 .WhenMatched((e1, e2) => new TestEntity
@@ -1694,8 +1784,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     Text2 = e2.Text2,
                 })
                 .Run();
-            dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
-                test => test.Should().MatchModel(dbItem, text2: newItem.Text2));
+            action.Should().Throw<InvalidOperationException>();
         }
 
         [Fact]

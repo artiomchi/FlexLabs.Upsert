@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -20,7 +21,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
     public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     {
         /// <summary>
-        /// Generate a full command for the opsert operation, given the inputs passed
+        /// Generate a full command for the upsert operation, given the inputs passed
         /// </summary>
         /// <param name="tableName">The name of the database table</param>
         /// <param name="entities">A collection of entity data (column names and values) to be upserted</param>
@@ -29,7 +30,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="updateCondition">The expression that tests whether existing entities should be updated</param>
         /// <param name="returnResult">If true, the generated command should return upserted entities</param>
         /// <returns>A fully formed database query</returns>
-        public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
+        public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts)>> entities,
             ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
             KnownExpression? updateCondition, bool returnResult = false);
         /// <summary>
@@ -45,7 +46,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <returns>The reference to the parameter</returns>
         protected virtual string Parameter(int index) => "@p" + index;
         /// <summary>
-        /// Reference an named variable defined by the query runner
+        /// Reference a named variable defined by the query runner
         /// </summary>
         /// <param name="name">The name of the variable</param>
         /// <returns>The reference to the variable</returns>
@@ -96,84 +97,23 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         protected virtual int? MaxQueryParams => null;
 
         private IEnumerable<(string SqlCommand, IEnumerable<ConstantValue> Arguments)> PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
-        Expression<Func<TEntity, object>>? match, Expression<Func<TEntity, object>>? exclude, Expression<Func<TEntity, TEntity, TEntity>>? updater, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
-            RunnerQueryOptions queryOptions, bool returnResult = false)
+            Expression<Func<TEntity, object>>? match, Expression<Func<TEntity, object>>? exclude, Expression<Func<TEntity, TEntity, TEntity>>? updater,
+            Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions, bool returnResult = false)
         {
+            var table = new RelationalTable(entityType, GetTableName(entityType), queryOptions);
+            var expressionParser = new ExpressionParser<TEntity>(table, queryOptions);
+
             var joinColumns = ProcessMatchExpression(entityType, match, queryOptions);
-            var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnName(), c.IsColumnNullable())).ToArray();
+            var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnName(), Nullable: c.IsColumnNullable())).ToArray();
 
-            var properties = entityType.GetProperties()
-                .Where(p => queryOptions.AllowIdentityMatch || p.ValueGenerated == ValueGenerated.Never || p.GetAfterSaveBehavior() == PropertySaveBehavior.Save)
-                .Where(p => p.GetAnnotations()
-                    .FirstOrDefault(a => a.Name == "Npgsql:ValueGenerationStrategy")
-                    ?.Value?.ToString() != "IdentityAlwaysColumn")
-                .Where(p => p.PropertyInfo != null)
-                .ToArray();
-
-            List<(IProperty Property, IKnownValue Value)>? updateExpressions = null;
-            if (updater != null)
-            {
-                if (updater.Body is not MemberInitExpression entityUpdater)
-                    throw new ArgumentException(Resources.FormatUpdaterMustBeAnInitialiserOfTheTEntityType(nameof(updater)), nameof(updater));
-
-                updateExpressions = [];
-                foreach (MemberAssignment binding in entityUpdater.Bindings)
-                {
-                    var property = entityType.FindProperty(binding.Member.Name)
-                        ?? throw new InvalidOperationException("Unknown property " + binding.Member.Name);
-                    var value = binding.Expression.GetValue<TEntity>(updater, entityType.FindProperty, queryOptions.UseExpressionCompiler);
-                    if (value is not IKnownValue knownVal)
-                        knownVal = new ConstantValue(value, property);
-                    updateExpressions.Add((property, knownVal));
-                }
-            }
-            else if (!queryOptions.NoUpdate)
-            {
-                var excludeColumns = ProcessExcludeExpression(entityType, exclude);
-                var excludeColumnNames = excludeColumns.Select(c => c.GetColumnName()).ToArray();
-
-                updateExpressions = [];
-                foreach (var property in properties)
-                {
-                    var columnName = property.GetColumnName();
-
-                    if (joinColumnNames.Any(c => c.ColumnName == columnName)
-                            || excludeColumnNames.Contains(columnName))
-                        continue;
-
-                    var propertyAccess = new PropertyValue(property.Name, false, property);
-                    updateExpressions.Add((property, propertyAccess));
-                }
-            }
-
-            KnownExpression? updateConditionExpression = null;
-            if (updateCondition != null)
-            {
-                var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, entityType.FindProperty, queryOptions.UseExpressionCompiler);
-                if (updateConditionValue is not KnownExpression updateConditionExp)
-                    throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
-                updateConditionExpression = updateConditionExp;
-            }
-
+            var updateExpressions = updater != null
+                ? expressionParser.ParseUpdateExpression(updater)
+                : expressionParser.GetUpdateMappings(joinColumnNames, ProcessExcludeExpression(entityType, exclude));
+            var updateConditionExpression = expressionParser.ParseUpdateConditionExpression(updateCondition);
             var newEntities = entities
-                .Select(e => properties
-                    .Select(p =>
-                    {
-                        var columnName = p.GetColumnName();
-                        var rawValue = p.PropertyInfo?.GetValue(e);
-                        string? defaultSql = null;
-                        if (rawValue == null)
-                        {
-                            if (p.GetDefaultValue() != null)
-                                rawValue = p.GetDefaultValue();
-                            else
-                                defaultSql = p.GetDefaultValueSql();
-                        }
-                        var value = new ConstantValue(rawValue, p);
-                        var allowInserts = p.ValueGenerated == ValueGenerated.Never || p.GetAfterSaveBehavior() == PropertySaveBehavior.Save;
-                        return (columnName, value, defaultSql, allowInserts);
-                    })
-                    .ToArray() as ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>)
+                .Select(e => table.Columns
+                    .Select(p => p.GetValue(e!))
+                    .ToArray())
                 .ToArray();
 
             var constantArgumentSourceValues = updateExpressions?.Select(e => e.Value);
@@ -182,7 +122,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             var expressionConstants = constantArgumentSourceValues?.SelectMany(v => v.GetConstantValues()).ToArray();
 
             var entitiesProcessed = 0;
-            var singleEntityArguments = newEntities[0].Count + (expressionConstants?.Length ?? 0);
+            var singleEntityArguments = newEntities[0].Length + (expressionConstants?.Length ?? 0);
             while (entitiesProcessed < newEntities.Length)
             {
                 var arguments = new List<ConstantValue>();
@@ -203,10 +143,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 foreach (var (arg, index) in arguments.Select((a, i) => (a, i)))
                     arg.ArgumentIndex = index;
 
-                var columnUpdateExpressions = updateExpressions?.Count > 0
-                    ? updateExpressions.Select(x => (x.Property.GetColumnName(), x.Value)).ToArray()
+                var columnUpdateExpressions = updateExpressions?.Length > 0
+                    ? updateExpressions.Select(x => (x.Property.ColumnName, x.Value)).ToArray()
                     : null;
-                var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression, returnResult);
+                var sqlCommand = GenerateCommand(table.TableName, newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression, returnResult);
                 yield return (sqlCommand, arguments);
             }
         }
@@ -222,7 +162,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             switch (value)
             {
                 case PropertyValue prop:
-                    var columnName = prop.Property.GetColumnName();
+                    var columnName = prop.Column.ColumnName;
                     if (expandLeftColumn != null && prop.IsLeftParameter)
                         return expandLeftColumn(columnName);
 
@@ -361,8 +301,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         /// <inheritdoc/>
-        public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
-            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+        public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+            Expression<Func<TEntity, object>>? excludeExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression,
+            Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
         {
             ArgumentNullException.ThrowIfNull(dbContext);
             ArgumentNullException.ThrowIfNull(entityType);
@@ -381,7 +322,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         /// <inheritdoc/>
-        public override ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
+        public override ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+            Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
         {
             ArgumentNullException.ThrowIfNull(dbContext);
@@ -401,7 +343,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         /// <inheritdoc/>
-        public override async Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
+        public override async Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+            Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
             CancellationToken cancellationToken)
         {
@@ -422,8 +365,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         }
 
         /// <inheritdoc/>
-        public override async Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
-            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+        public override async Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+            Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
+            CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(dbContext);
             ArgumentNullException.ThrowIfNull(entityType);
@@ -436,7 +381,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)).ToArray();
-                result.AddRange(await dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).ToArrayAsync().ConfigureAwait(false));
+                result.AddRange(await dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).ToArrayAsync(cancellationToken).ConfigureAwait(false));
             }
             return result;
         }
@@ -445,9 +390,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         {
             RelationalTypeMapping? relationalTypeMapping = null;
 
-            if (constantValue.Property != null)
+            if (constantValue.ColumnProperty is RelationalColumn relational)
             {
-                relationalTypeMapping = relationalTypeMappingSource.FindMapping(constantValue.Property);
+                relationalTypeMapping = relationalTypeMappingSource.FindMapping(relational.Property);
+            }
+            else if (constantValue.ColumnProperty is JsonColumn json)
+            {
+                relationalTypeMapping = relationalTypeMappingSource.FindMapping(json.Column.StoreType);
             }
             else if (constantValue.MemberInfo != null)
             {

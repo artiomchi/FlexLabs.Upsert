@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -19,23 +19,28 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         public abstract bool Supports(string providerName);
 
         /// <inheritdoc/>
-        public abstract int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
+        public abstract int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
+            Expression<Func<TEntity, object>>? excludeExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression,
+            Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+            where TEntity : class;
+
+        /// <inheritdoc/>
+        public abstract ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+            Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
             where TEntity : class;
 
         /// <inheritdoc/>
-        public abstract ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
-            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
-            where TEntity : class;
-
-        /// <inheritdoc/>
-        public abstract Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
+        public abstract Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+            Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
             Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
             CancellationToken cancellationToken) where TEntity : class;
 
         /// <inheritdoc/>
-        public abstract Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
-            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+        public abstract Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+            Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
+            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
+            CancellationToken cancellationToken)
             where TEntity : class;
 
         /// <summary>
@@ -44,9 +49,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <typeparam name="TEntity">Type of the entity being upserted</typeparam>
         /// <param name="entityType">Metadata type of the entity being upserted</param>
         /// <param name="matchExpression">The match expression provided by the user</param>
-        /// <param name="queryOptions">Options for the current query that will affect it's behaviour</param>
+        /// <param name="queryOptions">Options for the current query that will affect its behaviour</param>
         /// <returns>A list of model properties used to match entities</returns>
-        protected static ICollection<IProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>>? matchExpression, RunnerQueryOptions queryOptions)
+        protected static ICollection<IProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>>? matchExpression,
+            RunnerQueryOptions queryOptions)
         {
             ArgumentNullException.ThrowIfNull(entityType);
 
@@ -57,37 +63,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                     .Where(p => p.IsKey())
                     .ToList();
             }
-            else if (matchExpression.Body is NewExpression newExpression)
-            {
-                joinColumns = [];
-                foreach (MemberExpression arg in newExpression.Arguments)
-                {
-                    if (arg == null || arg.Member is not PropertyInfo || !typeof(TEntity).Equals(arg.Expression?.Type))
-                        throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
-                    var property = entityType.FindProperty(arg.Member.Name)
-                        ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(arg.Member.Name));
-                    joinColumns.Add(property);
-                }
-            }
-            else if (matchExpression.Body is UnaryExpression unaryExpression)
-            {
-                if (unaryExpression.Operand is not MemberExpression memberExp || memberExp.Member is not PropertyInfo || !typeof(TEntity).Equals(memberExp.Expression?.Type))
-                    throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
-                var property = entityType.FindProperty(memberExp.Member.Name)
-                    ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExp.Member.Name));
-                joinColumns = [property];
-            }
-            else if (matchExpression.Body is MemberExpression memberExpression)
-            {
-                if (!typeof(TEntity).Equals(memberExpression.Expression?.Type) || memberExpression.Member is not PropertyInfo)
-                    throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
-                var property = entityType.FindProperty(memberExpression.Member.Name)
-                    ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExpression.Member.Name));
-                joinColumns = [property];
-            }
             else
             {
-                throw new ArgumentException(Resources.FormatArgumentMustBeAnAnonymousObjectInitialiser("match"), nameof(matchExpression));
+                joinColumns = ProcessPropertiesExpression(entityType, matchExpression, true);
             }
 
             if (!queryOptions.AllowIdentityMatch && joinColumns.Any(p => p.ValueGenerated != ValueGenerated.Never))
@@ -103,60 +81,59 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <param name="entityType">Metadata type of the entity being upserted</param>
         /// <param name="excludeExpression">The exclude expression provided by the user</param>
         /// <returns>A list of model properties used to exclude columns entities</returns>
-        protected static ICollection<IProperty> ProcessExcludeExpression<TEntity>(
-            IEntityType entityType,
-            Expression<Func<TEntity, object>>? excludeExpression)
+        protected static ICollection<IProperty> ProcessExcludeExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>>? excludeExpression)
         {
             ArgumentNullException.ThrowIfNull(entityType);
 
-            List<IProperty> excludeColumns;
             if (excludeExpression is null)
+                return [];
+
+            return ProcessPropertiesExpression(entityType, excludeExpression, false);
+        }
+
+        private static List<IProperty> ProcessPropertiesExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>> propertiesExpression, bool match)
+        {
+            static string UnkwownPropertiesExceptionMessage(bool match)
+                => match
+                ? Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass
+                : Resources.ExcludeColumnsHaveToBePropertiesOfTheTEntityClass;
+
+            if (propertiesExpression.Body is NewExpression newExpression)
             {
-                excludeColumns = [];
-            }
-            else if (excludeExpression.Body is NewExpression newExpression)
-            {
-                excludeColumns = [];
+                var columns = new List<IProperty>();
                 foreach (MemberExpression arg in newExpression.Arguments)
                 {
                     if (arg == null || arg.Member is not PropertyInfo || !typeof(TEntity).Equals(arg.Expression?.Type))
-                    {
-                        throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
-                    }
-
+                        throw new InvalidOperationException(UnkwownPropertiesExceptionMessage(match));
+                    // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
                     var property = entityType.FindProperty(arg.Member.Name)
                         ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(arg.Member.Name));
-                    excludeColumns.Add(property);
+                    columns.Add(property);
                 }
+                return columns;
             }
-            else if (excludeExpression.Body is UnaryExpression unaryExpression)
+            else if (propertiesExpression.Body is UnaryExpression unaryExpression)
             {
                 if (unaryExpression.Operand is not MemberExpression memberExp || memberExp.Member is not PropertyInfo || !typeof(TEntity).Equals(memberExp.Expression?.Type))
-                {
-                    throw new InvalidOperationException(Resources.ExcludeColumnsHaveToBePropertiesOfTheTEntityClass);
-                }
-
+                    throw new InvalidOperationException(UnkwownPropertiesExceptionMessage(match));
+                // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
                 var property = entityType.FindProperty(memberExp.Member.Name)
                     ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExp.Member.Name));
-                excludeColumns = [property];
+                return [property];
             }
-            else if (excludeExpression.Body is MemberExpression memberExpression)
+            else if (propertiesExpression.Body is MemberExpression memberExpression)
             {
                 if (!typeof(TEntity).Equals(memberExpression.Expression?.Type) || memberExpression.Member is not PropertyInfo)
-                {
-                    throw new InvalidOperationException(Resources.ExcludeColumnsHaveToBePropertiesOfTheTEntityClass);
-                }
-
+                    throw new InvalidOperationException(UnkwownPropertiesExceptionMessage(match));
+                // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
                 var property = entityType.FindProperty(memberExpression.Member.Name)
                     ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExpression.Member.Name));
-                excludeColumns = [property];
+                return [property];
             }
             else
             {
-                throw new ArgumentException(Resources.FormatArgumentMustBeAnAnonymousObjectInitialiser("exclude"), nameof(excludeExpression));
+                throw new ArgumentException(Resources.FormatArgumentMustBeAnAnonymousObjectInitialiser(match ? "match" : "exclude"), nameof(propertiesExpression));
             }
-
-            return excludeColumns;
         }
     }
 }

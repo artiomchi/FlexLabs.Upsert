@@ -73,9 +73,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         public UpsertCommandBuilder<TEntity> Exclude(Expression<Func<TEntity, object>> exclude)
         {
             if (_excludeExpression != null)
-            {
                 throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(Exclude)));
-            }
+            if (_updateExpression != null)
+                throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(Exclude), nameof(WhenMatched)));
 
             _excludeExpression = exclude ?? throw new ArgumentNullException(nameof(exclude));
             return this;
@@ -92,7 +92,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             if (_updateExpression != null)
                 throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
             if (_queryOptions.NoUpdate)
-                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(NoUpdate)));
+                throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(NoUpdate)));
+            if (_excludeExpression != null)
+                throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(Exclude)));
 
             _updateExpression =
                 Expression.Lambda<Func<TEntity, TEntity, TEntity>>(
@@ -113,7 +115,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
             if (_updateExpression != null)
                 throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
             if (_queryOptions.NoUpdate)
-                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(NoUpdate)));
+                throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(NoUpdate)));
+            if (_excludeExpression != null)
+                throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(Exclude)));
 
             _updateExpression = updater ?? throw new ArgumentNullException(nameof(updater));
             return this;
@@ -233,13 +237,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// <summary>
         /// Execute the upsert command against the database and return new or updated entities
         /// </summary>
-        public Task<ICollection<TEntity>> RunAndReturnAsync()
+        /// <param name="token">The cancellation token for this transaction</param>
+        public Task<ICollection<TEntity>> RunAndReturnAsync(CancellationToken token = default)
         {
             if (_entities.Count == 0)
                 return Task.FromResult<ICollection<TEntity>>([]);
 
             var commandRunner = GetCommandRunner();
-            return commandRunner.RunAndReturnAsync(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions);
+            return commandRunner.RunAndReturnAsync(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions, token);
         }
     }
 }

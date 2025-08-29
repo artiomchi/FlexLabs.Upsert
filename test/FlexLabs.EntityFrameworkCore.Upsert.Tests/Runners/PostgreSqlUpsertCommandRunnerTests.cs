@@ -4,6 +4,7 @@ using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using NSubstitute;
 using Xunit;
 
@@ -22,6 +23,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
         public PostgreSqlUpsertCommandRunnerTests()
             : base("Npgsql.EntityFrameworkCore.PostgreSQL")
+        {
+        }
+
+        protected override void InitializeModel(Model model)
         {
             var sequenceProperty = AddEntity<TestEntityWithIdentity>(_model)
                 .GetProperties().First(p => p.Name == "Sequence");

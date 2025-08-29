@@ -1,14 +1,34 @@
 ﻿using System;
 using System.Linq.Expressions;
-using FlexLabs.EntityFrameworkCore.Upsert.Internal;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using FluentAssertions.Primitives;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
 {
-    public static class ExpressionAssertionExtensions
+    internal static class ExpressionAssertionExtensions
     {
+        public static AndWhichConstraint<ObjectAssertions, PropertyMapping> BePropertyMapping(
+            this ObjectAssertions assertions,
+            Action<AndWhichConstraint<ObjectAssertions, PropertyMapping>> assert)
+        {
+            var x = assertions.BeOfType<PropertyMapping>();
+            assert(x);
+            return x;
+        }
+
+        public static AndWhichConstraint<ObjectAssertions, PropertyMapping> WithColumn(this AndWhichConstraint<ObjectAssertions, PropertyMapping> mapping, string name)
+        {
+            mapping.Which.Property.ColumnName.Should().Be(name);
+            return mapping;
+        }
+
+        public static AndWhichConstraint<ObjectAssertions, T> WithValueOfType<T>(this AndWhichConstraint<ObjectAssertions, PropertyMapping> mapping) where T : IKnownValue
+        {
+            return mapping.Which.Value.Should().BeOfType<T>();
+        }
+
         public static AndWhichConstraint<ObjectAssertions, KnownExpression> BeKnownExpression(this ObjectAssertions assertions, ExpressionType expressionType)
         {
             using var _ = new AssertionScope();
@@ -41,7 +61,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal
         {
             using var _ = new AssertionScope();
             var result = assertions.Subject.Should().BeOfType<PropertyValue>();
-            result.Subject.PropertyName.Should().Be(name);
+            result.Subject.Column.ColumnName.Should().Be(name);
             result.Subject.IsLeftParameter.Should().Be(isLeftParam);
             return result;
         }

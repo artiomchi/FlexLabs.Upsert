@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -40,6 +40,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             modelBuilder.Entity<ComputedColumn>().Property(e => e.Num3)
                 .HasComputedColumnSql($"{EscapeColumn(dbProvider, nameof(ComputedColumn.Num2))} + 1", stored: true);
 
+            modelBuilder.Entity<Parent>()
+                .OwnsOne(
+                    c => c.Child,
+                    b => { b.OwnsOne(c => c.SubChild); });
+
             if (dbProvider.Name == "Npgsql.EntityFrameworkCore.PostgreSQL")
             {
                 modelBuilder.Entity<JsonData>().Property(j => j.Data).HasColumnType("jsonb");
@@ -48,7 +53,18 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
             else
             {
                 modelBuilder.Entity<JsonData>().Ignore(j => j.Child);
+                modelBuilder.Entity<JsonDocumentData>().Ignore(j => j.Data);
             }
+
+            modelBuilder.Entity<CompanyOwnedJson>()
+                .OwnsOne(
+                    j => j.Meta,
+                    b =>
+                    {
+                        b.ToJson();
+                        b.OwnsOne(c => c.Nested, cb => cb.ToJson());
+                        b.OwnsMany(c => c.Properties, cb => cb.ToJson());
+                    });
 
             if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql
             {
@@ -79,6 +95,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public DbSet<GuidKeyAutoGen> GuidKeysAutoGen { get; set; }
         public DbSet<JObjectData> JObjectDatas { get; set; }
         public DbSet<JsonData> JsonDatas { get; set; }
+        public DbSet<JsonDocumentData> JsonDocumentDatas { get; set; }
         public DbSet<KeyOnly> KeyOnlies { get; set; }
         public DbSet<NullableCompositeKey> NullableCompositeKeys { get; set; }
         public DbSet<NullableRequired> NullableRequireds { get; set; }
@@ -90,5 +107,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public DbSet<TestEntity> TestEntities { get; set; }
         public DbSet<GeneratedAlwaysAsIdentity> GeneratedAlwaysAsIdentity { get; set; }
         public DbSet<ComputedColumn> ComputedColumns { get; set; }
+        public DbSet<Parent> Parents { get; set; }
+        public DbSet<CompanyOwnedJson> CompanyOwnedJson { get; set; }
     }
 }
