@@ -23,7 +23,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
         protected string ConnectionString
             => _connectionString ?? dbContainerFixture.Container.GetConnectionString();
 
-        public override async Task InitializeAsync()
+        public override async ValueTask InitializeAsync()
         {
             if (_connectionString == null)
             {
@@ -33,7 +33,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             await base.InitializeAsync();
         }
 
-        public override async Task DisposeAsync()
+        public override async ValueTask DisposeAsync()
         {
             if (_connectionString == null)
             {

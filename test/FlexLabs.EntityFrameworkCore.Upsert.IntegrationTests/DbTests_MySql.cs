@@ -6,7 +6,6 @@ using MySqlConnector;
 using Testcontainers.MySql;
 using Testcontainers.Xunit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {

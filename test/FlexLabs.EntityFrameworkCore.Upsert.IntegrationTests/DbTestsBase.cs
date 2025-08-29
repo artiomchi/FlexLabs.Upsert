@@ -241,10 +241,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.Countries.Should().HaveCount(2);
         }
 
-        [SkippableFact]
+        [Fact]
         public void Upsert_ReturnResult_Single()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -267,10 +267,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             });
         }
 
-        [SkippableFact]
+        [Fact]
         public void Upsert_ReturnResult_Multiple()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
 
             ResetDb(new DashTable { DataSet = "Test1" });
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -298,10 +298,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.DashTable.Should().HaveCount(2);
         }
 
-        [SkippableFact]
+        [Fact]
         public void Upsert_ReturnResult_TracksChanges()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
 
             ResetDb(new DashTable { DataSet = "Test" });
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -1236,10 +1236,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 j => JToken.DeepEquals(JObject.Parse(updatedJson.Data), JObject.Parse(j.Data)).Should().BeTrue());
         }
 
-        [SkippableFact]
+        [Fact]
         public void Upsert_JsonData_Update_ComplexObject()
         {
-            Skip.If(_fixture.DbDriver is not DbDriver.Postgres, "Default values on text columns are only supported in Postgres");
+            Assert.SkipWhen(_fixture.DbDriver is not DbDriver.Postgres, "Default values on text columns are only supported in Postgres");
 
             var existingJson = new JsonData
             {
@@ -1268,10 +1268,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 j => j.Child.Time.Should().Be(timestamp));
         }
 
-        [SkippableFact]
+        [Fact]
         public void Upsert_JsonDocumentData()
         {
-            Skip.If(_fixture.DbDriver is not DbDriver.Postgres, "Owned json is only supported for postgres");
+            Assert.SkipWhen(_fixture.DbDriver is not DbDriver.Postgres, "Owned json is only supported for postgres");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -1288,10 +1288,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 j => System.Text.Json.JsonSerializer.Serialize(newJson.Data).Should().Be(System.Text.Json.JsonSerializer.Serialize(j.Data)));
         }
 
-        [SkippableFact]
+        [Fact]
         public void Upsert_JsonDocumentData_Update()
         {
-            Skip.If(_fixture.DbDriver is not DbDriver.Postgres, "Owned json is only supported for postgres");
+            Assert.SkipWhen(_fixture.DbDriver is not DbDriver.Postgres, "Owned json is only supported for postgres");
 
             var existingJson = new JsonDocumentData
             {
@@ -1319,10 +1319,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 j => System.Text.Json.JsonSerializer.Serialize(updatedJson.Data).Should().Be(System.Text.Json.JsonSerializer.Serialize(j.Data)));
         }
 
-        [SkippableFact]
+        [Fact]
         public void Upsert_JsonDocumentData_Update_ComplexObject()
         {
-            Skip.If(_fixture.DbDriver is not DbDriver.Postgres, "Owned json is only supported for postgres");
+            Assert.SkipWhen(_fixture.DbDriver is not DbDriver.Postgres, "Owned json is only supported for postgres");
 
             var existingJson = new JsonDocumentData
             {
@@ -1445,10 +1445,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 k => (k.ID1, k.ID2).Should().Be((newItem.ID1, newItem.ID2)));
         }
 
-        [SkippableFact]
+        [Fact]
         public void Upsert_NullableKeys()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Postgres or DbDriver.Sqlite or DbDriver.Oracle);
+            Assert.SkipWhen(
+                _fixture.DbDriver is DbDriver.MySQL or DbDriver.Postgres or DbDriver.Sqlite or DbDriver.Oracle,
+                "Nullable keys are not supported in this database");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -2069,10 +2071,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 test => test.Should().MatchModel(dbItem2));
         }
 
-        [SkippableFact]
+        [Fact]
         public void Upsert_NullableRequired_Insert()
         {
-            Skip.If(_fixture.DbDriver == DbDriver.MySQL, "Default values on text columns not supported in MySQL");
+            Assert.SkipWhen(_fixture.DbDriver == DbDriver.MySQL, "Default values on text columns not supported in MySQL");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -2109,10 +2111,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.NullableRequireds.Should().HaveCount(100_000);
         }
 
-        [SkippableFact]
+        [Fact]
         public void ComputedColumn_Updates()
         {
-            Skip.If(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support sql computed columns");
+            Assert.SkipWhen(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support sql computed columns");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Testcontainers.MsSql;
 using Testcontainers.Xunit;
 using Xunit;
-using Xunit.Abstractions;
+using Xunit.Sdk;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {

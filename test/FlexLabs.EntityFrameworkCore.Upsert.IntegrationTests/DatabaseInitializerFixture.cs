@@ -25,7 +25,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 
         protected abstract void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder);
 
-        public virtual async Task InitializeAsync()
+        public virtual async ValueTask InitializeAsync()
         {
             var builder = new DbContextOptionsBuilder<TestDbContext>();
             builder.EnableSensitiveDataLogging();
@@ -44,6 +44,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             await context.Database.EnsureCreatedAsync();
         }
 
-        public virtual Task DisposeAsync() => Task.CompletedTask;
+        public virtual ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }

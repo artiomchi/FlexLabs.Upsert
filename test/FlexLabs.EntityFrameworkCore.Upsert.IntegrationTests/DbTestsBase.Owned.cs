@@ -24,10 +24,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             },
         };
 
-        [SkippableFact]
+        [Fact]
         public virtual void Upsert_Owned_Entity()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -61,10 +61,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [SkippableFact]
+        [Fact]
         public virtual void Upsert_Owned_Entity_WhenMatched_Owned_Direct_Mapping()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -110,10 +110,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [SkippableFact]
+        [Fact]
         public virtual void Upsert_Owned_Entity_WhenMatched_Nested_Owned_Direct_Mapping()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -162,10 +162,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [SkippableFact]
+        [Fact]
         public virtual void Upsert_Owned_Entity_WhenMatched_Owned_Partial_Mapping()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -216,10 +216,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [SkippableFact]
+        [Fact]
         public virtual void Upsert_Owned_Entity_NoUpdate()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -255,10 +255,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
 
-        [SkippableFact]
+        [Fact]
         public virtual void Upsert_OwnedJson_Entity()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);
@@ -300,10 +300,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [SkippableFact]
+        [Fact]
         public virtual void Upsert_OwnedJson_Entity_WhenMatched()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
             var company1 = new CompanyOwnedJson
             {
@@ -363,10 +363,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 });
         }
 
-        [SkippableFact]
+        [Fact]
         public virtual void Upsert_OwnedJson_Entity_WhenMatched_Json_Member_Access_Error()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
             var company1 = new CompanyOwnedJson
             {
@@ -429,10 +429,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .WithMessage("Reading JSON members is not supported. Unsupported Access Expression: b.Meta.Required");
         }
 
-        [SkippableFact]
+        [Fact]
         public virtual void Upsert_OwnedJson_Entity_WhenMatched_Json_Member_Bind_Error()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
             var company1 = new CompanyOwnedJson
             {
@@ -495,10 +495,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .WithMessage("Modifying JSON members is not supported. Unsupported Expression: new CompanyMeta() {Required = \"Some Text\", Nested = new CompanyNestedMeta() {Title = \"Some Title\"}}");
         }
 
-        [SkippableFact]
+        [Fact]
         public virtual void Upsert_OwnedJson_Entity_NoUpdate()
         {
-            Skip.If(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
             ResetDb();
             using var dbContext = new TestDbContext(_fixture.DataContextOptions);

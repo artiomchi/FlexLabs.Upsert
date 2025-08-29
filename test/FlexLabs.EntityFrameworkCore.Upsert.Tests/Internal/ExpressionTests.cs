@@ -5,7 +5,6 @@ using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using FluentAssertions;
 using Xunit;
-using Xunit.Abstractions;
 
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal;
