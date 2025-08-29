@@ -1,9 +1,11 @@
 <Project>
 
-  <Sdk Name="DotNet.ReproducibleBuilds.Isolated" Version="1.2.25" />
+  <PropertyGroup>
+    <ReproducibleBuildsVersion>1.2.25</ReproducibleBuildsVersion>
+  </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.25" PrivateAssets="All"/>
+    <PackageReference Include="DotNet.ReproducibleBuilds" Version="$(ReproducibleBuildsVersion)" PrivateAssets="All"/>
   </ItemGroup>
 
 </Project>
