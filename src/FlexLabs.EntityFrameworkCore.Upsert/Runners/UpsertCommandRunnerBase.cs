@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -44,7 +44,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// <typeparam name="TEntity">Type of the entity being upserted</typeparam>
         /// <param name="entityType">Metadata type of the entity being upserted</param>
         /// <param name="matchExpression">The match expression provided by the user</param>
-        /// <param name="queryOptions">Options for the current query that will affect it's behaviour</param>
+        /// <param name="queryOptions">Options for the current query that will affect its behaviour</param>
         /// <returns>A list of model properties used to match entities</returns>
         protected static ICollection<IProperty> ProcessMatchExpression<TEntity>(IEntityType entityType, Expression<Func<TEntity, object>>? matchExpression, RunnerQueryOptions queryOptions)
         {
@@ -64,6 +64,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 {
                     if (arg == null || arg.Member is not PropertyInfo || !typeof(TEntity).Equals(arg.Expression?.Type))
                         throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
+                    // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
                     var property = entityType.FindProperty(arg.Member.Name)
                         ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(arg.Member.Name));
                     joinColumns.Add(property);
@@ -73,6 +74,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 if (unaryExpression.Operand is not MemberExpression memberExp || memberExp.Member is not PropertyInfo || !typeof(TEntity).Equals(memberExp.Expression?.Type))
                     throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
+                // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
                 var property = entityType.FindProperty(memberExp.Member.Name)
                     ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExp.Member.Name));
                 joinColumns = [property];
@@ -81,6 +83,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 if (!typeof(TEntity).Equals(memberExpression.Expression?.Type) || memberExpression.Member is not PropertyInfo)
                     throw new InvalidOperationException(Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass);
+                // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
                 var property = entityType.FindProperty(memberExpression.Member.Name)
                     ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExpression.Member.Name));
                 joinColumns = [property];

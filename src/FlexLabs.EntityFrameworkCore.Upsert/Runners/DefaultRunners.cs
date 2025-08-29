@@ -1,7 +1,7 @@
 ﻿namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 {
     /// <summary>
-    /// Provides the default list of commannd runners
+    /// Provides the default list of command runners
     /// </summary>
     internal static class DefaultRunners
     {
@@ -12,15 +12,14 @@
         /// </summary>
         public static IUpsertCommandRunner[] GetRunners()
         {
-            Runners ??= new IUpsertCommandRunner[]
-            {
+            Runners ??= [
                 new InMemoryUpsertCommandRunner(),
                 new MySqlUpsertCommandRunner(),
                 new PostgreSqlUpsertCommandRunner(),
                 new SqlServerUpsertCommandRunner(),
                 new SqliteUpsertCommandRunner(),
-                new OracleUpsertCommandRunner(),
-            };
+                new OracleUpsertCommandRunner()
+            ];
             return Runners;
         }
     }

@@ -1,24 +1,30 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Reflection;
-using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions
 {
     /// <summary>
     /// This class represents a constant value from an expression, which will be passed as a command argument
     /// </summary>
-    public class ConstantValue : IKnownValue
+    public class ConstantValue : Expression, IKnownValue
     {
+        /// <inheritdoc />
+        public override ExpressionType NodeType => ExpressionType.Constant;
+        /// <inheritdoc />
+        public override Type Type => typeof(ConstantExpression);
+
         /// <summary>
         /// Creates an instance of the ConstantValue class
         /// </summary>
         /// <param name="value">The value used in the expression</param>
         /// <param name="property">The property from which the value is taken</param>
         /// <param name="memberInfo">The memberInfo from which the value is taken</param>
-        public ConstantValue(object? value, IProperty? property = null, MemberInfo? memberInfo = null)
+        public ConstantValue(object? value, IColumnBase? property = null, MemberInfo? memberInfo = null)
         {
             Value = value;
-            Property = property;
+            ColumnProperty = property;
             MemberInfo = memberInfo;
         }
 
@@ -30,7 +36,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <summary>
         /// The property from which the value is taken
         /// </summary>
-        public IProperty? Property { get; }
+        public IColumnBase? ColumnProperty { get; }
 
         /// <summary>
         /// The memberInfo from which the value is taken
@@ -52,6 +58,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         public IEnumerable<PropertyValue> GetPropertyValues()
         {
             return [];
+        }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            return $"{nameof(ConstantValue)} ( Value: {Value} )";
         }
     }
 }

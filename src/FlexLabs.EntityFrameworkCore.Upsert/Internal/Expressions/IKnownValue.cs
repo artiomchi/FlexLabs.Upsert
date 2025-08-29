@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions
 {
     /// <summary>
     /// Value of an expression
@@ -10,7 +10,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
         /// <summary>
         /// Get all the constants that are part of this value
         /// </summary>
-        /// <returns>A set of contsants used in this value</returns>
+        /// <returns>A set of constants used in this value</returns>
         IEnumerable<ConstantValue> GetConstantValues();
 
         /// <summary>

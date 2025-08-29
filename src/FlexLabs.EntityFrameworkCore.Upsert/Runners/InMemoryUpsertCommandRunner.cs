@@ -96,17 +96,10 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             return matches.Select(m => m.DbEntity ?? m.NewEntity);
         }
 
-        private struct EntityMatch<TEntity>
-        {
-            public EntityMatch(TEntity? dbEntity, TEntity newEntity)
-            {
-                DbEntity = dbEntity;
-                NewEntity = newEntity;
-            }
-
-            public TEntity? DbEntity;
-            public TEntity NewEntity;
-        }
+        private record struct EntityMatch<TEntity>(
+            TEntity? DbEntity,
+            TEntity NewEntity
+        );
 
         private static EntityMatch<TEntity>[] FindMatches<TEntity>(IEntityType entityType, IEnumerable<TEntity> entities, DbContext dbContext,
             Expression<Func<TEntity, object>>? matchExpression) where TEntity : class

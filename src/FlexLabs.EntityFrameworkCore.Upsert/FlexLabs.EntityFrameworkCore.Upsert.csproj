@@ -21,8 +21,12 @@ Also supports injecting sql command generators to add support for other provider
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <VersionPrefix>9.0.0</VersionPrefix>
+    <VersionPrefix>9.100.0</VersionPrefix>
     <PackageReleaseNotes>
+v9.100.0
++ Significant internal upgrade with a new expression parser (Thanks to @r-Larch)
++ Adding support for owned entities and owned JSON entities (Thanks to @r-Larch)
+
 v9.0.0
 + Adding support for EF Core 9
 
@@ -68,6 +72,11 @@ v4.0.0
     <SignCertificateName>Artiom Chilaru</SignCertificateName>
     <PostBuildEvent>signtool.exe sign /n "$(SignCertificateName)" /fd sha256 /tr "http://timestamp.digicert.com" /td sha256 FlexLabs.EntityFrameworkCore.Upsert.dll</PostBuildEvent>
   </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="$(AssemblyName).Tests" />
+    <InternalsVisibleTo Include="$(AssemblyName).IntegrationTests" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.ResxSourceGenerator" Version="3.11.0-beta1.24508.2">

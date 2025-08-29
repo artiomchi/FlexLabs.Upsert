@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.ExceptionServices;
 using System.Threading.Tasks;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
@@ -28,6 +28,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
         public virtual async Task InitializeAsync()
         {
             var builder = new DbContextOptionsBuilder<TestDbContext>();
+            builder.EnableSensitiveDataLogging();
             try
             {
                 ConfigureContextOptions(builder);

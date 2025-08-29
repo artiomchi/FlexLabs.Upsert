@@ -1,4 +1,4 @@
-﻿using System.Data.Common;
+using System.Data.Common;
 using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
@@ -21,7 +21,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 
             protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
             {
-                builder.UseNpgsql(new NpgsqlDataSourceBuilder(ConnectionString)
+                builder.UseNpgsql(new NpgsqlDataSourceBuilder(ConnectionString + ";Include Error Detail=true")
                     .EnableDynamicJson()
                     .Build());
             }

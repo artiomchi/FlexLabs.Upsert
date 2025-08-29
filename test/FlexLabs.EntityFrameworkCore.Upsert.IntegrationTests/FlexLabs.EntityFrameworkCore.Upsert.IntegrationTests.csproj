@@ -28,7 +28,7 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.*" />
     <PackageReference Include="NSubstitute" Version="5.3.0" />
     <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" PrivateAssets="all" />
-    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0-preview.1" />
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.*" />
     <PackageReference Include="Testcontainers.MsSql" Version="4.4.0" />
     <PackageReference Include="Testcontainers.MySql" Version="4.4.0" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.4.0" />

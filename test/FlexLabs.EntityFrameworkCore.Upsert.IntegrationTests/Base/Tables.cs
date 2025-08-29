@@ -1,7 +1,10 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq.Expressions;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Newtonsoft.Json.Linq;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
@@ -39,6 +42,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public int ID { get; set; }
         public string Data { get; set; }
         public ChildObject Child { get; set; }
+    }
+
+    public class JsonDocumentData : IDisposable
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int ID { get; set; }
+        public JsonDocument Data { get; set; }
+        public void Dispose() => Data?.Dispose();
     }
 
     public class ChildObject
@@ -154,5 +165,58 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public int Num1 { get; set; }
         public int Num2 { get; set; }
         public int Num3 { get; set; }
+    }
+
+    public class Parent
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int ID { get; set; }
+        public Child Child { get; set; }
+        public int Counter { get; set; }
+    }
+
+    public class Child
+    {
+        [Required]
+        public string ChildName { get; set; }
+        public int Age { get; set; }
+        public SubChild SubChild { get; set; }
+    }
+
+    public class SubChild
+    {
+        public string SubChildName { get; set; }
+        public int Age { get; set; }
+    }
+
+    public class CompanyOwnedJson
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public CompanyMeta Meta { get; set; }
+    }
+
+    public class CompanyMeta
+    {
+        [Required]
+        public string Required { get; set; }
+        [JsonPropertyName("json_override")]
+        public string JsonOverride { get; set; }
+        [Column("column_override")]
+        public string ColumnOverride { get; set; }
+        public CompanyNestedMeta Nested { get; set; }
+        public List<CompanyMetaValue> Properties { get; set; }
+    }
+
+    public class CompanyNestedMeta
+    {
+        public string Title { get; set; }
+    }
+
+    public class CompanyMetaValue
+    {
+        public string Key { get; set; }
+        public string Value { get; set; }
     }
 }
