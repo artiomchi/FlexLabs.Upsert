@@ -26,6 +26,7 @@ Also supports injecting sql command generators to add support for other provider
 v9.100.0
 + Significant internal upgrade with a new expression parser (Thanks to @r-Larch)
 + Adding support for owned entities and owned JSON entities (Thanks to @r-Larch)
++ Adding option to exclude columns on auto-updates (Thanks to @B3RR10)
 
 v9.0.0
 + Adding support for EF Core 9

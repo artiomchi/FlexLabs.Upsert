@@ -4,17 +4,20 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
 internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, RunnerQueryOptions queryOptions)
 {
-    public PropertyMapping[]? GetUpdateMappings((string ColumnName, bool Nullable)[] joinColumnNames)
+    public PropertyMapping[]? GetUpdateMappings((string ColumnName, bool Nullable)[] joinColumnNames, ICollection<IProperty> excludeProperties)
     {
         if (!queryOptions.NoUpdate)
         {
             return table.Columns
                 .Where(column => joinColumnNames.All(c => c.ColumnName != column.ColumnName))
+                .Where(column => excludeProperties.All(c => c.GetColumnName() != column.ColumnName))
                 .Select(column => new PropertyMapping(column, new PropertyValue(column.Name, false, column)))
                 .ToArray();
         }
