@@ -9,7 +9,9 @@ jobs:
     steps:
     - uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0'
+        dotnet-version: |
+          8.0.x
+          9.0.x
     - uses: actions/checkout@v4
     - name: Restore dependencies
       run: dotnet restore
@@ -30,7 +32,9 @@ jobs:
     steps:
     - uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0'
+        dotnet-version: |
+          8.0.x
+          9.0.x
     - uses: actions/checkout@v4
     - name: Enable Postgres
       run: sc config postgresql-x64-14 start= demand

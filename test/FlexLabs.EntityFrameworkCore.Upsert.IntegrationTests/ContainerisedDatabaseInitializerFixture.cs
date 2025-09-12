@@ -17,7 +17,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 
         protected static TBuilder ConfigureContainer(TBuilder builder)
             => builder
-                .WithName($"flexlabs_upsert_{DbDriverName.ToLowerInvariant()}")
+                .WithName($"flexlabs_upsert_{DbDriverName.ToLowerInvariant()}_{Environment.Version}")
                 .WithReuse(true);
 
         protected string ConnectionString
