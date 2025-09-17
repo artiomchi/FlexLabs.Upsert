@@ -32,9 +32,7 @@ jobs:
     steps:
     - uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: |
-          8.0.x
-          9.0.x
+        dotnet-version: 9.0.x
     - uses: actions/checkout@v4
     - name: Enable Postgres
       run: sc config postgresql-x64-17 start= demand
@@ -47,7 +45,7 @@ jobs:
     - name: Test
       env:
         FLEXLABS_UPSERT_TESTS_POSTGRESQL_CONNECTION_STRING: 'Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=root'
-      run: dotnet test ./test/FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests --no-build --logger "trx;LogFileName=test-results.trx"
+      run: dotnet test ./test/FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests --no-build -f net9.0 --logger "trx;LogFileName=test-results.trx"
     - name: Test Report
       uses: actions/upload-artifact@v4
       if: success() || failure()
