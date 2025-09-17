@@ -37,9 +37,9 @@ jobs:
           9.0.x
     - uses: actions/checkout@v4
     - name: Enable Postgres
-      run: sc config postgresql-x64-14 start= demand
+      run: sc config postgresql-x64-17 start= demand
     - name: Start Postgres
-      run: net start postgresql-x64-14
+      run: net start postgresql-x64-17
     - name: Restore dependencies
       run: dotnet restore
     - name: Build

@@ -23,7 +23,7 @@ Also supports injecting sql command generators to add support for other provider
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <VersionPrefix>9.100.0</VersionPrefix>
+    <VersionPrefix>9.100.1</VersionPrefix>
     <PackageReleaseNotes>
 v9.100.0
 + Significant internal upgrade with a new expression parser (Thanks to @r-Larch)
