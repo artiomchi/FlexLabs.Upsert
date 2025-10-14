@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FluentAssertions;
@@ -109,6 +111,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Reset(dbContext, e => e.StringKeys);
             Reset(dbContext, e => e.StringKeysAutoGen);
             Reset(dbContext, e => e.TestEntities);
+            Reset(dbContext, e => e.TestEntitiesFiltered);
             Reset(dbContext, e => e.GeneratedAlwaysAsIdentity);
             Reset(dbContext, e => e.ComputedColumns);
             Reset(dbContext, e => e.Parents);
@@ -140,7 +143,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             }
             else
             {
-                dbSet.ExecuteDelete();
+                dbSet.IgnoreQueryFilters().ExecuteDelete();
             }
         }
 
@@ -2131,6 +2134,78 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.ComputedColumns.OrderBy(c => c.Num1).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(item, num3: 10));
+        }
+
+        [Fact]
+        public async Task Upsert_WithQueryFilter_RunAndReturn_Inserts()
+        {
+            ResetDb();
+
+            await using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var dbItem1 = new TestEntityFiltered
+            {
+                Num1 = 1,
+                Num2 = 5,
+                Text1 = "hello",
+            };
+
+            var resultItems = await dbContext.TestEntitiesFiltered.Upsert(dbItem1)
+                .On(j => j.Num1)
+                .NoUpdate()
+                .RunAndReturnAsync(CancellationToken.None);
+
+            resultItems.Should().HaveCount(1);
+            resultItems.First().Should().BeEquivalentTo(dbItem1, o => o.Excluding(x => x.ID));
+
+            dbContext.TestEntitiesFiltered
+                .IgnoreQueryFilters()
+                .OrderBy(t => t.ID)
+                .Should()
+                .SatisfyRespectively(
+                    test => test.Should().BeEquivalentTo(dbItem1, o => o.Excluding(x => x.ID)));
+        }
+
+        [Fact]
+        public async Task Upsert_WithQueryFilter_RunAndReturn_Updates()
+        {
+            var dbItem1 = new TestEntityFiltered
+            {
+                Num1 = 1,
+                Num2 = 2,
+                Text1 = "hello1",
+            };
+
+            ResetDb(dbItem1);
+            await using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var dbItem1Updated = new TestEntityFiltered
+            {
+                Num1 = 1,
+                Num2 = 5,
+                Text1 = "hello2",
+            };
+
+            var resultItems = await dbContext.TestEntitiesFiltered.Upsert(dbItem1Updated)
+                .On(j => j.Num1)
+                .UpdateIf((oldItem, newItem) => oldItem.Num2 == 2 && newItem.Num2 == 5)
+                .WhenMatched(i => new TestEntityFiltered
+                {
+                    Num2 = i.Num2 + 1,
+                })
+                .RunAndReturnAsync(CancellationToken.None);
+
+            resultItems.Should().HaveCount(1);
+            var firstResultItem = resultItems.First();
+            firstResultItem.Num2.Should().Be(3);
+            firstResultItem.Text1.Should().Be("hello1");
+
+            dbContext.TestEntitiesFiltered
+                .IgnoreQueryFilters()
+                .OrderBy(t => t.ID)
+                .Should()
+                .SatisfyRespectively(
+                    test => test.Should().Match<TestEntityFiltered>(i => i.Num2 == 3 && i.Text1 == "hello1"));
         }
     }
 }
