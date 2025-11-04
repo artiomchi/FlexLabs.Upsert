@@ -2075,6 +2075,41 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Fact]
+        public void Upsert_HandleImplicitConversions()
+        {
+            ResetDb(new TestEntity
+            {
+                Num1 = 1,
+                Num2 = 2,
+                Short1 = 3,
+            });
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newEntity = new TestEntity
+            {
+                Num1 = 1,
+                Short1 = 4,
+            };
+
+            dbContext.TestEntities.Upsert(newEntity)
+                .On(c => c.Num1)
+                .UpdateIf((a, b) => a.Short1 != b.Short1)
+                .WhenMatched((a, b) => new TestEntity
+                {
+                    Num2 = a.Short1 + b.Short1,
+                    Short1 = (short)(a.Short1 - b.Short1),
+                })
+                .Run();
+
+            dbContext.TestEntities.OrderBy(c => c.ID).Should().SatisfyRespectively(
+                r =>
+                {
+                    r.Num2.Should().Be(7);
+                    r.Short1.Should().Be(-1);
+                });
+        }
+
+        [Fact]
         public void Upsert_NullableRequired_Insert()
         {
             Assert.SkipWhen(_fixture.DbDriver == DbDriver.MySQL, "Default values on text columns not supported in MySQL");

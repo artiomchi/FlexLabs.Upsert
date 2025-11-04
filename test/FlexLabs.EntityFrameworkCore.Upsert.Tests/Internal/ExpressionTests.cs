@@ -635,4 +635,30 @@ public partial class ExpressionTests(ITestOutputHelper output) {
                 .HavePropertyValue(e => e.Value2, "Text1", false))
         );
     }
+
+    [Fact]
+    public void UpdateCondition_CanHandleImplicitNumericConversion()
+    {
+        // Internally these seem to be wrapped in an implicit Convert expression. Ensure this is handled correctly.
+        var result = _parser.ParseUpdateConditionExpression((a, e) => a.Short1 == e.Short1);
+
+        result.Should().BeKnownExpression(ExpressionType.Equal)
+            .HavePropertyValue(e => e.Value1, "Short1", true)
+            .HavePropertyValue(e => e.Value2, "Short1", false);
+    }
+
+    [Fact]
+    public void UpdateCondition_CanHandleImplicitTypeMapping()
+    {
+        var result = Parse((e1, e2) => new TestEntity
+        {
+            Num1 = e2.Short1
+        });
+        
+        result[0].Should().BePropertyMapping(_ => _
+            .WithColumn("Num1")
+            .WithValueOfType<PropertyValue>()
+            .Which.Should().BePropertyValue("Short1", false)
+        );
+    }
 }

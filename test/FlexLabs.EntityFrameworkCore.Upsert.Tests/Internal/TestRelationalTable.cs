@@ -19,6 +19,7 @@ internal class TestRelationalTable : RelationalTableBase
             Column<TestEntity>(_ => _.ID),
             Column<TestEntity>(_ => _.Num1),
             Column<TestEntity>(_ => _.Num2),
+            Column<TestEntity>(_ => _.Short1),
             Column<TestEntity>(_ => _.NumNullable1),
             Column<TestEntity>(_ => _.Text1),
             Column<TestEntity>(_ => _.Text2),

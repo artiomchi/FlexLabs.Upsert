@@ -101,6 +101,11 @@ internal class UpdateExpressionVisitor(
 
     protected override Expression VisitUnary(UnaryExpression node)
     {
+        if (node.NodeType is ExpressionType.Convert or ExpressionType.ConvertChecked)
+        {
+            return Visit(node.Operand);
+        }
+
         var source = GetValueObject(node.Operand);
 
         // handle: implicit operator method call
@@ -253,4 +258,7 @@ internal class UpdateExpressionVisitor(
 
         throw new UnsupportedExpressionException(expression);
     }
+    
+    private static Type UnwrapNullableType(Type type)
+        => Nullable.GetUnderlyingType(type) ?? type;
 }
