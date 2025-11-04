@@ -1,7 +1,7 @@
 <Project>
 
   <PropertyGroup>
-    <ReproducibleBuildsVersion>1.2.25</ReproducibleBuildsVersion>
+    <ReproducibleBuildsVersion>1.2.39</ReproducibleBuildsVersion>
   </PropertyGroup>
 
   <ItemGroup>

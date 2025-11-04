@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Containers;
 using Testcontainers.Xunit;
 using Xunit;
@@ -8,7 +9,7 @@ using Xunit;
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
     public abstract class ContainerisedDatabaseInitializerFixture<TBuilder, TContainer>(DbContainerFixture<TBuilder, TContainer> dbContainerFixture) : DatabaseInitializerFixture
-        where TBuilder : IContainerBuilder<TBuilder, TContainer>, new()
+        where TBuilder : IContainerBuilder<TBuilder, TContainer, IContainerConfiguration>, new()
         where TContainer : IContainer, IDatabaseContainer
     {
         private static readonly string DbDriverName = typeof(TContainer).Name.Replace("Container", "");
