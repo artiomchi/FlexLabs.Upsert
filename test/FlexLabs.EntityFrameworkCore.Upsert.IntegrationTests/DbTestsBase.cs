@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FluentAssertions;
@@ -109,6 +111,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Reset(dbContext, e => e.StringKeys);
             Reset(dbContext, e => e.StringKeysAutoGen);
             Reset(dbContext, e => e.TestEntities);
+            Reset(dbContext, e => e.TestEntitiesFiltered);
             Reset(dbContext, e => e.GeneratedAlwaysAsIdentity);
             Reset(dbContext, e => e.ComputedColumns);
             Reset(dbContext, e => e.Parents);
@@ -136,11 +139,11 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var dbSet = selector(dbContext);
             if (_fixture.DbDriver == DbDriver.InMemory)
             {
-                dbContext.RemoveRange(dbSet);
+                dbContext.RemoveRange(dbSet.IgnoreQueryFilters());
             }
             else
             {
-                dbSet.ExecuteDelete();
+                dbSet.IgnoreQueryFilters().ExecuteDelete();
             }
         }
 
@@ -2166,6 +2169,79 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             dbContext.ComputedColumns.OrderBy(c => c.Num1).Should().SatisfyRespectively(
                 visit => visit.Should().MatchModel(item, num3: 10));
+        }
+
+        [Fact]
+        public async Task Upsert_WithQueryFilter_RunAndReturn_Inserts()
+        {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
+            ResetDb();
+
+            await using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var dbItem1 = new TestEntityFiltered
+            {
+                IsDeleted = true,
+                Counter = 1,
+            };
+
+            var resultItems = await dbContext.TestEntitiesFiltered.Upsert(dbItem1)
+                .On(j => j.Key)
+                .NoUpdate()
+                .RunAndReturnAsync(TestContext.Current.CancellationToken);
+
+            resultItems.Should().HaveCount(1);
+            resultItems.First().Should().BeEquivalentTo(dbItem1, o => o.Excluding(x => x.ID));
+
+            dbContext.TestEntitiesFiltered
+                .IgnoreQueryFilters()
+                .OrderBy(t => t.ID)
+                .Should()
+                .SatisfyRespectively(
+                    test => test.Should().BeEquivalentTo(dbItem1, o => o.Excluding(x => x.ID)));
+        }
+
+        [Fact]
+        public async Task Upsert_WithQueryFilter_RunAndReturn_Updates()
+        {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
+            var dbItem1 = new TestEntityFiltered
+            {
+                Key = "key1",
+                IsDeleted = true,
+                Counter = 1,
+            };
+
+            ResetDb(dbItem1);
+            await using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var dbItem1Updated = new TestEntityFiltered
+            {
+                Key = "key1",
+                IsDeleted = true,
+                Counter = 2,
+            };
+
+            var resultItems = await dbContext.TestEntitiesFiltered.Upsert(dbItem1Updated)
+                .On(j => j.Key)
+                .WhenMatched((a, b) => new TestEntityFiltered
+                {
+                    Counter = a.Counter + b.Counter,
+                })
+                .RunAndReturnAsync(TestContext.Current.CancellationToken);
+
+            resultItems.Should().HaveCount(1);
+            var firstResultItem = resultItems.First();
+            firstResultItem.Counter.Should().Be(3);
+
+            dbContext.TestEntitiesFiltered
+                .IgnoreQueryFilters()
+                .OrderBy(t => t.ID)
+                .Should()
+                .SatisfyRespectively(
+                    test => test.Counter.Should().Be(3));
         }
     }
 }

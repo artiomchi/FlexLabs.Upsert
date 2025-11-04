@@ -145,6 +145,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public DateTime Updated { get; set; }
     }
 
+    public class TestEntityFiltered
+    {
+        public int ID { get; set; }
+        public string Key { get; set; } = "default";
+        public int Counter { get; set; }
+        public bool IsDeleted { get; set; }
+    }
+
     public class NullableRequired
     {
         [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
