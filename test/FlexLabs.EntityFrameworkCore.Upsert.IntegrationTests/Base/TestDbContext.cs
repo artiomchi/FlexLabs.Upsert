@@ -19,8 +19,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
 
             modelBuilder.Entity<TestEntity>().HasIndex(b => b.Num1).IsUnique();
             modelBuilder.Entity<TestEntity>().Property(e => e.Num2).HasDefaultValue(27);
-            modelBuilder.Entity<TestEntityFiltered>().HasIndex(b => b.Num1).IsUnique();
-            modelBuilder.Entity<TestEntityFiltered>().HasQueryFilter(b => b.Num2 == 5);
+            modelBuilder.Entity<TestEntityFiltered>().HasIndex(b => b.Key).IsUnique();
+            modelBuilder.Entity<TestEntityFiltered>().HasQueryFilter(b => !b.IsDeleted);
             modelBuilder.Entity<Book>().HasIndex(b => b.Name).IsUnique();
             modelBuilder.Entity<Book>().Property(b => b.Genres)
                 .HasConversion(g => string.Join(",", g), s => s.Split(new[] { ',' }));

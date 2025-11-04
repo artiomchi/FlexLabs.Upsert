@@ -139,7 +139,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             var dbSet = selector(dbContext);
             if (_fixture.DbDriver == DbDriver.InMemory)
             {
-                dbContext.RemoveRange(dbSet);
+                dbContext.RemoveRange(dbSet.IgnoreQueryFilters());
             }
             else
             {
@@ -2174,21 +2174,22 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [Fact]
         public async Task Upsert_WithQueryFilter_RunAndReturn_Inserts()
         {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
             ResetDb();
 
             await using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
             var dbItem1 = new TestEntityFiltered
             {
-                Num1 = 1,
-                Num2 = 5,
-                Text1 = "hello",
+                IsDeleted = true,
+                Counter = 1,
             };
 
             var resultItems = await dbContext.TestEntitiesFiltered.Upsert(dbItem1)
-                .On(j => j.Num1)
+                .On(j => j.Key)
                 .NoUpdate()
-                .RunAndReturnAsync(CancellationToken.None);
+                .RunAndReturnAsync(TestContext.Current.CancellationToken);
 
             resultItems.Should().HaveCount(1);
             resultItems.First().Should().BeEquivalentTo(dbItem1, o => o.Excluding(x => x.ID));
@@ -2204,11 +2205,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         [Fact]
         public async Task Upsert_WithQueryFilter_RunAndReturn_Updates()
         {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
             var dbItem1 = new TestEntityFiltered
             {
-                Num1 = 1,
-                Num2 = 2,
-                Text1 = "hello1",
+                Key = "key1",
+                IsDeleted = true,
+                Counter = 1,
             };
 
             ResetDb(dbItem1);
@@ -2216,31 +2219,29 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
 
             var dbItem1Updated = new TestEntityFiltered
             {
-                Num1 = 1,
-                Num2 = 5,
-                Text1 = "hello2",
+                Key = "key1",
+                IsDeleted = true,
+                Counter = 2,
             };
 
             var resultItems = await dbContext.TestEntitiesFiltered.Upsert(dbItem1Updated)
-                .On(j => j.Num1)
-                .UpdateIf((oldItem, newItem) => oldItem.Num2 == 2 && newItem.Num2 == 5)
-                .WhenMatched(i => new TestEntityFiltered
+                .On(j => j.Key)
+                .WhenMatched((a, b) => new TestEntityFiltered
                 {
-                    Num2 = i.Num2 + 1,
+                    Counter = a.Counter + b.Counter,
                 })
-                .RunAndReturnAsync(CancellationToken.None);
+                .RunAndReturnAsync(TestContext.Current.CancellationToken);
 
             resultItems.Should().HaveCount(1);
             var firstResultItem = resultItems.First();
-            firstResultItem.Num2.Should().Be(3);
-            firstResultItem.Text1.Should().Be("hello1");
+            firstResultItem.Counter.Should().Be(3);
 
             dbContext.TestEntitiesFiltered
                 .IgnoreQueryFilters()
                 .OrderBy(t => t.ID)
                 .Should()
                 .SatisfyRespectively(
-                    test => test.Should().Match<TestEntityFiltered>(i => i.Num2 == 3 && i.Text1 == "hello1"));
+                    test => test.Counter.Should().Be(3));
         }
     }
 }
