@@ -23,8 +23,12 @@ Also supports injecting sql command generators to add support for other provider
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <VersionPrefix>9.100.1</VersionPrefix>
+    <VersionPrefix>9.101.0</VersionPrefix>
     <PackageReleaseNotes>
+v9.101.0
+! Patching implicit conversions not being supported after last update (Thanks to @fortender)
+! Patching query filters preventing from retrieving upserted entities (Thanks to @Lexiphan)
+
 v9.100.0
 + Significant internal upgrade with a new expression parser (Thanks to @r-Larch)
 + Adding support for owned entities and owned JSON entities (Thanks to @r-Larch)
