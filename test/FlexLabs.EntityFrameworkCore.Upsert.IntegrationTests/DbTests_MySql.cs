@@ -1,4 +1,5 @@
-﻿using System.Data.Common;
+﻿#if !NOMYSQL
+using System.Data.Common;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,6 @@ using Xunit;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
-#if !NOMYSQL
     public class DbTests_MySql(DbTests_MySql.DatabaseInitializer contexts) : DbTestsBase(contexts), IClassFixture<DbTests_MySql.DatabaseInitializer>
     {
         public sealed class DatabaseInitializer(IMessageSink messageSink) : ContainerisedDatabaseInitializerFixture<MySqlBuilder, MySqlContainer>(new MySqlFixture(messageSink))
@@ -29,5 +29,5 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             }
         }
     }
-#endif
 }
+#endif

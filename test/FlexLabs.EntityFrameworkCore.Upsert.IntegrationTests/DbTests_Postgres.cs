@@ -1,3 +1,4 @@
+#if !NOPOSTGRES
 using System.Data.Common;
 using System.Linq;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
@@ -12,7 +13,6 @@ using Xunit.Sdk;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
-#if !NOPOSTGRES
     public class DbTests_Postgres(DbTests_Postgres.DatabaseInitializer contexts) : DbTestsBase(contexts), IClassFixture<DbTests_Postgres.DatabaseInitializer>
     {
         public sealed class DatabaseInitializer(IMessageSink messageSink) : ContainerisedDatabaseInitializerFixture<PostgreSqlBuilder, PostgreSqlContainer>(new PostgresFixture(messageSink))
@@ -60,5 +60,5 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
                 }));
         }
     }
-#endif
 }
+#endif

@@ -1,3 +1,4 @@
+#if !NOMSSQL
 using System.Data.Common;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
@@ -10,7 +11,6 @@ using Xunit.Sdk;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
-#if !NOMSSQL
     public class DbTests_SqlServer(DbTests_SqlServer.DatabaseInitializer contexts) : DbTestsBase(contexts), IClassFixture<DbTests_SqlServer.DatabaseInitializer>
     {
         public sealed class DatabaseInitializer(IMessageSink messageSink) : ContainerisedDatabaseInitializerFixture<MsSqlBuilder, MsSqlContainer>(new MsSqlFixture(messageSink))
@@ -30,5 +30,5 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             }
         }
     }
-#endif
 }
+#endif
