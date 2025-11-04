@@ -141,6 +141,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public int? NumNullable1 { get; set; }
         public string Text1 { get; set; }
         public string Text2 { get; set; }
+        public short Short1 { get; set; }
         public DateTime Updated { get; set; }
     }
 
