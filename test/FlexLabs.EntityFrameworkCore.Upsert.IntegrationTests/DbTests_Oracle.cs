@@ -1,4 +1,7 @@
-﻿using System.Data.Common;
+﻿using System;
+using System.Data.Common;
+using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Configurations;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +29,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
                     => OracleClientFactory.Instance;
 
                 protected override OracleBuilder Configure(OracleBuilder builder)
-                    => ConfigureContainer(builder).WithImage("gvenzl/oracle-free:23-slim-faststart");
+                    => ConfigureContainer(builder).WithImage("gvenzl/oracle-free:23-slim-faststart")
+                    .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("/opt/oracle/healthcheck.sh"));
             }
         }
     }
