@@ -337,7 +337,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)).ToArray();
-                result.AddRange(dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).IgnoreQueryFilters().IgnoreAutoIncludes().ToArray());
+                var returnedEntities = dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).AsNoTracking().IgnoreQueryFilters().IgnoreAutoIncludes().ToArray();
+                AttachOrUpdateEntities(dbContext, returnedEntities);
+                result.AddRange(returnedEntities);
             }
             return result;
         }
@@ -381,7 +383,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)).ToArray();
-                result.AddRange(await dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).IgnoreQueryFilters().IgnoreAutoIncludes().ToArrayAsync(cancellationToken).ConfigureAwait(false));
+                var returnedEntities = await dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).AsNoTracking().IgnoreQueryFilters().IgnoreAutoIncludes().ToArrayAsync(cancellationToken).ConfigureAwait(false);
+                AttachOrUpdateEntities(dbContext, returnedEntities);
+                result.AddRange(returnedEntities);
             }
             return result;
         }
@@ -412,6 +416,42 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 dbParameter.ParameterName = Parameter(constantValue.ArgumentIndex);
             }
             return dbParameter;
+        }
+
+        /// <summary>
+        /// Attaches or updates entities in the change tracker with fresh database values.
+        /// If an entity is already tracked (by matching primary key), updates its values. Otherwise, attaches it.
+        /// </summary>
+        private static void AttachOrUpdateEntities<TEntity>(DbContext dbContext, IEnumerable<TEntity> entities) where TEntity : class
+        {
+            foreach (var entity in entities)
+            {
+                // Get the primary key values for this entity
+                var entry = dbContext.Entry(entity);
+                var keyValues = entry.Metadata.FindPrimaryKey()!.Properties
+                    .Select(p => entry.Property(p.Name).CurrentValue)
+                    .ToArray();
+
+                // Find if an entity with the same primary key is already tracked
+                var trackedEntry = dbContext.ChangeTracker.Entries<TEntity>().FirstOrDefault(e =>
+                {
+                    var trackedKeyValues = e.Metadata.FindPrimaryKey()!.Properties
+                        .Select(p => e.Property(p.Name).CurrentValue)
+                        .ToArray();
+                    return keyValues.SequenceEqual(trackedKeyValues);
+                });
+
+                if (trackedEntry != null)
+                {
+                    // Entity is already tracked, update its values with fresh data from database
+                    trackedEntry.CurrentValues.SetValues(entity);
+                }
+                else
+                {
+                    // Entity is not tracked, attach it
+                    dbContext.Attach(entity);
+                }
+            }
         }
     }
 }
