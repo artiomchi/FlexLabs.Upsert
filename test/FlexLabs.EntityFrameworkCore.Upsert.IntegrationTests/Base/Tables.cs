@@ -212,6 +212,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public string Required { get; set; }
         [JsonPropertyName("json_override")]
         public string JsonOverride { get; set; }
+        [Column("column_override")]
         public string ColumnOverride { get; set; }
         public CompanyNestedMeta Nested { get; set; }
         public List<CompanyMetaValue> Properties { get; set; }
