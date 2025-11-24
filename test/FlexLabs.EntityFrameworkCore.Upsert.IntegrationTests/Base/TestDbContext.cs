@@ -64,8 +64,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
                     b =>
                     {
                         b.ToJson();
-                        b.OwnsOne(c => c.Nested, cb => cb.ToJson());
-                        b.OwnsMany(c => c.Properties, cb => cb.ToJson());
+                        b.OwnsOne(c => c.Nested);
+                        b.OwnsMany(c => c.Properties);
                     });
 
             if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql

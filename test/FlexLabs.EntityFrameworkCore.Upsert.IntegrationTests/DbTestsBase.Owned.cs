@@ -270,7 +270,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 {
                     Required = "required-value",
                     JsonOverride = "col with [JsonPropertyName]",
-                    ColumnOverride = "col with [Column(_name_)]",
                     Nested = new CompanyNestedMeta
                     {
                         Title = "I'm a nested json",
@@ -327,7 +326,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 {
                     Required = "required-value",
                     JsonOverride = "col with [JsonPropertyName]",
-                    ColumnOverride = "col with [Column(_name_)]",
                     Nested = new CompanyNestedMeta
                     {
                         Title = "I'm a nested json",
@@ -390,7 +388,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 {
                     Required = "required-value",
                     JsonOverride = "col with [JsonPropertyName]",
-                    ColumnOverride = "col with [Column(_name_)]",
                     Nested = new CompanyNestedMeta
                     {
                         Title = "I'm a nested json",
@@ -456,7 +453,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 {
                     Required = "required-value",
                     JsonOverride = "col with [JsonPropertyName]",
-                    ColumnOverride = "col with [Column(_name_)]",
                     Nested = new CompanyNestedMeta
                     {
                         Title = "I'm a nested json",
@@ -511,7 +507,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 {
                     Required = "required-value",
                     JsonOverride = "col with [JsonPropertyName]",
-                    ColumnOverride = "col with [Column(_name_)]",
                     Nested = new CompanyNestedMeta
                     {
                         Title = "I'm a nested json",
