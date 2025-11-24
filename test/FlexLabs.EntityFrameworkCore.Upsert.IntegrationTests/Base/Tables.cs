@@ -198,6 +198,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public int Age { get; set; }
     }
 
+    public class CompanyComplexJson
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public CompanyMeta Meta { get; set; }
+    }
+
     public class CompanyOwnedJson
     {
         [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]

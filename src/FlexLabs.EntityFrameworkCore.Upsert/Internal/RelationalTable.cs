@@ -18,6 +18,7 @@ internal sealed class RelationalTable : RelationalTableBase
         TableName = tableName;
 
         var columns = GetColumns(entityType)
+            .Concat(GetComplexColumns(entityType))
             .Concat(GetOwnedColumns(entityType));
 
         AddColumnRange(columns);
@@ -42,6 +43,36 @@ internal sealed class RelationalTable : RelationalTableBase
                 Property: p,
                 ColumnName: p.GetColumnName(),
                 Owned: OwnershipType.None));
+    }
+
+    private IEnumerable<IColumnBase> GetComplexColumns(IEntityType entityType, string? path = null, Func<object, object?>? getter = null)
+    {
+        // Find all properties of Owned Entities
+        var complexProperties = entityType.GetComplexProperties();
+
+        foreach (var property in complexProperties)
+        {
+            if (property.ComplexType.IsMappedToJson())
+            {
+                var columnName = property.ComplexType.GetContainerColumnName()
+                                 ?? throw new NotSupportedException(Resources.FormatUnsupportedOwnedJsonColumnFailedToGetColumnName(property.Name));
+
+                var jsonColumn = GetTable(entityType).FindColumn(columnName)
+                                 ?? throw new NotSupportedException(Resources.FormatUnsupportedOwnedJsonColumnFailedToGetRelationalColumn(property.Name));
+
+                yield return new ComplexJsonColumn(
+                    Column: jsonColumn,
+                    Property: property,
+                    ColumnName: columnName,
+                    Owned: OwnershipType.Json,
+                    Path: path
+                );
+            }
+            else
+            {
+                throw new NotSupportedException($"Not supported: {property}");
+            }
+        }
     }
 
     private IEnumerable<IColumnBase> GetOwnedColumns(IEntityType entityType, string? path = null, Func<object, object?>? getter = null)

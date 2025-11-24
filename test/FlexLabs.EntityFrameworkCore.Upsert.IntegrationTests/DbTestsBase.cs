@@ -116,6 +116,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Reset(dbContext, e => e.ComputedColumns);
             Reset(dbContext, e => e.Parents);
             Reset(dbContext, e => e.CompanyOwnedJson);
+            Reset(dbContext, e => e.CompanyComplexJson);
 
             dbContext.Add(_dbCountry);
             dbContext.Add(_dbVisitOld);
