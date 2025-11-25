@@ -176,6 +176,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public int Num3 { get; set; }
     }
 
+    public class ParentComplex
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int ID { get; set; }
+        public Child Child { get; set; }
+        public int Counter { get; set; }
+    }
+
     public class Parent
     {
         [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]

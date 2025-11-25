@@ -27,11 +27,25 @@ internal sealed class RelationalTable : RelationalTableBase
     internal IEntityType EntityType { get; }
     internal string TableName { get; }
 
-    private static ITable GetTable(IEntityType entityType)
+    private static ITable GetTable(ITypeBase entityType)
     {
         var tblName = entityType.GetTableName() ?? entityType.GetViewName();
         var tblSchema = entityType.GetSchema();
         return entityType.Model.GetRelationalModel().Tables.First(t => t.Name == tblName && t.Schema == tblSchema);
+    }
+
+    private ITableMapping? GetTableMapping(ITypeBase structuralType, IEntityType entityType)
+    {
+        foreach (var mapping in structuralType.GetTableMappings())
+        {
+            var table = mapping.Table;
+            if (table.Name == entityType.GetTableName() && table.Schema == entityType.GetSchema())
+            {
+                return mapping;
+            }
+        }
+
+        return null;
     }
 
     private IEnumerable<IColumnBase> GetColumns(IEntityType entityType)
@@ -45,32 +59,75 @@ internal sealed class RelationalTable : RelationalTableBase
                 Owned: OwnershipType.None));
     }
 
-    private IEnumerable<IColumnBase> GetComplexColumns(IEntityType entityType, string? path = null, Func<object, object?>? getter = null)
+    private IEnumerable<IColumnBase> GetComplexColumns(ITypeBase entityType)
     {
-        // Find all properties of Owned Entities
+        // Find all properties of Complex Properties
         var complexProperties = entityType.GetComplexProperties();
 
-        foreach (var property in complexProperties)
+        foreach (var complexProperty in complexProperties)
         {
-            if (property.ComplexType.IsMappedToJson())
+            foreach (var column in ProcessComplexProperty(complexProperty))
             {
-                var columnName = property.ComplexType.GetContainerColumnName()
-                                 ?? throw new NotSupportedException(Resources.FormatUnsupportedOwnedJsonColumnFailedToGetColumnName(property.Name));
+                yield return column;
+            }
+        }
+
+        yield break;
+
+        IEnumerable<IColumnBase> ProcessComplexProperty(IComplexProperty complexProperty, string? path = null)
+        {
+            if (complexProperty.ComplexType.IsMappedToJson())
+            {
+                var columnName = complexProperty.ComplexType.GetContainerColumnName()
+                                 ?? throw new NotSupportedException(Resources.FormatUnsupportedOwnedJsonColumnFailedToGetColumnName(complexProperty.Name));
 
                 var jsonColumn = GetTable(entityType).FindColumn(columnName)
-                                 ?? throw new NotSupportedException(Resources.FormatUnsupportedOwnedJsonColumnFailedToGetRelationalColumn(property.Name));
+                                 ?? throw new NotSupportedException(Resources.FormatUnsupportedOwnedJsonColumnFailedToGetRelationalColumn(complexProperty.Name));
 
                 yield return new ComplexJsonColumn(
                     Column: jsonColumn,
-                    Property: property,
+                    Property: complexProperty,
                     ColumnName: columnName,
                     Owned: OwnershipType.Json,
                     Path: path
                 );
             }
-            else
-            {
-                throw new NotSupportedException($"Not supported: {property}");
+            else {
+                // create a shadow property for FindColumn()
+                yield return new OwnerColumn(
+                    Name: complexProperty.Name,
+                    ColumnName: null!,
+                    Owned: OwnershipType.InlineOwner,
+                    Path: path);
+
+                var parent = complexProperty.DeclaringType;
+                var currentPath = $"{path}.{complexProperty.Name}";
+
+                var complexTableMapping = GetTableMapping(complexProperty.ComplexType, parent.ContainingEntityType);
+                if (complexTableMapping is null)
+                {
+                    //throw new NotSupportedException(Resources.FormatUnsupportedComplexPropertyColumnMappingNotFound(complexProperty.Name));
+                    throw new NotSupportedException("Complex property table mapping not found");
+                }
+
+                foreach (var mapping in complexTableMapping.ColumnMappings)
+                {
+                    yield return new RelationalColumn(
+                        Property: mapping.Property,
+                        ColumnName: mapping.Column.Name,
+                        Owned: OwnershipType.Inline,
+                        Path: currentPath,
+                        EntityGetter: null);
+                }
+
+                var properties = complexProperty.ComplexType.GetComplexProperties();
+                foreach (var property in properties)
+                {
+                    foreach (var column in ProcessComplexProperty(property, currentPath))
+                    {
+                        yield return column;
+                    }
+                }
             }
         }
     }
