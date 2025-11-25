@@ -34,7 +34,7 @@ internal sealed class RelationalTable : RelationalTableBase
         return entityType.Model.GetRelationalModel().Tables.First(t => t.Name == tblName && t.Schema == tblSchema);
     }
 
-    private ITableMapping? GetTableMapping(ITypeBase structuralType, IEntityType entityType)
+    private static ITableMapping? GetTableMapping(ITypeBase structuralType, IEntityType entityType)
     {
         foreach (var mapping in structuralType.GetTableMappings())
         {
@@ -79,10 +79,10 @@ internal sealed class RelationalTable : RelationalTableBase
             if (complexProperty.ComplexType.IsMappedToJson())
             {
                 var columnName = complexProperty.ComplexType.GetContainerColumnName()
-                                 ?? throw new NotSupportedException(Resources.FormatUnsupportedOwnedJsonColumnFailedToGetColumnName(complexProperty.Name));
+                                 ?? throw new NotSupportedException(Resources.FormatUnsupportedComplexJsonPropertyFailedToGetColumnName(complexProperty.Name));
 
                 var jsonColumn = GetTable(entityType).FindColumn(columnName)
-                                 ?? throw new NotSupportedException(Resources.FormatUnsupportedOwnedJsonColumnFailedToGetRelationalColumn(complexProperty.Name));
+                                 ?? throw new NotSupportedException(Resources.FormatUnsupportedComplexJsonPropertyFailedToGetRelationalColumn(complexProperty.Name));
 
                 yield return new ComplexJsonColumn(
                     Column: jsonColumn,
@@ -106,8 +106,7 @@ internal sealed class RelationalTable : RelationalTableBase
                 var complexTableMapping = GetTableMapping(complexProperty.ComplexType, parent.ContainingEntityType);
                 if (complexTableMapping is null)
                 {
-                    //throw new NotSupportedException(Resources.FormatUnsupportedComplexPropertyColumnMappingNotFound(complexProperty.Name));
-                    throw new NotSupportedException("Complex property table mapping not found");
+                    throw new NotSupportedException(Resources.FormatUnsupportedComplexPropertyColumnMappingNotFound(complexProperty.Name));
                 }
 
                 foreach (var mapping in complexTableMapping.ColumnMappings)
