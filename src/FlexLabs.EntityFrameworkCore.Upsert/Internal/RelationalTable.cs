@@ -76,6 +76,17 @@ internal sealed class RelationalTable : RelationalTableBase
 
         IEnumerable<IColumnBase> ProcessComplexProperty(IComplexProperty complexProperty, string? path = null)
         {
+            // Complex table shared properties with a child complex property mapped to JSON is currently not supported by ef core but requested:
+            // see: https://github.com/dotnet/efcore/issues/36558
+            // EF Core 10 throws the following exception in this case (Child is table shared complex and SubChild is mapped to JSON):
+            // See Experiment: https://github.com/r-Larch/FlexLabs.Upsert/tree/feat/net10-complex-props-with-json
+            // ```
+            // System.InvalidOperationException
+            // Complex property 'ParentComplexJson.Child#Child.SubChild' is mapped to JSON but its containing type 'ParentComplexJson.Child#Child' is not.
+            // Map the root complex type to JSON. See https://github.com/dotnet/efcore/issues/36558.
+            // ```
+            // The following IF condition should therefore never be true in deeper recursions.
+            // therefore, we could refactor this check to the caller level only, but we keep it here because once ef core adds support for this scenario, this would be the way to handle it.
             if (complexProperty.ComplexType.IsMappedToJson())
             {
                 var columnName = complexProperty.ComplexType.GetContainerColumnName()

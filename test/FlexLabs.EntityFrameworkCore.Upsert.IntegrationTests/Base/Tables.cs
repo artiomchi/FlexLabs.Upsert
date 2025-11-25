@@ -176,6 +176,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public int Num3 { get; set; }
     }
 
+    /// <summary>
+    /// Child and SubChild are mapped as complex columns
+    /// </summary>
     public class ParentComplex
     {
         [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
