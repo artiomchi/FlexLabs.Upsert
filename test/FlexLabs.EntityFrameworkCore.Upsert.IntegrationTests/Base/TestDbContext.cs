@@ -67,6 +67,23 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
                         b.OwnsOne(c => c.Nested);
                         b.OwnsMany(c => c.Properties);
                     });
+            
+            if (dbProvider.Name == "Microsoft.EntityFrameworkCore.InMemory")
+            {
+                // in-memory provider does not support complex properties
+                modelBuilder.Entity<ParentComplex>().Ignore(c => c.Child);
+                modelBuilder.Entity<CompanyComplexJson>().Ignore(_ => _.Meta);
+            }
+            else
+            {
+                modelBuilder.Entity<ParentComplex>()
+                    .ComplexProperty(
+                        c => c.Child,
+                        b => b.ComplexProperty(c => c.SubChild));
+
+                modelBuilder.Entity<CompanyComplexJson>()
+                    .ComplexProperty(j => j.Meta, b => b.ToJson());
+            }
 
             if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql
             {
@@ -111,6 +128,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public DbSet<GeneratedAlwaysAsIdentity> GeneratedAlwaysAsIdentity { get; set; }
         public DbSet<ComputedColumn> ComputedColumns { get; set; }
         public DbSet<Parent> Parents { get; set; }
+        public DbSet<ParentComplex> ParentComplexes { get; set; }
         public DbSet<CompanyOwnedJson> CompanyOwnedJson { get; set; }
+        public DbSet<CompanyComplexJson> CompanyComplexJson { get; set; }
     }
 }

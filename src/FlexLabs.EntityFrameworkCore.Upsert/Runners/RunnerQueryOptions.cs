@@ -3,7 +3,7 @@
     /// <summary>
     /// Options to configure the query behaviour
     /// </summary>
-    public struct RunnerQueryOptions
+    public record struct RunnerQueryOptions
     {
         /// <summary>
         /// Specifies that if a match is found, no action will be taken on the entity
