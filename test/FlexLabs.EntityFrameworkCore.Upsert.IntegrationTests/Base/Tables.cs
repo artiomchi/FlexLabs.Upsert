@@ -153,6 +153,13 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public bool IsDeleted { get; set; }
     }
 
+    public class ULongEntity
+    {
+        public int ID { get; set; }
+        public int Num1 { get; set; }
+        public ulong Counter { get; set; }
+    }
+
     public class NullableRequired
     {
         [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]

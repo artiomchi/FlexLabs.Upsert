@@ -112,6 +112,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Reset(dbContext, e => e.StringKeysAutoGen);
             Reset(dbContext, e => e.TestEntities);
             Reset(dbContext, e => e.TestEntitiesFiltered);
+            Reset(dbContext, e => e.ULongEntities);
             Reset(dbContext, e => e.GeneratedAlwaysAsIdentity);
             Reset(dbContext, e => e.ComputedColumns);
             Reset(dbContext, e => e.Parents);
@@ -2072,6 +2073,171 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
                 test => test.Should().MatchModel(dbItem1, num2: dbItem1.Num2 + 1, text1: "world"),
                 test => test.Should().MatchModel(dbItem2));
+        }
+
+        [Fact]
+        public void Upsert_WhenMatched_ULongCounter_Increment()
+        {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
+            var dbItem = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 41UL,
+            };
+
+            ResetDb(dbItem);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newItem = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 0UL,
+            };
+
+            var result = dbContext.ULongEntities.Upsert(newItem)
+                .On(e => e.Num1)
+                .WhenMatched(e => new ULongEntity
+                {
+                    Counter = (e.Counter * 2) + 1UL,
+                })
+                .RunAndReturn();
+
+            result.Should().HaveCount(1);
+            result.Single().Num1.Should().Be(1);
+            result.Single().Counter.Should().Be((41UL * 2UL) + 1UL);
+
+            dbContext.ULongEntities.OrderBy(e => e.ID).Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be((41UL * 2UL) + 1UL);
+                });
+        }
+
+        [Fact]
+        public void Upsert_WhenMatched_ULongCounter_SetConstant_RunAndReturn()
+        {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
+            var dbItem = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 123UL,
+            };
+
+            ResetDb(dbItem);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newItem = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 0UL,
+            };
+
+            var result = dbContext.ULongEntities.Upsert(newItem)
+                .On(e => e.Num1)
+                .WhenMatched(e => new ULongEntity
+                {
+                    Counter = 5UL,
+                })
+                .RunAndReturn();
+
+            result.Should().HaveCount(1);
+            result.Single().Num1.Should().Be(1);
+            result.Single().Counter.Should().Be(5UL);
+
+            dbContext.ULongEntities.OrderBy(e => e.ID).Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be(5UL);
+                });
+        }
+
+        [Fact]
+        public void Upsert_WhenMatched_ULongCounter_ConditionalConstants_RunAndReturn()
+        {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
+            var dbItem = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 1UL,
+            };
+
+            ResetDb(dbItem);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newItem = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 0UL,
+            };
+
+            var result = dbContext.ULongEntities.Upsert(newItem)
+                .On(e => e.Num1)
+                .WhenMatched(e => new ULongEntity
+                {
+                    Counter = e.Num1 == 1 ? 10UL : 20UL,
+                })
+                .RunAndReturn();
+
+            result.Should().HaveCount(1);
+            result.Single().Num1.Should().Be(1);
+            result.Single().Counter.Should().Be(10UL);
+
+            dbContext.ULongEntities.OrderBy(e => e.ID).Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be(10UL);
+                });
+        }
+
+        [Fact]
+        public void UpsertRange_WhenMatched_ULongCounter_Increment_MixedInsertUpdate()
+        {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
+            var existing = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 1UL,
+            };
+
+            ResetDb(existing);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var upserts = new[]
+            {
+                new ULongEntity { Num1 = 1, Counter = 0UL },
+                new ULongEntity { Num1 = 2, Counter = 5UL },
+            };
+
+            var result = dbContext.ULongEntities.UpsertRange(upserts)
+                .On(e => e.Num1)
+                .WhenMatched(e => new ULongEntity
+                {
+                    Counter = e.Counter + 1UL,
+                })
+                .RunAndReturn();
+
+            result.Should().HaveCount(2);
+            result.Single(e => e.Num1 == 1).Counter.Should().Be(2UL);
+            result.Single(e => e.Num1 == 2).Counter.Should().Be(5UL);
+
+            dbContext.ULongEntities.OrderBy(e => e.Num1).Should().SatisfyRespectively(
+                e1 =>
+                {
+                    e1.Num1.Should().Be(1);
+                    e1.Counter.Should().Be(2UL);
+                },
+                e2 =>
+                {
+                    e2.Num1.Should().Be(2);
+                    e2.Counter.Should().Be(5UL);
+                });
         }
 
         [Fact]
