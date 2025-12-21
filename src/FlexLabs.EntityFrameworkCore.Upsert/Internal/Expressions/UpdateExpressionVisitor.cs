@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -15,21 +15,6 @@ internal class UpdateExpressionVisitor(
     bool useExpressionCompiler
 ) : ExpressionVisitor
 {
-    private static IColumnBase? TryGetColumn(IKnownValue knownValue)
-    {
-        return knownValue switch
-        {
-            PropertyValue { Column: var column } => column,
-            KnownExpression { Value1: var v1, Value2: var v2, Value3: var v3 } => TryGetColumn(v1)
-                ?? (v2 != null ? TryGetColumn(v2) : null)
-                ?? (v3 != null ? TryGetColumn(v3) : null),
-            _ => null,
-        };
-    }
-
-    private static ConstantValue WithColumn(ConstantValue constant, IColumnBase column)
-        => new(constant.Value, column, constant.MemberInfo);
-
     protected override Expression VisitMethodCall(MethodCallExpression node)
     {
         var context = node.Object != null ? GetValueObject(node.Object) : null;
@@ -80,22 +65,13 @@ internal class UpdateExpressionVisitor(
                     // to the constant so parameter creation can use the column's type mapping/converter.
                     // This is important for providers (e.g. Npgsql) that don't support UInt64 parameters
                     // without explicit type info; the column mapping may convert it (e.g. to decimal).
-                    if (left is ConstantValue leftConst && leftConst.ColumnProperty is null)
+                    if (left is ConstantValue { ColumnProperty: null } leftConst && right is PropertyValue rightProp)
                     {
-                        var rightColumn = TryGetColumn(right);
-                        if (rightColumn != null)
-                        {
-                            left = WithColumn(leftConst, rightColumn);
-                        }
+                        left = new ConstantValue(leftConst.Value, rightProp.Column, leftConst.MemberInfo);
                     }
-
-                    if (right is ConstantValue rightConst && rightConst.ColumnProperty is null)
+                    else if (right is ConstantValue { ColumnProperty: null } rightConst && left is PropertyValue leftProp)
                     {
-                        var leftColumn = TryGetColumn(left);
-                        if (leftColumn != null)
-                        {
-                            right = WithColumn(rightConst, leftColumn);
-                        }
+                        right = new ConstantValue(rightConst.Value, leftProp.Column, rightConst.MemberInfo);
                     }
 
                     if (left is ConstantValue { Value: var l } &&

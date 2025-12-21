@@ -2103,9 +2103,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .RunAndReturn();
 
-            result.Should().HaveCount(1);
-            result.Single().Num1.Should().Be(1);
-            result.Single().Counter.Should().Be((41UL * 2UL) + 1UL);
+            result.Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be((41UL * 2UL) + 1UL);
+                });
 
             dbContext.ULongEntities.OrderBy(e => e.ID).Should().SatisfyRespectively(
                 e =>
@@ -2143,9 +2146,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .RunAndReturn();
 
-            result.Should().HaveCount(1);
-            result.Single().Num1.Should().Be(1);
-            result.Single().Counter.Should().Be(5UL);
+            result.Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be(5UL);
+                });
 
             dbContext.ULongEntities.OrderBy(e => e.ID).Should().SatisfyRespectively(
                 e =>
@@ -2183,9 +2189,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .RunAndReturn();
 
-            result.Should().HaveCount(1);
-            result.Single().Num1.Should().Be(1);
-            result.Single().Counter.Should().Be(10UL);
+            result.Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be(10UL);
+                });
 
             dbContext.ULongEntities.OrderBy(e => e.ID).Should().SatisfyRespectively(
                 e =>
@@ -2223,9 +2232,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .RunAndReturn();
 
-            result.Should().HaveCount(2);
-            result.Single(e => e.Num1 == 1).Counter.Should().Be(2UL);
-            result.Single(e => e.Num1 == 2).Counter.Should().Be(5UL);
+            result.Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be(2UL);
+                },
+                e =>
+                {
+                    e.Num1.Should().Be(2);
+                    e.Counter.Should().Be(5UL);
+                });
 
             dbContext.ULongEntities.OrderBy(e => e.Num1).Should().SatisfyRespectively(
                 e1 =>
