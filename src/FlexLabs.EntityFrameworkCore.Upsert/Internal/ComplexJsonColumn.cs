@@ -12,7 +12,8 @@ internal sealed record ComplexJsonColumn(
     string ColumnName,
     OwnershipType Owned,
     string? Path = null
-) : IColumnBase {
+) : IColumnBase
+{
     public string Name => Property.Name;
 
     public (string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts) GetValue(object entity)

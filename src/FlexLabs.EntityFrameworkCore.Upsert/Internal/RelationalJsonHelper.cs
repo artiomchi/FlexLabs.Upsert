@@ -5,10 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
-using global::Microsoft.EntityFrameworkCore.Diagnostics;
-using global::Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;
 
@@ -22,7 +21,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;
 /// It can be used to JSON serialize owned json entities (INavigation).
 /// The original `RelationalJsonUtilities` only supports complex types, not owned entities.
 /// </summary>
-internal static class RelationalJsonHelper {
+internal static class RelationalJsonHelper
+{
     /// <summary>
     /// Based on json utilities for IComplexType: https://github.com/dotnet/efcore/blob/v10.0.0/src/EFCore.Relational/Query/Internal/RelationalJsonUtilities.cs
     /// and modified to support INavigation inspired by: https://github.com/dotnet/efcore/blob/d1731e0e2b3a900fa94f78b3c6664c47c5de69fd/src/EFCore.Relational/Update/ModificationCommand.cs#L883-L1028
@@ -31,31 +31,33 @@ internal static class RelationalJsonHelper {
     {
         // Note that we treat toplevel null differently: we return a relational NULL for that case. For nested nulls,
         // we return JSON null string (so you get { "foo": null })
-        if (value is null) {
+        if (value is null)
+        {
             return null;
         }
 
-        var stream = new MemoryStream();
+        using var stream = new MemoryStream();
         using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = false });
 
         WriteJsonNavigation(writer, navigation, value, navigation.IsCollection);
-
         writer.Flush();
 
-        return Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int) stream.Length);
+        return Encoding.UTF8.GetString(stream.GetBuffer(), 0, (int)stream.Length);
 
         void WriteJsonNavigation(Utf8JsonWriter writer, INavigation navigation, object? value, bool collection)
         {
-            if (collection) {
-                if (value is null) {
+            if (collection)
+            {
+                if (value is null)
+                {
                     writer.WriteNullValue();
-
                     return;
                 }
 
                 writer.WriteStartArray();
 
-                foreach (var element in (IEnumerable) value) {
+                foreach (var element in (IEnumerable)value)
+                {
                     WriteJsonObjectNavigation(writer, navigation, element);
                 }
 
@@ -68,51 +70,59 @@ internal static class RelationalJsonHelper {
 
         void WriteJsonObjectNavigation(Utf8JsonWriter writer, INavigation navigation, object? objectValue)
         {
-            if (objectValue is null) {
+            if (objectValue is null)
+            {
                 writer.WriteNullValue();
                 return;
             }
 
             writer.WriteStartObject();
 
-            foreach (var property in navigation.TargetEntityType.GetProperties().Where(_ => !_.IsShadowProperty())) {
+            foreach (var property in navigation.TargetEntityType.GetProperties().Where(p => !p.IsShadowProperty()))
+            {
                 var jsonPropertyName = property.GetJsonPropertyName();
                 Debug.Assert(jsonPropertyName is not null);
                 writer.WritePropertyName(jsonPropertyName);
 
                 var propertyValue = property.GetGetter().GetClrValue(objectValue);
-                if (propertyValue is null) {
-                    if (!property.IsNullable) {
+                if (propertyValue is null)
+                {
+                    if (!property.IsNullable)
+                    {
                         throw new InvalidOperationException(RelationalStrings.NullValueInRequiredJsonProperty(property.Name));
                     }
 
                     writer.WriteNullValue();
                 }
-                else {
+                else
+                {
                     var jsonValueReaderWriter = property.GetJsonValueReaderWriter() ?? property.GetTypeMapping().JsonValueReaderWriter;
                     Debug.Assert(jsonValueReaderWriter is not null, "Missing JsonValueReaderWriter on JSON property");
                     jsonValueReaderWriter.ToJson(writer, propertyValue);
                 }
             }
 
-            foreach (var complexProperty in navigation.TargetEntityType.GetComplexProperties()) {
+            foreach (var complexProperty in navigation.TargetEntityType.GetComplexProperties())
+            {
                 var jsonPropertyName = complexProperty.GetJsonPropertyName();
                 Debug.Assert(jsonPropertyName is not null);
                 writer.WritePropertyName(jsonPropertyName);
 
                 var propertyValue = complexProperty.GetGetter().GetClrValue(objectValue);
-
-                if (propertyValue is null && !complexProperty.IsNullable) {
+                if (propertyValue is null && !complexProperty.IsNullable)
+                {
                     throw new InvalidOperationException(RelationalStrings.NullValueInRequiredJsonProperty(complexProperty.Name));
                 }
 
                 WriteJson(writer, complexProperty.ComplexType, propertyValue, complexProperty.IsCollection);
             }
 
-            foreach (var property in navigation.TargetEntityType.GetNavigations().Where(_ => _.ForeignKey.IsOwnership)) {
+            foreach (var property in navigation.TargetEntityType.GetNavigations().Where(_ => _.ForeignKey.IsOwnership))
+            {
                 // skip back-references to the parent
                 // https://github.com/dotnet/efcore/blob/d1731e0e2b3a900fa94f78b3c6664c47c5de69fd/src/EFCore.Relational/Update/ModificationCommand.cs#L1005C17-L1009C18
-                if (property.IsOnDependent) {
+                if (property.IsOnDependent)
+                {
                     continue;
                 }
 
@@ -121,8 +131,8 @@ internal static class RelationalJsonHelper {
                 writer.WritePropertyName(jsonPropertyName);
 
                 var propertyValue = property.GetGetter().GetClrValue(objectValue);
-
-                if (propertyValue is null && property.ForeignKey.IsRequired) {
+                if (propertyValue is null && property.ForeignKey.IsRequired)
+                {
                     throw new InvalidOperationException(RelationalStrings.NullValueInRequiredJsonProperty(property.Name));
                 }
 
@@ -134,16 +144,18 @@ internal static class RelationalJsonHelper {
 
         void WriteJson(Utf8JsonWriter writer, IComplexType complexType, object? value, bool collection)
         {
-            if (collection) {
-                if (value is null) {
+            if (collection)
+            {
+                if (value is null)
+                {
                     writer.WriteNullValue();
-
                     return;
                 }
 
                 writer.WriteStartArray();
 
-                foreach (var element in (IEnumerable) value) {
+                foreach (var element in (IEnumerable)value)
+                {
                     WriteJsonObject(writer, complexType, element);
                 }
 
@@ -156,41 +168,48 @@ internal static class RelationalJsonHelper {
 
         void WriteJsonObject(Utf8JsonWriter writer, IComplexType complexType, object? objectValue)
         {
-            if (objectValue is null) {
+            if (objectValue is null)
+            {
                 writer.WriteNullValue();
                 return;
             }
 
             writer.WriteStartObject();
 
-            foreach (var property in complexType.GetProperties()) {
+            foreach (var property in complexType.GetProperties())
+            {
                 var jsonPropertyName = property.GetJsonPropertyName();
                 Debug.Assert(jsonPropertyName is not null);
                 writer.WritePropertyName(jsonPropertyName);
 
                 var propertyValue = property.GetGetter().GetClrValue(objectValue);
-                if (propertyValue is null) {
-                    if (!property.IsNullable) {
+                if (propertyValue is null)
+                {
+                    if (!property.IsNullable)
+                    {
                         throw new InvalidOperationException(RelationalStrings.NullValueInRequiredJsonProperty(property.Name));
                     }
 
                     writer.WriteNullValue();
                 }
-                else {
+                else
+                {
                     var jsonValueReaderWriter = property.GetJsonValueReaderWriter() ?? property.GetTypeMapping().JsonValueReaderWriter;
                     Debug.Assert(jsonValueReaderWriter is not null, "Missing JsonValueReaderWriter on JSON property");
                     jsonValueReaderWriter.ToJson(writer, propertyValue);
                 }
             }
 
-            foreach (var complexProperty in complexType.GetComplexProperties()) {
+            foreach (var complexProperty in complexType.GetComplexProperties())
+            {
                 var jsonPropertyName = complexProperty.GetJsonPropertyName();
                 Debug.Assert(jsonPropertyName is not null);
                 writer.WritePropertyName(jsonPropertyName);
 
                 var propertyValue = complexProperty.GetGetter().GetClrValue(objectValue);
 
-                if (propertyValue is null && !complexProperty.IsNullable) {
+                if (propertyValue is null && !complexProperty.IsNullable)
+                {
                     throw new InvalidOperationException(RelationalStrings.NullValueInRequiredJsonProperty(complexProperty.Name));
                 }
 

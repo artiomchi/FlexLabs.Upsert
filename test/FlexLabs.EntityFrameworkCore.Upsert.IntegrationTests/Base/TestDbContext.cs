@@ -67,7 +67,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
                         b.OwnsOne(c => c.Nested);
                         b.OwnsMany(c => c.Properties);
                     });
-            
+
             if (dbProvider.Name == "Microsoft.EntityFrameworkCore.InMemory")
             {
                 // in-memory provider does not support complex properties

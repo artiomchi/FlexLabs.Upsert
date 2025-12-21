@@ -211,7 +211,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                     Child = new Child
                     {
                         ChildName = b.Child.ChildName,
-                        SubChild = new SubChild {
+                        SubChild = new SubChild
+                        {
                             Age = b.Child.SubChild.Age,
                         },
                     }
@@ -314,7 +315,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .Run();
 
             dbContext.CompanyOwnedJson.OrderBy(p => p.Id).Should().SatisfyRespectively(
-                entity => {
+                entity =>
+                {
                     var expected = JsonSerializer.Serialize(company);
                     var actual = JsonSerializer.Serialize(entity);
                     actual.Should().Be(expected);
@@ -838,7 +840,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .Run();
 
             dbContext.CompanyComplexJson.OrderBy(p => p.Id).Should().SatisfyRespectively(
-                entity => {
+                entity =>
+                {
                     var expected = JsonSerializer.Serialize(company);
                     var actual = JsonSerializer.Serialize(entity);
                     actual.Should().Be(expected);

@@ -103,7 +103,8 @@ internal sealed class RelationalTable : RelationalTableBase
                     Path: path
                 );
             }
-            else {
+            else
+            {
                 // create a shadow property for FindColumn()
                 yield return new OwnerColumn(
                     Name: complexProperty.Name,
