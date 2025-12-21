@@ -5,9 +5,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".solution", ".solution", "{8F601D76-FA75-4B32-AACB-559A63305223}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
-		build.release.signed.bat = build.release.signed.bat
 		Directory.Build.props = Directory.Build.props
 		README.md = README.md
+		release.sh = release.sh
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "github-workflows", "github-workflows", "{3B24B110-DA69-4764-9EB3-E7E89695A6DC}"
