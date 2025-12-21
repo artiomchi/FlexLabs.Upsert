@@ -96,7 +96,9 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
             }
             else if (column.Owned is OwnershipType.None or OwnershipType.Inline or OwnershipType.Json)
             {
-                yield return new PropertyMapping(column, value);
+                // Ensure any constants embedded in the value expression inherit the target column,
+                // so parameter typing can use the column's relational type mapping.
+                yield return new PropertyMapping(column, ApplyColumnToConstants(value, column));
             }
             else
             {
@@ -135,5 +137,44 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
         {
             throw new UnsupportedExpressionException(expression);
         }
+    }
+
+    [return: NotNullIfNotNull(nameof(value))]
+    private static IKnownValue? ApplyColumnToConstants(IKnownValue? value, IColumnBase column)
+    {
+        return value switch
+        {
+            // If a constant value is used as (part of) a value assigned to a column,
+            // attach the target column so relational type mapping/value conversion can be applied.
+            // This is important for providers that require explicit typing for some CLR types
+            // (e.g. UInt64 parameters in Npgsql).
+            ConstantValue { ColumnProperty: null } constant => new ConstantValue(constant.Value, column, constant.MemberInfo),
+
+            KnownExpression known => ApplyColumnToConstants(known, column),
+
+            _ => value,
+        };
+    }
+
+    private static KnownExpression ApplyColumnToConstants(KnownExpression known, IColumnBase column)
+    {
+        var value1 = ApplyColumnToConstants(known.Value1, column);
+        var value2 = ApplyColumnToConstants(known.Value2, column);
+        var value3 = ApplyColumnToConstants(known.Value3, column);
+
+        if (ReferenceEquals(value1, known.Value1) &&
+            ReferenceEquals(value2, known.Value2) &&
+            ReferenceEquals(value3, known.Value3))
+        {
+            return known;
+        }
+
+        return (value2, value3) switch
+        {
+            (null, null) => new KnownExpression(known.ExpressionType, value1),
+            ({}, null) => new KnownExpression(known.ExpressionType, value1, value2),
+            ({}, {}) => new KnownExpression(known.ExpressionType, value1, value2, value3),
+            _ => throw new InvalidOperationException("Invalid KnownExpression value state"),
+        };
     }
 }
