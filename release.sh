@@ -25,7 +25,7 @@ echo "-- Version: $VERSION --"
 
 # Build solution in release mode
 echo "-- Building solution in release mode"
-dotnet pack \
+OPENSSL_ENABLE_SHA1_SIGNATURES=1 dotnet pack \
     -c Release \
     -p:ContinuousIntegrationBuild=true \
     -p:PostBuildEvent="signtool-helper FlexLabs.EntityFrameworkCore.Upsert.dll" \
