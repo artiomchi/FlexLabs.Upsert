@@ -20,12 +20,11 @@ jobs:
     - name: Test
       run: dotnet test --no-build --logger "trx;LogFileName=test-results.trx"
     - name: Test Report
-      uses: dorny/test-reporter@v1
+      uses: actions/upload-artifact@v4
       if: success() || failure()
       with:
-        name: Test Results (Ubuntu)
+        name: test-results
         path: '**/TestResults/*.trx'
-        reporter: dotnet-trx
 
   build-windows:
     name: Build on Windows
@@ -48,9 +47,8 @@ jobs:
         FLEXLABS_UPSERT_TESTS_POSTGRESQL_CONNECTION_STRING: 'Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=root'
       run: dotnet test ./test/FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests --no-build -f net9.0 --logger "trx;LogFileName=test-results.trx"
     - name: Test Report
-      uses: dorny/test-reporter@v1
+      uses: actions/upload-artifact@v4
       if: success() || failure()
       with:
-        name: Test Results (Windows)
+        name: test-results-win
         path: '**/TestResults/*.trx'
-        reporter: dotnet-trx
