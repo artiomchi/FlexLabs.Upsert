@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -60,6 +60,19 @@ internal class UpdateExpressionVisitor(
                 {
                     var left = GetKnownValue(node.Left);
                     var right = GetKnownValue(node.Right);
+
+                    // If one side is a column and the other side is a constant, attach the column
+                    // to the constant so parameter creation can use the column's type mapping/converter.
+                    // This is important for providers (e.g. Npgsql) that don't support UInt64 parameters
+                    // without explicit type info; the column mapping may convert it (e.g. to decimal).
+                    if (left is ConstantValue { ColumnProperty: null } leftConst && right is PropertyValue rightProp)
+                    {
+                        left = new ConstantValue(leftConst.Value, rightProp.Column, leftConst.MemberInfo);
+                    }
+                    else if (right is ConstantValue { ColumnProperty: null } rightConst && left is PropertyValue leftProp)
+                    {
+                        right = new ConstantValue(rightConst.Value, leftProp.Column, rightConst.MemberInfo);
+                    }
 
                     if (left is ConstantValue { Value: var l } &&
                         right is ConstantValue { Value: var r } &&

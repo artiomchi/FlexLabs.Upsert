@@ -261,3 +261,4 @@ __pycache__/
 *.pyc
 
 *.snk
+*.gpg
