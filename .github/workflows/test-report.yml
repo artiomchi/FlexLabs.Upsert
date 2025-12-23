@@ -1,4 +1,6 @@
 name: 'Test Report'
+# Workflows triggered by pull requests from forked repositories are executed with read-only token and therefore can't create check runs.
+# To workaround this security restriction, it's required to use two separate workflows
 
 on:
   workflow_run:

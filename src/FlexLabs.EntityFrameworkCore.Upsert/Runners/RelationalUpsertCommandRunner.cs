@@ -337,7 +337,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)).ToArray();
-                result.AddRange(dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).IgnoreQueryFilters().IgnoreAutoIncludes().ToArray());
+                var returnedEntities = dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).AsNoTracking().IgnoreQueryFilters().IgnoreAutoIncludes().ToArray();
+                AttachOrUpdateEntities(dbContext, returnedEntities);
+                result.AddRange(returnedEntities);
             }
             return result;
         }
@@ -381,7 +383,9 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             {
                 using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
                 var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)).ToArray();
-                result.AddRange(await dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).IgnoreQueryFilters().IgnoreAutoIncludes().ToArrayAsync(cancellationToken).ConfigureAwait(false));
+                var returnedEntities = await dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).AsNoTracking().IgnoreQueryFilters().IgnoreAutoIncludes().ToArrayAsync(cancellationToken).ConfigureAwait(false);
+                AttachOrUpdateEntities(dbContext, returnedEntities);
+                result.AddRange(returnedEntities);
             }
             return result;
         }
@@ -416,6 +420,68 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 dbParameter.ParameterName = Parameter(constantValue.ArgumentIndex);
             }
             return dbParameter;
+        }
+
+        /// <summary>
+        /// Attaches or updates entities in the change tracker with fresh database values.
+        /// If an entity is already tracked (by matching primary key), updates its values. Otherwise, attaches it.
+        /// </summary>
+        private static void AttachOrUpdateEntities<TEntity>(DbContext dbContext, TEntity[] entities) where TEntity : class
+        {
+            if (entities.Length == 0)
+                return;
+
+            // Get primary key properties once (same for all entities of this type)
+            var firstEntry = dbContext.Entry(entities[0]);
+            var keyProperties = firstEntry.Metadata.FindPrimaryKey()!.Properties;
+
+            // Build dictionary of tracked entities by their composite key for lookup
+            var trackedEntries = dbContext.ChangeTracker.Entries<TEntity>()
+                .ToDictionary(e => CompositeKey.FromEntity(e, keyProperties));
+
+            // Early exit if nothing is tracked
+            if (trackedEntries.Count == 0)
+            {
+                dbContext.AttachRange(entities);
+                return;
+            }
+
+            // Process each entity: update if tracked, attach if new
+            foreach (var entity in entities)
+            {
+                var entry = dbContext.Entry(entity);
+                var key = CompositeKey.FromEntity(entry, keyProperties);
+
+                if (trackedEntries.TryGetValue(key, out var trackedEntry))
+                {
+                    trackedEntry.CurrentValues.SetValues(entity);
+                }
+                else
+                {
+                    dbContext.Attach(entity);
+                }
+            }
+        }
+
+        private readonly record struct CompositeKey(object[] Values)
+        {
+            public bool Equals(CompositeKey other) => Values.SequenceEqual(other.Values);
+
+            public override int GetHashCode()
+            {
+                var hash = new HashCode();
+                foreach (var value in Values)
+                    hash.Add(value);
+                return hash.ToHashCode();
+            }
+
+            public static CompositeKey FromEntity(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, IReadOnlyList<IProperty> keyProperties)
+            {
+                var keyValues = keyProperties
+                    .Select(p => entry.Property(p.Name).CurrentValue!)
+                    .ToArray();
+                return new CompositeKey(keyValues);
+            }
         }
     }
 }

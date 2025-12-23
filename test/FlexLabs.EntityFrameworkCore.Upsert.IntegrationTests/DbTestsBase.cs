@@ -112,6 +112,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
             Reset(dbContext, e => e.StringKeysAutoGen);
             Reset(dbContext, e => e.TestEntities);
             Reset(dbContext, e => e.TestEntitiesFiltered);
+            Reset(dbContext, e => e.ULongEntities);
             Reset(dbContext, e => e.GeneratedAlwaysAsIdentity);
             Reset(dbContext, e => e.ComputedColumns);
             Reset(dbContext, e => e.Parents);
@@ -2078,6 +2079,188 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
         }
 
         [Fact]
+        public void Upsert_WhenMatched_ULongCounter_Increment()
+        {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
+            var dbItem = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 41UL,
+            };
+
+            ResetDb(dbItem);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newItem = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 0UL,
+            };
+
+            var result = dbContext.ULongEntities.Upsert(newItem)
+                .On(e => e.Num1)
+                .WhenMatched(e => new ULongEntity
+                {
+                    Counter = (e.Counter * 2) + 1UL,
+                })
+                .RunAndReturn();
+
+            result.Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be((41UL * 2UL) + 1UL);
+                });
+
+            dbContext.ULongEntities.OrderBy(e => e.ID).Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be((41UL * 2UL) + 1UL);
+                });
+        }
+
+        [Fact]
+        public void Upsert_WhenMatched_ULongCounter_SetConstant_RunAndReturn()
+        {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
+            var dbItem = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 123UL,
+            };
+
+            ResetDb(dbItem);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newItem = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 0UL,
+            };
+
+            var result = dbContext.ULongEntities.Upsert(newItem)
+                .On(e => e.Num1)
+                .WhenMatched(e => new ULongEntity
+                {
+                    Counter = 5UL,
+                })
+                .RunAndReturn();
+
+            result.Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be(5UL);
+                });
+
+            dbContext.ULongEntities.OrderBy(e => e.ID).Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be(5UL);
+                });
+        }
+
+        [Fact]
+        public void Upsert_WhenMatched_ULongCounter_ConditionalConstants_RunAndReturn()
+        {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
+            var dbItem = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 1UL,
+            };
+
+            ResetDb(dbItem);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var newItem = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 0UL,
+            };
+
+            var result = dbContext.ULongEntities.Upsert(newItem)
+                .On(e => e.Num1)
+                .WhenMatched(e => new ULongEntity
+                {
+                    Counter = e.Num1 == 1 ? 10UL : 20UL,
+                })
+                .RunAndReturn();
+
+            result.Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be(10UL);
+                });
+
+            dbContext.ULongEntities.OrderBy(e => e.ID).Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be(10UL);
+                });
+        }
+
+        [Fact]
+        public void UpsertRange_WhenMatched_ULongCounter_Increment_MixedInsertUpdate()
+        {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
+            var existing = new ULongEntity
+            {
+                Num1 = 1,
+                Counter = 1UL,
+            };
+
+            ResetDb(existing);
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var upserts = new[]
+            {
+                new ULongEntity { Num1 = 1, Counter = 0UL },
+                new ULongEntity { Num1 = 2, Counter = 5UL },
+            };
+
+            var result = dbContext.ULongEntities.UpsertRange(upserts)
+                .On(e => e.Num1)
+                .WhenMatched(e => new ULongEntity
+                {
+                    Counter = e.Counter + 1UL,
+                })
+                .RunAndReturn();
+
+            result.Should().SatisfyRespectively(
+                e =>
+                {
+                    e.Num1.Should().Be(1);
+                    e.Counter.Should().Be(2UL);
+                },
+                e =>
+                {
+                    e.Num1.Should().Be(2);
+                    e.Counter.Should().Be(5UL);
+                });
+
+            dbContext.ULongEntities.OrderBy(e => e.Num1).Should().SatisfyRespectively(
+                e1 =>
+                {
+                    e1.Num1.Should().Be(1);
+                    e1.Counter.Should().Be(2UL);
+                },
+                e2 =>
+                {
+                    e2.Num1.Should().Be(2);
+                    e2.Counter.Should().Be(5UL);
+                });
+        }
+
+        [Fact]
         public void Upsert_HandleImplicitConversions()
         {
             ResetDb(new TestEntity
@@ -2194,8 +2377,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .NoUpdate()
                 .RunAndReturnAsync(TestContext.Current.CancellationToken);
 
-            resultItems.Should().HaveCount(1);
-            resultItems.First().Should().BeEquivalentTo(dbItem1, o => o.Excluding(x => x.ID));
+            resultItems.Should().SatisfyRespectively(
+                item => item.Should().BeEquivalentTo(dbItem1, o => o.Excluding(x => x.ID)));
 
             dbContext.TestEntitiesFiltered
                 .IgnoreQueryFilters()
@@ -2235,9 +2418,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .RunAndReturnAsync(TestContext.Current.CancellationToken);
 
-            resultItems.Should().HaveCount(1);
-            var firstResultItem = resultItems.First();
-            firstResultItem.Counter.Should().Be(3);
+            resultItems.Should().SatisfyRespectively(
+                item => item.Counter.Should().Be(3));
 
             dbContext.TestEntitiesFiltered
                 .IgnoreQueryFilters()
@@ -2245,6 +2427,108 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .Should()
                 .SatisfyRespectively(
                     test => test.Counter.Should().Be(3));
+        }
+
+        [Fact]
+        public async Task Upsert_WithUpdate_RunAndReturnAsync_ReturnsUpdatedValuesNotTrackedValues()
+        {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
+            // Arrange - Insert initial record with Visits = 10
+            ResetDb();
+            await using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var initialVisit = new PageVisit
+            {
+                UserID = 99,
+                Date = _today,
+                Visits = 10,
+                FirstVisit = _now,
+                LastVisit = _now,
+            };
+
+            dbContext.PageVisits.Add(initialVisit);
+            await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            // Act - UPSERT with delta +5 (should result in Visits = 15)
+            var upsertEntity = new PageVisit
+            {
+                UserID = 99,
+                Date = _today,
+                Visits = 5,  // Delta to add
+                FirstVisit = _now,
+                LastVisit = _now.AddHours(1),
+            };
+
+            var result = await dbContext.PageVisits.Upsert(upsertEntity)
+                .On(v => new { v.UserID, v.Date })
+                .WhenMatched((existing, inserted) => new PageVisit
+                {
+                    Visits = existing.Visits + inserted.Visits,  // 10 + 5 = 15
+                    LastVisit = inserted.LastVisit,
+                })
+                .RunAndReturnAsync(TestContext.Current.CancellationToken);
+
+            // Assert - Should return the updated value from database (15), not the input value (5)
+            result.Should().SatisfyRespectively(
+                item => item.Visits.Should().Be(15, "RunAndReturnAsync should return fresh values from database after UPSERT, not stale tracked entities"));
+
+            // Verify database actually has correct value
+            var dbValue = await dbContext.PageVisits
+                .AsNoTracking()
+                .FirstAsync(v => v.UserID == 99 && v.Date == _today, TestContext.Current.CancellationToken);
+            dbValue.Visits.Should().Be(15, "the database should have the correct value");
+        }
+
+        [Fact]
+        public void Upsert_WithUpdate_RunAndReturn_ReturnsUpdatedValuesNotTrackedValues()
+        {
+            Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+
+            // Arrange - Insert initial record with Visits = 10
+            ResetDb();
+            using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+            var initialVisit = new PageVisit
+            {
+                UserID = 99,
+                Date = _today,
+                Visits = 10,
+                FirstVisit = _now,
+                LastVisit = _now,
+            };
+
+            dbContext.PageVisits.Add(initialVisit);
+            dbContext.SaveChanges();
+
+            // Act - UPSERT with delta +5 (should result in Visits = 15)
+            var upsertEntity = new PageVisit
+            {
+                UserID = 99,
+                Date = _today,
+                Visits = 5,  // Delta to add
+                FirstVisit = _now,
+                LastVisit = _now.AddHours(1),
+            };
+
+            var result = dbContext.PageVisits.Upsert(upsertEntity)
+                .On(v => new { v.UserID, v.Date })
+                .WhenMatched((existing, inserted) => new PageVisit
+                {
+                    Visits = existing.Visits + inserted.Visits,  // 10 + 5 = 15
+                    LastVisit = inserted.LastVisit,
+                })
+                .RunAndReturn();
+
+            // Assert - Should return the updated value from database (15), not the input value (5)
+            result.Should().SatisfyRespectively(
+                item => item.Visits.Should().Be(15, "RunAndReturn should return fresh values from database after UPSERT, not stale tracked entities"));
+
+            // Verify database actually has correct value
+            var dbValue = dbContext.PageVisits
+                .AsNoTracking()
+                .First(v => v.UserID == 99 && v.Date == _today);
+            dbValue.Visits.Should().Be(15, "the database should have the correct value");
         }
     }
 }
