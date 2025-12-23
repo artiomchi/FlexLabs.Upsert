@@ -29,10 +29,10 @@ OPENSSL_ENABLE_SHA1_SIGNATURES=1 dotnet pack \
     -c Release \
     -p:ContinuousIntegrationBuild=true \
     -p:PostBuildEvent="signtool-helper FlexLabs.EntityFrameworkCore.Upsert.dll" \
-    -o .dist \
+    -o dist \
     $SUFFIX
 
 # Sign the nuget package using signtool-helper alias
 echo "-- Signing the nuget package"
-signtool-helper ".dist/FlexLabs.EntityFrameworkCore.Upsert.${VERSION}.nupkg"
+signtool-helper "dist/FlexLabs.EntityFrameworkCore.Upsert.${VERSION}.nupkg"
 echo "-- Build completed successfully --"
