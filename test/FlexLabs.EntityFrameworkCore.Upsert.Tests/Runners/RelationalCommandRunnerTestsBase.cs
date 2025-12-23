@@ -44,7 +44,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
 
             // initialize relational model:
             serviceProvider.GetRequiredService<IModelRuntimeInitializer>().Initialize(_model);
-            
+
             _dbContext = Substitute.For<DbContext, IInfrastructure<IServiceProvider>>();
             ((IInfrastructure<IServiceProvider>)_dbContext).Instance.Returns(serviceProvider);
 
@@ -86,7 +86,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners
             {
                 entityType.AddProperty(property.Name, ConfigurationSource.Explicit);
             }
-            var idProperty = entityType.FindProperty("ID") 
+            var idProperty = entityType.FindProperty("ID")
                 ?? throw new InvalidOperationException("ID property missing on entity " + typeof(TEntity).Name);
             entityType.AddKey(idProperty, ConfigurationSource.Convention);
             return entityType;

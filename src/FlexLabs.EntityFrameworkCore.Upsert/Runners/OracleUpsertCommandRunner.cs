@@ -43,7 +43,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
             var result = new StringBuilder();
             result.Append(CultureInfo.InvariantCulture, $"MERGE INTO {tableName} t USING (");
-            foreach (var item in entities.Select((e, ind) => new {e, ind}))
+            foreach (var item in entities.Select((e, ind) => new { e, ind }))
             {
                 result.Append("SELECT ");
                 result.Append(string.Join(", ", item.e.Select(ec => string.Join(" AS ", ExpandValue(ec.Value), EscapeName(ec.ColumnName)))));
@@ -81,23 +81,23 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             switch (expression.ExpressionType)
             {
                 case ExpressionType.And:
-                {
-                    var left = ExpandValue(expression.Value1, expandLeftColumn);
-                    var right = ExpandValue(expression.Value2!, expandLeftColumn);
-                    return $"BITAND({left}, {right})";
-                }
+                    {
+                        var left = ExpandValue(expression.Value1, expandLeftColumn);
+                        var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                        return $"BITAND({left}, {right})";
+                    }
                 case ExpressionType.Or:
-                {
-                    var left = ExpandValue(expression.Value1, expandLeftColumn);
-                    var right = ExpandValue(expression.Value2!, expandLeftColumn);
-                    return $"BITOR({left}, {right})";
-                }
+                    {
+                        var left = ExpandValue(expression.Value1, expandLeftColumn);
+                        var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                        return $"BITOR({left}, {right})";
+                    }
                 case ExpressionType.Modulo:
-                {
-                    var left = ExpandValue(expression.Value1, expandLeftColumn);
-                    var right = ExpandValue(expression.Value2!, expandLeftColumn);
-                    return $"MOD({left}, {right})";
-                }
+                    {
+                        var left = ExpandValue(expression.Value1, expandLeftColumn);
+                        var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                        return $"MOD({left}, {right})";
+                    }
 
                 default:
                     return base.ExpandExpression(expression, expandLeftColumn);

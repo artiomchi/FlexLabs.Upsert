@@ -176,6 +176,17 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public int Num3 { get; set; }
     }
 
+    /// <summary>
+    /// Child and SubChild are mapped as complex columns
+    /// </summary>
+    public class ParentComplex
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int ID { get; set; }
+        public Child Child { get; set; }
+        public int Counter { get; set; }
+    }
+
     public class Parent
     {
         [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
@@ -198,6 +209,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public int Age { get; set; }
     }
 
+    public class CompanyComplexJson
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public CompanyMeta Meta { get; set; }
+    }
+
     public class CompanyOwnedJson
     {
         [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
@@ -212,7 +231,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
         public string Required { get; set; }
         [JsonPropertyName("json_override")]
         public string JsonOverride { get; set; }
-        public string ColumnOverride { get; set; }
         public CompanyNestedMeta Nested { get; set; }
         public List<CompanyMetaValue> Properties { get; set; }
     }

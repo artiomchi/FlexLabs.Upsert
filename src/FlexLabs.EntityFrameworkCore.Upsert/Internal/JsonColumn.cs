@@ -18,9 +18,12 @@ internal sealed record JsonColumn(
         ArgumentNullException.ThrowIfNull(entity);
 
         var rawValue = Navigation.GetGetter().GetClrValueUsingContainingEntity(entity);
-        var jsonValue = rawValue != null
-            ? Column.StoreTypeMapping.GenerateProviderValueSqlLiteral(rawValue).Trim('\'')
-            : null;
+
+        // SQL Server and SQLite expect JSON values to be already serialized.
+        // So we need to serialize them here with the same logic EF Core uses.
+        // Since EF Core 10 removed the serialization in the internals we used before,
+        // we are now forced to rebuild the serialization logic here in our `RelationalJsonHelper`.
+        var jsonValue = RelationalJsonHelper.SerializeToJson(Navigation, rawValue);
 
         var value = new ConstantValue(jsonValue, this);
 
