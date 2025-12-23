@@ -2191,8 +2191,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .NoUpdate()
                 .RunAndReturnAsync(TestContext.Current.CancellationToken);
 
-            resultItems.Should().HaveCount(1);
-            resultItems.First().Should().BeEquivalentTo(dbItem1, o => o.Excluding(x => x.ID));
+            resultItems.Should().SatisfyRespectively(
+                item => item.Should().BeEquivalentTo(dbItem1, o => o.Excluding(x => x.ID)));
 
             dbContext.TestEntitiesFiltered
                 .IgnoreQueryFilters()
@@ -2232,9 +2232,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 })
                 .RunAndReturnAsync(TestContext.Current.CancellationToken);
 
-            resultItems.Should().HaveCount(1);
-            var firstResultItem = resultItems.First();
-            firstResultItem.Counter.Should().Be(3);
+            resultItems.Should().SatisfyRespectively(
+                item => item.Counter.Should().Be(3));
 
             dbContext.TestEntitiesFiltered
                 .IgnoreQueryFilters()
@@ -2285,9 +2284,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .RunAndReturnAsync(TestContext.Current.CancellationToken);
 
             // Assert - Should return the updated value from database (15), not the input value (5)
-            result.Should().NotBeNull();
-            result.Should().HaveCount(1);
-            result.First().Visits.Should().Be(15, "RunAndReturnAsync should return fresh values from database after UPSERT, not stale tracked entities");
+            result.Should().SatisfyRespectively(
+                item => item.Visits.Should().Be(15, "RunAndReturnAsync should return fresh values from database after UPSERT, not stale tracked entities"));
 
             // Verify database actually has correct value
             var dbValue = await dbContext.PageVisits
@@ -2337,9 +2335,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF
                 .RunAndReturn();
 
             // Assert - Should return the updated value from database (15), not the input value (5)
-            result.Should().NotBeNull();
-            result.Should().HaveCount(1);
-            result.First().Visits.Should().Be(15, "RunAndReturn should return fresh values from database after UPSERT, not stale tracked entities");
+            result.Should().SatisfyRespectively(
+                item => item.Visits.Should().Be(15, "RunAndReturn should return fresh values from database after UPSERT, not stale tracked entities"));
 
             // Verify database actually has correct value
             var dbValue = dbContext.PageVisits

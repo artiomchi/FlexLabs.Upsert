@@ -433,7 +433,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
 
             // Build dictionary of tracked entities by their composite key for lookup
             var trackedEntries = dbContext.ChangeTracker.Entries<TEntity>()
-                .ToDictionary(e => new CompositeKey(ExtractKeyValues(e, keyProperties)));
+                .ToDictionary(e => CompositeKey.FromEntity(e, keyProperties));
 
             // Early exit if nothing is tracked
             if (trackedEntries.Count == 0)
@@ -446,7 +446,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             foreach (var entity in entities)
             {
                 var entry = dbContext.Entry(entity);
-                var key = new CompositeKey(ExtractKeyValues(entry, keyProperties));
+                var key = CompositeKey.FromEntity(entry, keyProperties);
 
                 if (trackedEntries.TryGetValue(key, out var trackedEntry))
                 {
@@ -459,16 +459,6 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
             }
         }
 
-        private static object[] ExtractKeyValues(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, IReadOnlyList<IProperty> keyProperties)
-        {
-            var keyValues = new object[keyProperties.Count];
-            for (int i = 0; i < keyProperties.Count; i++)
-            {
-                keyValues[i] = entry.Property(keyProperties[i].Name).CurrentValue!;
-            }
-            return keyValues;
-        }
-
         private readonly record struct CompositeKey(object[] Values)
         {
             public bool Equals(CompositeKey other) => Values.SequenceEqual(other.Values);
@@ -479,6 +469,14 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
                 foreach (var value in Values)
                     hash.Add(value);
                 return hash.ToHashCode();
+            }
+
+            public static CompositeKey FromEntity(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, IReadOnlyList<IProperty> keyProperties)
+            {
+                var keyValues = keyProperties
+                    .Select(p => entry.Property(p.Name).CurrentValue!)
+                    .ToArray();
+                return new CompositeKey(keyValues);
             }
         }
     }
