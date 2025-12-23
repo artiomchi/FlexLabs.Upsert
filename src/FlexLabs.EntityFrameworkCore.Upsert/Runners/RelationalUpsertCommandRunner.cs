@@ -422,35 +422,63 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
         /// Attaches or updates entities in the change tracker with fresh database values.
         /// If an entity is already tracked (by matching primary key), updates its values. Otherwise, attaches it.
         /// </summary>
-        private static void AttachOrUpdateEntities<TEntity>(DbContext dbContext, IEnumerable<TEntity> entities) where TEntity : class
+        private static void AttachOrUpdateEntities<TEntity>(DbContext dbContext, TEntity[] entities) where TEntity : class
         {
+            if (entities.Length == 0)
+                return;
+
+            // Get primary key properties once (same for all entities of this type)
+            var firstEntry = dbContext.Entry(entities[0]);
+            var keyProperties = firstEntry.Metadata.FindPrimaryKey()!.Properties;
+
+            // Build dictionary of tracked entities by their composite key for lookup
+            var trackedEntries = dbContext.ChangeTracker.Entries<TEntity>()
+                .ToDictionary(e => new CompositeKey(ExtractKeyValues(e, keyProperties)));
+
+            // Early exit if nothing is tracked
+            if (trackedEntries.Count == 0)
+            {
+                dbContext.AttachRange(entities);
+                return;
+            }
+
+            // Process each entity: update if tracked, attach if new
             foreach (var entity in entities)
             {
-                // Get the primary key values for this entity
                 var entry = dbContext.Entry(entity);
-                var keyValues = entry.Metadata.FindPrimaryKey()!.Properties
-                    .Select(p => entry.Property(p.Name).CurrentValue)
-                    .ToArray();
+                var key = new CompositeKey(ExtractKeyValues(entry, keyProperties));
 
-                // Find if an entity with the same primary key is already tracked
-                var trackedEntry = dbContext.ChangeTracker.Entries<TEntity>().FirstOrDefault(e =>
+                if (trackedEntries.TryGetValue(key, out var trackedEntry))
                 {
-                    var trackedKeyValues = e.Metadata.FindPrimaryKey()!.Properties
-                        .Select(p => e.Property(p.Name).CurrentValue)
-                        .ToArray();
-                    return keyValues.SequenceEqual(trackedKeyValues);
-                });
-
-                if (trackedEntry != null)
-                {
-                    // Entity is already tracked, update its values with fresh data from database
                     trackedEntry.CurrentValues.SetValues(entity);
                 }
                 else
                 {
-                    // Entity is not tracked, attach it
                     dbContext.Attach(entity);
                 }
+            }
+        }
+
+        private static object[] ExtractKeyValues(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, IReadOnlyList<IProperty> keyProperties)
+        {
+            var keyValues = new object[keyProperties.Count];
+            for (int i = 0; i < keyProperties.Count; i++)
+            {
+                keyValues[i] = entry.Property(keyProperties[i].Name).CurrentValue!;
+            }
+            return keyValues;
+        }
+
+        private readonly record struct CompositeKey(object[] Values)
+        {
+            public bool Equals(CompositeKey other) => Values.SequenceEqual(other.Values);
+
+            public override int GetHashCode()
+            {
+                var hash = new HashCode();
+                foreach (var value in Values)
+                    hash.Add(value);
+                return hash.ToHashCode();
             }
         }
     }
