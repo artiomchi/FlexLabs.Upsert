@@ -201,4 +201,7 @@
   <data name="UnsupportedComplexPropertyColumnMappingNotFound" xml:space="preserve">
     <value>Unsupported complex property: '{0}'. Failed to get relational column mapping.</value>
   </data>
+  <data name="ComplexPropertyIsMappedToJsonButContainingTypeIsNot" xml:space="preserve">
+    <value>Complex property '{0}' is mapped to JSON but its containing type '{1}' is not. Map the root complex type to JSON.</value>
+  </data>
 </root>
