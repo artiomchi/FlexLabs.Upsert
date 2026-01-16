@@ -23,7 +23,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         private readonly IEntityType _entityType;
         private readonly ICollection<TEntity> _entities;
         private Expression<Func<TEntity, object>>? _matchExpression;
-        private Expression<Func<TEntity, object>>? _excludeExpression;
+        private ICollection<Expression<Func<TEntity, object>>>? _excludeExpressions;
         private Expression<Func<TEntity, TEntity, TEntity>>? _updateExpression;
         private Expression<Func<TEntity, TEntity, bool>>? _updateCondition;
         private RunnerQueryOptions _queryOptions;
@@ -72,12 +72,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
         /// <returns>The current instance of the UpsertCommandBuilder</returns>
         public UpsertCommandBuilder<TEntity> Exclude(Expression<Func<TEntity, object>> exclude)
         {
-            if (_excludeExpression != null)
-                throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(Exclude)));
             if (_updateExpression != null)
                 throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(Exclude), nameof(WhenMatched)));
 
-            _excludeExpression = exclude ?? throw new ArgumentNullException(nameof(exclude));
+            _excludeExpressions ??= new List<Expression<Func<TEntity, object>>>();
+
+            _excludeExpressions.Add(exclude);
             return this;
         }
 
@@ -93,7 +93,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
             if (_queryOptions.NoUpdate)
                 throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(NoUpdate)));
-            if (_excludeExpression != null)
+            if (_excludeExpressions != null)
                 throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(Exclude)));
 
             _updateExpression =
@@ -116,7 +116,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
             if (_queryOptions.NoUpdate)
                 throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(NoUpdate)));
-            if (_excludeExpression != null)
+            if (_excludeExpressions != null)
                 throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(Exclude)));
 
             _updateExpression = updater ?? throw new ArgumentNullException(nameof(updater));
@@ -205,7 +205,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 return 0;
 
             var commandRunner = GetCommandRunner();
-            return commandRunner.Run(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions);
+            return commandRunner.Run(_dbContext, _entityType, _entities, _matchExpression, _excludeExpressions, _updateExpression, _updateCondition, _queryOptions);
         }
 
         /// <summary>
@@ -217,7 +217,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 return [];
 
             var commandRunner = GetCommandRunner();
-            return commandRunner.RunAndReturn(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions);
+            return commandRunner.RunAndReturn(_dbContext, _entityType, _entities, _matchExpression, _excludeExpressions, _updateExpression, _updateCondition, _queryOptions);
         }
 
         /// <summary>
@@ -231,7 +231,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 return Task.FromResult(0);
 
             var commandRunner = GetCommandRunner();
-            return commandRunner.RunAsync(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions, token);
+            return commandRunner.RunAsync(_dbContext, _entityType, _entities, _matchExpression, _excludeExpressions, _updateExpression, _updateCondition, _queryOptions, token);
         }
 
         /// <summary>
@@ -244,7 +244,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert
                 return Task.FromResult<ICollection<TEntity>>([]);
 
             var commandRunner = GetCommandRunner();
-            return commandRunner.RunAndReturnAsync(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions, token);
+            return commandRunner.RunAndReturnAsync(_dbContext, _entityType, _entities, _matchExpression, _excludeExpressions, _updateExpression, _updateCondition, _queryOptions, token);
         }
     }
 }
