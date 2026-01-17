@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if !NOORACLE
+using System;
 using System.Data.Common;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
@@ -13,7 +14,6 @@ using Xunit.Sdk;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
 {
-#if !NOORACLE
     public class DbTests_Oracle(DbTests_Oracle.DatabaseInitializer contexts) : DbTestsBase(contexts), IClassFixture<DbTests_Oracle.DatabaseInitializer>
     {
         public sealed class DatabaseInitializer(IMessageSink messageSink) : ContainerisedDatabaseInitializerFixture<OracleBuilder, OracleContainer>(new OracleFixture(messageSink))
@@ -34,5 +34,5 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
             }
         }
     }
-#endif
 }
+#endif

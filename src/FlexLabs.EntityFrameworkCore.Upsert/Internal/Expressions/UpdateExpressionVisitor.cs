@@ -271,7 +271,4 @@ internal class UpdateExpressionVisitor(
 
         throw new UnsupportedExpressionException(expression);
     }
-    
-    private static Type UnwrapNullableType(Type type)
-        => Nullable.GetUnderlyingType(type) ?? type;
 }

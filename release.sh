@@ -23,16 +23,23 @@ fi
 
 echo "-- Version: $VERSION --"
 
+# Pre-fetch strong name key to ensure authentication completes before build
+echo "-- Retrieving strong name key file --"
+snk_file=$(mktemp -p /dev/shm)
+trap 'rm -f "$snk_file"' EXIT
+flexlabs-strongkey "$snk_file" > /dev/null
+
 # Build solution in release mode
 echo "-- Building solution in release mode"
 OPENSSL_ENABLE_SHA1_SIGNATURES=1 dotnet pack \
     -c Release \
     -p:ContinuousIntegrationBuild=true \
+    -p:AssemblyOriginatorKeyFile="$snk_file" \
     -p:PostBuildEvent="signtool-helper FlexLabs.EntityFrameworkCore.Upsert.dll" \
-    -o .dist \
+    -o dist \
     $SUFFIX
 
 # Sign the nuget package using signtool-helper alias
 echo "-- Signing the nuget package"
-signtool-helper ".dist/FlexLabs.EntityFrameworkCore.Upsert.${VERSION}.nupkg"
+signtool-helper "dist/FlexLabs.EntityFrameworkCore.Upsert.${VERSION}.nupkg"
 echo "-- Build completed successfully --"
