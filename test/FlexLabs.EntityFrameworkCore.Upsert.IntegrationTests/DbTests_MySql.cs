@@ -23,8 +23,9 @@ public class DbTests_MySql(DbTests_MySql.DatabaseInitializer contexts) : DbTests
             public override DbProviderFactory DbProviderFactory
                 => MySqlConnectorFactory.Instance;
 
-            protected override MySqlBuilder Configure(MySqlBuilder builder)
-                => ConfigureContainer(builder);
+            // https://hub.docker.com/_/mysql/tags
+            protected override MySqlBuilder Configure()
+                => ConfigureContainer(new MySqlBuilder("mysql:9"));
         }
     }
 }

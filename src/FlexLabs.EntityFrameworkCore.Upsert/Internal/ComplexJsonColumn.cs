@@ -20,7 +20,9 @@ internal sealed record ComplexJsonColumn(
 
         var rawValue = Property.GetGetter().GetClrValueUsingContainingEntity(entity);
 
+#pragma warning disable EF1001 // Internal EF Core API usage.
         var jsonValue = RelationalJsonUtilities.SerializeComplexTypeToJson(Property.ComplexType, rawValue, Property.IsCollection);
+#pragma warning restore EF1001 // Internal EF Core API usage.
 
         var value = new ConstantValue(jsonValue, this);
 
