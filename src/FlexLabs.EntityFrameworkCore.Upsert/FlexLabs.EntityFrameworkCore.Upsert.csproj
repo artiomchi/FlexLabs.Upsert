@@ -23,8 +23,11 @@ Also supports injecting sql command generators to add support for other provider
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <VersionPrefix>9.102.0</VersionPrefix>
+    <VersionPrefix>9.103.0</VersionPrefix>
     <PackageReleaseNotes>
+v9.103.0
+! Fix RunAndReturn methods failing to correctly attach entities to the change tracker
+
 v9.102.0
 ! Fix type mapping for ulong constants (Thanks to @ahmednfwela)
 ! Fix RunAndReturn methods returning stale tracked entity values (Thanks to @sdukehart-omnesoft)
