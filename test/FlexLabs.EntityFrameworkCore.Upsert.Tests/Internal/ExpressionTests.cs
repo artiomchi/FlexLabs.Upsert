@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
-using FluentAssertions;
-using Xunit;
-
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal;
 
@@ -71,7 +66,6 @@ public partial class ExpressionTests(ITestOutputHelper output)
     }
 
     #endregion
-
 
     [Fact]
     public void Supports_Constant()

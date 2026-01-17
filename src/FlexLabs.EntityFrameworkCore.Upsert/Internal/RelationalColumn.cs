@@ -1,6 +1,4 @@
-using System;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;

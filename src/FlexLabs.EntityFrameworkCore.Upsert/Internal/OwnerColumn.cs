@@ -1,4 +1,3 @@
-using System;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;

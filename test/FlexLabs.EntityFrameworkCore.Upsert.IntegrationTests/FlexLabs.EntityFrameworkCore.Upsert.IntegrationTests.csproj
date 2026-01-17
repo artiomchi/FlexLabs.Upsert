@@ -3,10 +3,15 @@
   <PropertyGroup>
     <TargetFrameworks>net10.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
-    <LangVersion>latest</LangVersion>
     <NoWarn>EF1001</NoWarn>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="FluentAssertions" />
+    <Using Include="Microsoft.EntityFrameworkCore" />
+    <Using Include="Xunit" />
+  </ItemGroup>
 
   <PropertyGroup Condition="'$(POSTGRES_ONLY)'!=''">
     <DefineConstants>$(DefineConstants);NOMSSQL;NOMYSQL;NOORACLE;POSTGRES_ONLY</DefineConstants>

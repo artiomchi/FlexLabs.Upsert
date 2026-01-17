@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
@@ -54,7 +50,6 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
 
         return knownExpression;
     }
-
 
     private IEnumerable<PropertyMapping> ParseMemberInitExpression(MemberInitExpression node, UpdateExpressionVisitor visitor)
     {

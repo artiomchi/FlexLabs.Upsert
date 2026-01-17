@@ -1,49 +1,46 @@
-﻿using System;
-using System.Collections.Generic;
-using FlexLabs.EntityFrameworkCore.Upsert.Runners;
+﻿using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Internal
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;
+
+internal sealed class UpsertContextOptionsExtension<TRunner> : IDbContextOptionsExtension
+    where TRunner : class, IUpsertCommandRunner
 {
-    internal sealed class UpsertContextOptionsExtension<TRunner> : IDbContextOptionsExtension
-        where TRunner : class, IUpsertCommandRunner
+    public UpsertContextOptionsExtension()
     {
-        public UpsertContextOptionsExtension()
-        {
-            Info = new ExtensionInfo(this);
-        }
+        Info = new ExtensionInfo(this);
+    }
 
-        public DbContextOptionsExtensionInfo Info { get; }
+    public DbContextOptionsExtensionInfo Info { get; }
 
-        public void ApplyServices(IServiceCollection services)
-        {
-            services.AddScoped<IUpsertCommandRunner, TRunner>();
-        }
+    public void ApplyServices(IServiceCollection services)
+    {
+        services.AddScoped<IUpsertCommandRunner, TRunner>();
+    }
 
-        public void Validate(IDbContextOptions options) { }
+    public void Validate(IDbContextOptions options) { }
 
-        sealed class ExtensionInfo : DbContextOptionsExtensionInfo
-        {
-            public ExtensionInfo(IDbContextOptionsExtension extension)
-                : base(extension)
-            { }
+    sealed class ExtensionInfo : DbContextOptionsExtensionInfo
+    {
+        public ExtensionInfo(IDbContextOptionsExtension extension)
+            : base(extension)
+        { }
 
-            public override bool IsDatabaseProvider => false;
-            public override string LogFragment => "UpsertContextOptionsExtension";
+        public override bool IsDatabaseProvider => false;
+        public override string LogFragment => "UpsertContextOptionsExtension";
 
 #if NET6_0_OR_GREATER
-            public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other)
-            {
-                return string.Equals(LogFragment, other.LogFragment, StringComparison.Ordinal);
-            }
-            public override int GetServiceProviderHashCode() => 0;
+        public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other)
+        {
+            return string.Equals(LogFragment, other.LogFragment, StringComparison.Ordinal);
+        }
+        public override int GetServiceProviderHashCode() => 0;
 
 #else
-            public override long GetServiceProviderHashCode() => 0;
+        public override long GetServiceProviderHashCode() => 0;
 #endif
 
-            public override void PopulateDebugInfo(IDictionary<string, string> debugInfo) { }
-        }
+        public override void PopulateDebugInfo(IDictionary<string, string> debugInfo) { }
     }
 }

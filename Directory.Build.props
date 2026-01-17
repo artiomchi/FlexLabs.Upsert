@@ -1,6 +1,7 @@
 <Project>
 
   <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
     <ReproducibleBuildsVersion>1.2.39</ReproducibleBuildsVersion>
   </PropertyGroup>
 
