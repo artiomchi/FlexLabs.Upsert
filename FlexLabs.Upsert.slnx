@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/.solution/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="README.md" />
+    <File Path="release.sh" />
+  </Folder>
+  <Folder Name="/.solution/github-workflows/">
+    <File Path=".github/workflows/build.yml" />
+    <File Path=".github/workflows/test-report.yml" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/FlexLabs.EntityFrameworkCore.Upsert/FlexLabs.EntityFrameworkCore.Upsert.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests/FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.csproj" />
+    <Project Path="test/FlexLabs.EntityFrameworkCore.Upsert.Tests/FlexLabs.EntityFrameworkCore.Upsert.Tests.csproj" />
+  </Folder>
+</Solution>
