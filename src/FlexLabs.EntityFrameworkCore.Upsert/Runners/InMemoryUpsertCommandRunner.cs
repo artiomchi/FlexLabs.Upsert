@@ -12,25 +12,22 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
     /// <inheritdoc/>
     public override bool Supports(string providerName) => providerName == "Microsoft.EntityFrameworkCore.InMemory";
 
-    private static IEnumerable<TEntity> RunCore<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
-        Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
-        RunnerQueryOptions queryOptions)
+    private static IEnumerable<TEntity> RunCore<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs)
         where TEntity : class
     {
         // Find matching entities in the dbContext
-        var matches = FindMatches(entityType, entities, dbContext, matchExpression);
+        var matches = FindMatches(entityType, entities, dbContext, commandArgs.MatchExpressions);
 
         Action<TEntity, TEntity>? updateAction = null;
-        Func<TEntity, TEntity, bool>? updateTest = updateCondition?.Compile();
-        if (updateExpression != null)
+        Func<TEntity, TEntity, bool>? updateTest = commandArgs.UpdateCondition?.Compile();
+        if (commandArgs.UpdateExpression != null)
         {
             // If update expression is specified, create an update delegate based on that
-            if (updateExpression.Body is not MemberInitExpression entityUpdater)
-                throw new ArgumentException(Resources.FormatArgumentMustBeAnInitialiserOfTheTEntityType("updater"), nameof(updateExpression));
+            if (commandArgs.UpdateExpression.Body is not MemberInitExpression entityUpdater)
+                throw new ArgumentException(Resources.FormatArgumentMustBeAnInitialiserOfTheTEntityType("updater"), nameof(commandArgs.UpdateExpression));
 
             var properties = entityUpdater.Bindings.Select(b => b.Member).OfType<PropertyInfo>();
-            var updateFunc = updateExpression.Compile();
+            var updateFunc = commandArgs.UpdateExpression.Compile();
             updateAction = (dbEntity, newEntity) =>
             {
                 var tmp = updateFunc(dbEntity, newEntity);
@@ -41,18 +38,15 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
                 }
             };
         }
-        else if (!queryOptions.NoUpdate)
+        else if (!commandArgs.NoUpdate)
         {
             // Otherwise create a default update delegate that updates all non match, non auto generated, non excluded columns
-            var joinColumns = ProcessMatchExpression(entityType, matchExpression, queryOptions);
-            var excludeColumns = ProcessExcludeExpression(entityType, excludeExpression);
-
             var properties = entityType.GetProperties()
                 .Where(p => p.ValueGenerated == ValueGenerated.Never)
                 .Select(p => typeof(TEntity).GetProperty(p.Name))
                 .Where(p => p != null)
-                .Except(joinColumns.Select(c => c.PropertyInfo))
-                .Except(excludeColumns.Select(c => c.PropertyInfo));
+                .Except(commandArgs.MatchProperties.Select(c => c.PropertyInfo))
+                .Except(commandArgs.ExcludeProperties.Select(c => c.PropertyInfo));
             updateAction = (dbEntity, newEntity) =>
             {
                 foreach (var prop in properties)
@@ -127,26 +121,25 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
     }
 
     /// <inheritdoc/>
-    public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
-        Expression<Func<TEntity, object>>? excludeExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression,
-        Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+    public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
 
-        RunCore(dbContext, entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions);
+        RunCore(dbContext, entityType, entities, commandArgs);
         return dbContext.SaveChanges();
     }
 
     /// <inheritdoc/>
     public override ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
-        Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+        UpsertCommandArgs<TEntity> commandArgs)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
 
-        var result = RunCore(dbContext, entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions);
+        var result = RunCore(dbContext, entityType, entities, commandArgs);
         dbContext.SaveChanges();
 
         return result.ToArray();
@@ -154,27 +147,25 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
 
     /// <inheritdoc/>
     public override Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
-        Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
-        RunnerQueryOptions queryOptions, CancellationToken cancellationToken)
+        UpsertCommandArgs<TEntity> commandArgs, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
 
-        RunCore(dbContext, entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions);
+        RunCore(dbContext, entityType, entities, commandArgs);
         return dbContext.SaveChangesAsync(cancellationToken);
     }
 
     /// <inheritdoc/>
     public override async Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
-        Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
-        CancellationToken cancellationToken)
+        UpsertCommandArgs<TEntity> commandArgs, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
 
-        var result = RunCore(dbContext, entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions);
+        var result = RunCore(dbContext, entityType, entities, commandArgs);
         await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return result.ToArray();

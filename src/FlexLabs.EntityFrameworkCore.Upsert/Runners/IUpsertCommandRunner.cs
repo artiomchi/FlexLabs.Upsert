@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners;
@@ -22,14 +21,8 @@ public interface IUpsertCommandRunner
     /// <param name="dbContext">Data context to be used</param>
     /// <param name="entityType">Metadata for the entity</param>
     /// <param name="entities">Array of entities to be upserted</param>
-    /// <param name="matchExpression">Expression that represents which properties will be used as a match clause for the upsert command</param>
-    /// <param name="excludeExpression">Expression that represents which columns should be excluded in case of an update</param>
-    /// <param name="updateExpression">Expression that represents which properties will be updated, and what values will be set</param>
-    /// <param name="updateCondition">Expression that checks whether the database entry should be updated</param>
-    /// <param name="queryOptions">Options for the current query that will affect its behaviour</param>
-    int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
-        Expression<Func<TEntity, object>>? excludeExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression,
-        Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+    /// <param name="commandArgs">Arguments for the upsert command</param>
+    int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs)
         where TEntity : class;
 
     /// <summary>
@@ -39,14 +32,8 @@ public interface IUpsertCommandRunner
     /// <param name="dbContext">Data context to be used</param>
     /// <param name="entityType">Metadata for the entity</param>
     /// <param name="entities">Array of entities to be upserted</param>
-    /// <param name="matchExpression">Expression that represents which properties will be used as a match clause for the upsert command</param>
-    /// <param name="excludeExpression">Expression that represents which columns should be excluded in case of an update</param>
-    /// <param name="updateExpression">Expression that represents which properties will be updated, and what values will be set</param>
-    /// <param name="updateCondition">Expression that checks whether the database entry should be updated</param>
-    /// <param name="queryOptions">Options for the current query that will affect its behaviour</param>
-    ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
-        Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+    /// <param name="commandArgs">Arguments for the upsert command</param>
+    ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs)
         where TEntity : class;
 
     /// <summary>
@@ -56,16 +43,10 @@ public interface IUpsertCommandRunner
     /// <param name="dbContext">Data context to be used</param>
     /// <param name="entityType">Metadata for the entity</param>
     /// <param name="entities">Array of entities to be upserted</param>
-    /// <param name="matchExpression">Expression that represents which properties will be used as a match clause for the upsert command</param>
-    /// <param name="excludeExpression">Expression that represents which columns should be excluded in case of an update</param>
-    /// <param name="updateExpression">Expression that represents which properties will be updated, and what values will be set</param>
-    /// <param name="updateCondition">Expression that checks whether the database entry should be updated</param>
-    /// <param name="queryOptions">Options for the current query that will affect its behaviour</param>
+    /// <param name="commandArgs">Arguments for the upsert command</param>
     /// <param name="cancellationToken">The CancellationToken to observe while waiting for the task to complete.</param>
     /// <returns>The task that represents the asynchronous upsert operation</returns>
-    Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
-        Expression<Func<TEntity, object>>? excludeExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression,
-        Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions, CancellationToken cancellationToken)
+    Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs, CancellationToken cancellationToken)
         where TEntity : class;
 
     /// <summary>
@@ -75,15 +56,8 @@ public interface IUpsertCommandRunner
     /// <param name="dbContext">Data context to be used</param>
     /// <param name="entityType">Metadata for the entity</param>
     /// <param name="entities">Array of entities to be upserted</param>
-    /// <param name="matchExpression">Expression that represents which properties will be used as a match clause for the upsert command</param>
-    /// <param name="excludeExpression">Expression that represents which columns should be excluded in case of an update</param>
-    /// <param name="updateExpression">Expression that represents which properties will be updated, and what values will be set</param>
-    /// <param name="updateCondition">Expression that checks whether the database entry should be updated</param>
-    /// <param name="queryOptions">Options for the current query that will affect its behaviour</param>
+    /// <param name="commandArgs">Arguments for the upsert command</param>
     /// <param name="cancellationToken">The CancellationToken to observe while waiting for the task to complete.</param>
-    Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
-        Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
-        CancellationToken cancellationToken)
+    Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs, CancellationToken cancellationToken)
         where TEntity : class;
 }

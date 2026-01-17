@@ -91,19 +91,17 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     protected virtual int? MaxQueryParams => null;
 
     private IEnumerable<(string SqlCommand, IEnumerable<ConstantValue> Arguments)> PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
-        Expression<Func<TEntity, object>>? match, Expression<Func<TEntity, object>>? exclude, Expression<Func<TEntity, TEntity, TEntity>>? updater,
-        Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions, bool returnResult = false)
+        UpsertCommandArgs<TEntity> commandArgs, bool returnResult = false)
     {
-        var table = new RelationalTable(entityType, GetTableName(entityType), queryOptions);
-        var expressionParser = new ExpressionParser<TEntity>(table, queryOptions);
+        var table = new RelationalTable(entityType, GetTableName(entityType), commandArgs.AllowIdentityMatch);
+        var expressionParser = new ExpressionParser<TEntity>(table, commandArgs);
 
-        var joinColumns = ProcessMatchExpression(entityType, match, queryOptions);
-        var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnName(), Nullable: c.IsColumnNullable())).ToArray();
+        var joinColumnNames = commandArgs.MatchProperties.Select(c => (ColumnName: c.GetColumnName(), Nullable: c.IsColumnNullable())).ToArray();
 
-        var updateExpressions = updater != null
-            ? expressionParser.ParseUpdateExpression(updater)
-            : expressionParser.GetUpdateMappings(joinColumnNames, ProcessExcludeExpression(entityType, exclude));
-        var updateConditionExpression = expressionParser.ParseUpdateConditionExpression(updateCondition);
+        var updateExpressions = commandArgs.UpdateExpression != null
+            ? expressionParser.ParseUpdateExpression(commandArgs.UpdateExpression)
+            : expressionParser.GetUpdateMappings(joinColumnNames, commandArgs.ExcludeProperties);
+        var updateConditionExpression = expressionParser.ParseUpdateConditionExpression(commandArgs.UpdateCondition);
         var newEntities = entities
             .Select(e => table.Columns
                 .Select(p => p.GetValue(e!))
@@ -295,15 +293,14 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     }
 
     /// <inheritdoc/>
-    public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
-        Expression<Func<TEntity, object>>? excludeExpression, Expression<Func<TEntity, TEntity, TEntity>>? updateExpression,
-        Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+    public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
 
         var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-        var commands = PrepareCommand(entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions);
+        var commands = PrepareCommand(entityType, entities, commandArgs);
 
         int result = 0;
         foreach (var (sqlCommand, arguments) in commands)
@@ -316,15 +313,14 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     }
 
     /// <inheritdoc/>
-    public override ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
-        Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+    public override ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
 
         var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-        var commands = PrepareCommand(entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions, true);
+        var commands = PrepareCommand(entityType, entities, commandArgs, true);
 
         var result = new List<TEntity>();
         foreach (var (sqlCommand, arguments) in commands)
@@ -340,15 +336,14 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
 
     /// <inheritdoc/>
     public override async Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
-        Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
-        CancellationToken cancellationToken)
+        UpsertCommandArgs<TEntity> commandArgs, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
 
         var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-        var commands = PrepareCommand(entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions);
+        var commands = PrepareCommand(entityType, entities, commandArgs);
 
         int result = 0;
         foreach (var (sqlCommand, arguments) in commands)
@@ -362,15 +357,14 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
 
     /// <inheritdoc/>
     public override async Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        Expression<Func<TEntity, object>>? matchExpression, Expression<Func<TEntity, object>>? excludeExpression,
-        Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
-        CancellationToken cancellationToken)
+        UpsertCommandArgs<TEntity> commandArgs, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
 
         var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-        var commands = PrepareCommand(entityType, entities, matchExpression, excludeExpression, updateExpression, updateCondition, queryOptions, true);
+        var commands = PrepareCommand(entityType, entities, commandArgs, true);
 
         var result = new List<TEntity>();
         foreach (var (sqlCommand, arguments) in commands)

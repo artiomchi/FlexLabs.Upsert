@@ -1,15 +1,14 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
-using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
-internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, RunnerQueryOptions queryOptions)
+internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, UpsertCommandArgs<TEntity> commandArgs)
 {
-    public PropertyMapping[]? GetUpdateMappings((string ColumnName, bool Nullable)[] joinColumnNames, ICollection<IProperty> excludeProperties)
+    public PropertyMapping[]? GetUpdateMappings((string ColumnName, bool Nullable)[] joinColumnNames, IReadOnlyCollection<IProperty> excludeProperties)
     {
-        if (!queryOptions.NoUpdate)
+        if (!commandArgs.NoUpdate)
         {
             return table.Columns
                 .Where(column => joinColumnNames.All(c => c.ColumnName != column.ColumnName))
@@ -28,7 +27,7 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
             throw new ArgumentException(Resources.FormatUpdaterMustBeAnInitialiserOfTheTEntityType(nameof(updater)), nameof(updater));
         }
 
-        var visitor = new UpdateExpressionVisitor(table, updater.Parameters[0], updater.Parameters[1], queryOptions.UseExpressionCompiler);
+        var visitor = new UpdateExpressionVisitor(table, updater.Parameters[0], updater.Parameters[1], commandArgs.UseExpressionCompiler);
         var result = ParseMemberInitExpression(entityUpdater, visitor).ToArray();
         return result;
     }
@@ -41,7 +40,7 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Runne
             return null;
         }
 
-        var visitor = new UpdateExpressionVisitor(table, updateCondition.Parameters[0], updateCondition.Parameters[1], queryOptions.UseExpressionCompiler);
+        var visitor = new UpdateExpressionVisitor(table, updateCondition.Parameters[0], updateCondition.Parameters[1], commandArgs.UseExpressionCompiler);
         var result = visitor.GetKnownValue(updateCondition.Body);
         if (result is not KnownExpression knownExpression)
         {

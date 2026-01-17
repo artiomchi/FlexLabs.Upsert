@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Reflection;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -20,7 +21,9 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     private Expression<Func<TEntity, object>>? _excludeExpression;
     private Expression<Func<TEntity, TEntity, TEntity>>? _updateExpression;
     private Expression<Func<TEntity, TEntity, bool>>? _updateCondition;
-    private RunnerQueryOptions _queryOptions;
+    private bool _allowIdentityMatch;
+    private bool _noUpdate;
+    private bool _useExpressionCompiler;
 
     /// <summary>
     /// Initialise an instance of the UpsertCommandBuilder
@@ -55,7 +58,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     /// <returns>The current instance of the UpsertCommandBuilder</returns>
     public UpsertCommandBuilder<TEntity> AllowIdentityMatch()
     {
-        _queryOptions.AllowIdentityMatch = true;
+        _allowIdentityMatch = true;
         return this;
     }
 
@@ -85,7 +88,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
         ArgumentNullException.ThrowIfNull(updater);
         if (_updateExpression != null)
             throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
-        if (_queryOptions.NoUpdate)
+        if (_noUpdate)
             throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(NoUpdate)));
         if (_excludeExpression != null)
             throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(Exclude)));
@@ -108,7 +111,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     {
         if (_updateExpression != null)
             throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
-        if (_queryOptions.NoUpdate)
+        if (_noUpdate)
             throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(NoUpdate)));
         if (_excludeExpression != null)
             throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(Exclude)));
@@ -127,7 +130,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
         ArgumentNullException.ThrowIfNull(condition);
         if (_updateCondition != null)
             throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
-        if (_queryOptions.NoUpdate)
+        if (_noUpdate)
             throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(NoUpdate)));
 
         _updateCondition =
@@ -148,7 +151,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     {
         if (_updateCondition != null)
             throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
-        if (_queryOptions.NoUpdate)
+        if (_noUpdate)
             throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(NoUpdate)));
 
         _updateCondition = condition ?? throw new ArgumentNullException(nameof(condition));
@@ -163,7 +166,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     /// <returns></returns>
     public UpsertCommandBuilder<TEntity> WithFallbackExpressionCompiler()
     {
-        _queryOptions.UseExpressionCompiler = true;
+        _useExpressionCompiler = true;
         return this;
     }
 
@@ -176,18 +179,8 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
         if (_updateExpression != null)
             throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
 
-        _queryOptions.NoUpdate = true;
+        _noUpdate = true;
         return this;
-    }
-
-    private IUpsertCommandRunner GetCommandRunner()
-    {
-        var dbProvider = _dbContext.GetService<IDatabaseProvider>();
-        var commandRunner = _dbContext.GetInfrastructure().GetServices<IUpsertCommandRunner>()
-            .Concat(DefaultRunners.GetRunners())
-            .FirstOrDefault(r => r.Supports(dbProvider.Name))
-            ?? throw new NotSupportedException(Resources.DatabaseProviderNotSupportedYet);
-        return commandRunner;
     }
 
     /// <summary>
@@ -199,7 +192,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
             return 0;
 
         var commandRunner = GetCommandRunner();
-        return commandRunner.Run(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions);
+        return commandRunner.Run(_dbContext, _entityType, _entities, CreateCommandArgs());
     }
 
     /// <summary>
@@ -211,7 +204,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
             return [];
 
         var commandRunner = GetCommandRunner();
-        return commandRunner.RunAndReturn(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions);
+        return commandRunner.RunAndReturn(_dbContext, _entityType, _entities, CreateCommandArgs());
     }
 
     /// <summary>
@@ -225,7 +218,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
             return Task.FromResult(0);
 
         var commandRunner = GetCommandRunner();
-        return commandRunner.RunAsync(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions, token);
+        return commandRunner.RunAsync(_dbContext, _entityType, _entities, CreateCommandArgs(), token);
     }
 
     /// <summary>
@@ -238,6 +231,89 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
             return Task.FromResult<ICollection<TEntity>>([]);
 
         var commandRunner = GetCommandRunner();
-        return commandRunner.RunAndReturnAsync(_dbContext, _entityType, _entities, _matchExpression, _excludeExpression, _updateExpression, _updateCondition, _queryOptions, token);
+        return commandRunner.RunAndReturnAsync(_dbContext, _entityType, _entities, CreateCommandArgs(), token);
+    }
+
+    private IUpsertCommandRunner GetCommandRunner()
+    {
+        var dbProvider = _dbContext.GetService<IDatabaseProvider>();
+        var commandRunner = _dbContext.GetInfrastructure().GetServices<IUpsertCommandRunner>()
+            .Concat(DefaultRunners.GetRunners())
+            .FirstOrDefault(r => r.Supports(dbProvider.Name))
+            ?? throw new NotSupportedException(Resources.DatabaseProviderNotSupportedYet);
+        return commandRunner;
+    }
+
+    private UpsertCommandArgs<TEntity> CreateCommandArgs()
+    {
+        var matchProperties = _matchExpression != null
+            ? ProcessPropertiesExpression(_entityType, _matchExpression, true)
+            : _entityType.GetProperties().Where(p => p.IsKey()).ToArray();
+        if (!_allowIdentityMatch && matchProperties.Any(p => p.ValueGenerated != ValueGenerated.Never))
+            throw new InvalidMatchColumnsException();
+
+        return new()
+        {
+            AllowIdentityMatch = _allowIdentityMatch,
+            NoUpdate = _noUpdate,
+            UseExpressionCompiler = _useExpressionCompiler,
+            MatchExpressions = _matchExpression,
+            MatchProperties = matchProperties,
+            ExcludeProperties = _excludeExpression != null
+                    ? ProcessPropertiesExpression(_entityType, _excludeExpression, false)
+                    : [],
+            UpdateExpression = _updateExpression,
+            UpdateCondition = _updateCondition,
+        };
+    }
+
+    private static IReadOnlyCollection<IProperty> ProcessPropertiesExpression(IEntityType entityType, Expression<Func<TEntity, object>> propertiesExpression, bool match)
+    {
+        static string UnknownPropertiesExceptionMessage(bool match)
+            => match
+            ? Resources.MatchColumnsHaveToBePropertiesOfTheTEntityClass
+            : Resources.ExcludeColumnsHaveToBePropertiesOfTheTEntityClass;
+
+        switch (propertiesExpression.Body)
+        {
+            case NewExpression newExpression:
+                {
+                    var columns = new List<IProperty>();
+                    foreach (MemberExpression arg in newExpression.Arguments)
+                    {
+                        if (arg == null || arg.Member is not PropertyInfo || !typeof(TEntity).Equals(arg.Expression?.Type))
+                            throw new InvalidOperationException(UnknownPropertiesExceptionMessage(match));
+                        // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
+                        var property = entityType.FindProperty(arg.Member.Name)
+                            ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(arg.Member.Name));
+
+                        columns.Add(property);
+                    }
+                    return columns;
+                }
+
+            case UnaryExpression unaryExpression:
+                {
+                    if (unaryExpression.Operand is not MemberExpression memberExp || memberExp.Member is not PropertyInfo || !typeof(TEntity).Equals(memberExp.Expression?.Type))
+                        throw new InvalidOperationException(UnknownPropertiesExceptionMessage(match));
+                    // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
+                    var property = entityType.FindProperty(memberExp.Member.Name)
+                        ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExp.Member.Name));
+                    return [property];
+                }
+
+            case MemberExpression memberExpression:
+                {
+                    if (!typeof(TEntity).Equals(memberExpression.Expression?.Type) || memberExpression.Member is not PropertyInfo)
+                        throw new InvalidOperationException(UnknownPropertiesExceptionMessage(match));
+                    // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
+                    var property = entityType.FindProperty(memberExpression.Member.Name)
+                        ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(memberExpression.Member.Name));
+                    return [property];
+                }
+
+            default:
+                throw new ArgumentException(Resources.FormatArgumentMustBeAnAnonymousObjectInitialiser(match ? "match" : "exclude"), nameof(propertiesExpression));
+        }
     }
 }

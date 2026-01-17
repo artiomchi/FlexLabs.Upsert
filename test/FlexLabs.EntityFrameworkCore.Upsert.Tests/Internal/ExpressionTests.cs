@@ -1,13 +1,23 @@
 using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
-using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal;
 
 public partial class ExpressionTests(ITestOutputHelper output)
 {
-    private readonly ExpressionParser<TestEntity> _parser = new(new TestRelationalTable(), new RunnerQueryOptions());
-    private readonly ExpressionParser<TestEntity> _parserWithCompiler = new(new TestRelationalTable(), new RunnerQueryOptions { UseExpressionCompiler = true });
+    private static UpsertCommandArgs<TestEntity> EmptyCommandArgs => new()
+    {
+        NoUpdate = false,
+        UseExpressionCompiler = false,
+        AllowIdentityMatch = false,
+        MatchProperties = [],
+        ExcludeProperties = [],
+        UpdateExpression = null,
+        UpdateCondition = null,
+    };
+
+    private readonly ExpressionParser<TestEntity> _parser = new(new TestRelationalTable(), EmptyCommandArgs);
+    private readonly ExpressionParser<TestEntity> _parserWithCompiler = new(new TestRelationalTable(), EmptyCommandArgs with { UseExpressionCompiler = true });
 
     #region helper
 

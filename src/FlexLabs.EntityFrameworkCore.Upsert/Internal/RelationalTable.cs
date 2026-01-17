@@ -1,15 +1,14 @@
-using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Internal;
 
 internal sealed class RelationalTable : RelationalTableBase
 {
-    private readonly RunnerQueryOptions _queryOptions;
+    private readonly bool _allowIdentityMatch;
 
-    internal RelationalTable(IEntityType entityType, string tableName, RunnerQueryOptions queryOptions)
+    internal RelationalTable(IEntityType entityType, string tableName, bool allowIdentityMatch)
     {
-        _queryOptions = queryOptions;
+        _allowIdentityMatch = allowIdentityMatch;
         EntityType = entityType;
         TableName = tableName;
 
@@ -224,7 +223,7 @@ internal sealed class RelationalTable : RelationalTableBase
     private bool IsPropertyValid(IProperty property)
     {
         var valid =
-            _queryOptions.AllowIdentityMatch ||
+            _allowIdentityMatch ||
             property.ValueGenerated == ValueGenerated.Never ||
             property.GetAfterSaveBehavior() == PropertySaveBehavior.Save;
         if (!valid)
