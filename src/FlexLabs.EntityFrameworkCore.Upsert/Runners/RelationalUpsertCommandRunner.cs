@@ -332,7 +332,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
             using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
             var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)).ToArray();
             var returnedEntities = dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).AsNoTracking().IgnoreQueryFilters().IgnoreAutoIncludes().ToArray();
-            AttachOrUpdateEntities(dbContext, returnedEntities);
+            AttachOrUpdateEntities(dbContext, entityType, returnedEntities);
             result.AddRange(returnedEntities);
         }
         return result;
@@ -378,7 +378,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
             using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
             var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)).ToArray();
             var returnedEntities = await dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).AsNoTracking().IgnoreQueryFilters().IgnoreAutoIncludes().ToArrayAsync(cancellationToken).ConfigureAwait(false);
-            AttachOrUpdateEntities(dbContext, returnedEntities);
+            AttachOrUpdateEntities(dbContext, entityType, returnedEntities);
             result.AddRange(returnedEntities);
         }
         return result;
@@ -420,14 +420,13 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     /// Attaches or updates entities in the change tracker with fresh database values.
     /// If an entity is already tracked (by matching primary key), updates its values. Otherwise, attaches it.
     /// </summary>
-    private static void AttachOrUpdateEntities<TEntity>(DbContext dbContext, TEntity[] entities) where TEntity : class
+    private static void AttachOrUpdateEntities<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities) where TEntity : class
     {
         if (entities.Length == 0)
             return;
 
         // Get primary key properties once (same for all entities of this type)
-        var firstEntry = dbContext.Entry(entities[0]);
-        var keyProperties = firstEntry.Metadata.FindPrimaryKey()!.Properties;
+        var keyProperties = entityType.FindPrimaryKey()!.Properties;
 
         // Build dictionary of tracked entities by their composite key for lookup
         var trackedEntries = dbContext.ChangeTracker.Entries<TEntity>()
