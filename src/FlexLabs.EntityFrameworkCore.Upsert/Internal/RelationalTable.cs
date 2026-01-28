@@ -54,7 +54,7 @@ internal sealed class RelationalTable : RelationalTableBase
                 Owned: OwnershipType.None));
     }
 
-    private IEnumerable<IColumnBase> GetComplexColumns(ITypeBase entityType)
+    private static IEnumerable<IColumnBase> GetComplexColumns(ITypeBase entityType)
     {
         // Find all properties of Complex Properties
         var complexProperties = entityType.GetComplexProperties();

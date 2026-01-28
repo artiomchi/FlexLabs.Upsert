@@ -23,25 +23,25 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EFCore.NamingConventions" Version="10.0.*-*" />
-    <PackageReference Include="FluentAssertions" Version="7.2.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.*" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.*" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.*" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.*" />
-    <!-- <PackageReference Include="Oracle.EntityFrameworkCore" Version="10.*" /> -->
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.*" />
-    <PackageReference Include="NSubstitute" Version="5.3.0" />
-    <PackageReference Include="NSubstitute.Analyzers.CSharp" Version="1.0.17" PrivateAssets="all" />
-    <!-- <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.*" /> -->
-    <PackageReference Include="Testcontainers.MsSql" Version="4.9.0" />
-    <PackageReference Include="Testcontainers.MySql" Version="4.9.0" />
-    <PackageReference Include="Testcontainers.PostgreSql" Version="4.9.0" />
-    <PackageReference Include="Testcontainers.Oracle" Version="4.9.0" />
-    <PackageReference Include="Testcontainers.XunitV3" Version="4.9.0" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
-    <PackageReference Include="xunit.v3" Version="3.2.1" />
+    <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <!-- <PackageReference Include="Oracle.EntityFrameworkCore" /> -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="NSubstitute.Analyzers.CSharp" PrivateAssets="all" />
+    <!-- <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" /> -->
+    <PackageReference Include="Testcontainers.MsSql" />
+    <PackageReference Include="Testcontainers.MySql" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.Oracle" />
+    <PackageReference Include="Testcontainers.XunitV3" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+    <PackageReference Include="xunit.v3" />
   </ItemGroup>
 
   <ItemGroup>

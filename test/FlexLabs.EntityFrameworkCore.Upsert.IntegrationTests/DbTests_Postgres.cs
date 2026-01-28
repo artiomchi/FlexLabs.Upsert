@@ -27,8 +27,9 @@ public class DbTests_Postgres(DbTests_Postgres.DatabaseInitializer contexts) : D
             public override DbProviderFactory DbProviderFactory
                 => NpgsqlFactory.Instance;
 
-            protected override PostgreSqlBuilder Configure(PostgreSqlBuilder builder)
-                => ConfigureContainer(builder);
+            // https://hub.docker.com/_/postgres/tags
+            protected override PostgreSqlBuilder Configure()
+                => ConfigureContainer(new PostgreSqlBuilder("postgres:18"));
         }
     }
 

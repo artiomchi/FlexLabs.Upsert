@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DotNet.ReproducibleBuilds" Version="$(ReproducibleBuildsVersion)" PrivateAssets="All"/>
+    <PackageReference Include="DotNet.ReproducibleBuilds" VersionOverride="$(ReproducibleBuildsVersion)" PrivateAssets="All"/>
   </ItemGroup>
 
   <PropertyGroup Condition="'$(Configuration)'=='Release'">
