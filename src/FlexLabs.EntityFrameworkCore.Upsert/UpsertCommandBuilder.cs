@@ -260,14 +260,14 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
             MatchExpressions = _matchExpression,
             MatchProperties = matchProperties,
             ExcludeProperties = _excludeExpression != null
-                    ? ProcessPropertiesExpression(_entityType, _excludeExpression, false)
-                    : [],
+                ? ProcessPropertiesExpression(_entityType, _excludeExpression, false)
+                : [],
             UpdateExpression = _updateExpression,
             UpdateCondition = _updateCondition,
         };
     }
 
-    private static IReadOnlyCollection<IProperty> ProcessPropertiesExpression(IEntityType entityType, Expression<Func<TEntity, object>> propertiesExpression, bool match)
+    private static IProperty[] ProcessPropertiesExpression(IEntityType entityType, Expression<Func<TEntity, object>> propertiesExpression, bool match)
     {
         static string UnknownPropertiesExceptionMessage(bool match)
             => match
@@ -278,23 +278,25 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
         {
             case NewExpression newExpression:
                 {
-                    var columns = new List<IProperty>();
-                    foreach (MemberExpression arg in newExpression.Arguments)
+                    var columns = new IProperty[newExpression.Arguments.Count];
+                    for (var index = 0; index < newExpression.Arguments.Count; index++)
                     {
-                        if (arg == null || arg.Member is not PropertyInfo || !typeof(TEntity).Equals(arg.Expression?.Type))
+                        var arg = (MemberExpression)newExpression.Arguments[index];
+                        if (arg is not { Member: PropertyInfo } || typeof(TEntity) != arg.Expression?.Type)
                             throw new InvalidOperationException(UnknownPropertiesExceptionMessage(match));
                         // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
                         var property = entityType.FindProperty(arg.Member.Name)
                             ?? throw new InvalidOperationException(Resources.FormatUnknownProperty(arg.Member.Name));
 
-                        columns.Add(property);
+                        columns[index] = property;
                     }
+
                     return columns;
                 }
 
             case UnaryExpression unaryExpression:
                 {
-                    if (unaryExpression.Operand is not MemberExpression memberExp || memberExp.Member is not PropertyInfo || !typeof(TEntity).Equals(memberExp.Expression?.Type))
+                    if (unaryExpression.Operand is not MemberExpression { Member: PropertyInfo } memberExp || typeof(TEntity) != memberExp.Expression?.Type)
                         throw new InvalidOperationException(UnknownPropertiesExceptionMessage(match));
                     // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
                     var property = entityType.FindProperty(memberExp.Member.Name)
@@ -304,7 +306,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
 
             case MemberExpression memberExpression:
                 {
-                    if (!typeof(TEntity).Equals(memberExpression.Expression?.Type) || memberExpression.Member is not PropertyInfo)
+                    if (typeof(TEntity) != memberExpression.Expression?.Type || memberExpression.Member is not PropertyInfo)
                         throw new InvalidOperationException(UnknownPropertiesExceptionMessage(match));
                     // TODO use table.FindColumn(..) to have unified ColumnName resolution and to support owned properties in Match Expression!
                     var property = entityType.FindProperty(memberExpression.Member.Name)

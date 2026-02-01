@@ -6,7 +6,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert;
 /// <summary>
 /// Represents the arguments for an upsert command.
 /// </summary>
-public record class UpsertCommandArgs<TEntity>
+public record UpsertCommandArgs<TEntity>
 {
     /// <summary>
     /// Specifies that if a match is found, no action will be taken on the entity
