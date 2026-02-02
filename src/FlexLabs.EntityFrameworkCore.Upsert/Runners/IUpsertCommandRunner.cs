@@ -28,6 +28,9 @@ public interface IUpsertCommandRunner
     /// <summary>
     /// Run the upsert command for the entities passed and return new or updated entities
     /// </summary>
+    /// <remarks>
+    /// Relational database providers will ignore any global query filters and auto-includes when retrieving the entities from the database.
+    /// </remarks>
     /// <typeparam name="TEntity">Entity type of the entities</typeparam>
     /// <param name="dbContext">Data context to be used</param>
     /// <param name="entityType">Metadata for the entity</param>
@@ -52,6 +55,9 @@ public interface IUpsertCommandRunner
     /// <summary>
     /// Run the upsert command for the entities passed and return new or updated entities
     /// </summary>
+    /// <remarks>
+    /// Relational database providers will ignore any global query filters and auto-includes when retrieving the entities from the database.
+    /// </remarks>
     /// <typeparam name="TEntity">Entity type of the entities</typeparam>
     /// <param name="dbContext">Data context to be used</param>
     /// <param name="entityType">Metadata for the entity</param>

@@ -5,21 +5,17 @@
 /// </summary>
 internal static class DefaultRunners
 {
-    static IUpsertCommandRunner[]? Runners;
+    private static readonly Lazy<IUpsertCommandRunner[]> Runners = new(() => [
+        new InMemoryUpsertCommandRunner(),
+        new MySqlUpsertCommandRunner(),
+        new PostgreSqlUpsertCommandRunner(),
+        new SqlServerUpsertCommandRunner(),
+        new SqliteUpsertCommandRunner(),
+        new OracleUpsertCommandRunner()
+    ]);
 
     /// <summary>
     /// Returns the list of the default command runners
     /// </summary>
-    public static IUpsertCommandRunner[] GetRunners()
-    {
-        Runners ??= [
-            new InMemoryUpsertCommandRunner(),
-            new MySqlUpsertCommandRunner(),
-            new PostgreSqlUpsertCommandRunner(),
-            new SqlServerUpsertCommandRunner(),
-            new SqliteUpsertCommandRunner(),
-            new OracleUpsertCommandRunner()
-        ];
-        return Runners;
-    }
+    public static IUpsertCommandRunner[] GetRunners() => Runners.Value;
 }

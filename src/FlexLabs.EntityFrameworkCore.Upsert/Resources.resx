@@ -189,9 +189,6 @@
   <data name="UnsupportedOwnedJsonColumnFailedToGetRelationalColumn" xml:space="preserve">
     <value>Unsupported owned json column: '{0}'. Failed to get relational column.</value>
   </data>
-  <data name="UnsupportedOwnedEntityColumnNameNotFoundForProperty" xml:space="preserve">
-    <value>Unsupported owned entity: '{0}'. Column name not found for property '{1}'.</value>
-  </data>
   <data name="UnsupportedComplexJsonPropertyFailedToGetColumnName" xml:space="preserve">
     <value>Unsupported complex json property: '{0}'. Failed to get column name.</value>
   </data>

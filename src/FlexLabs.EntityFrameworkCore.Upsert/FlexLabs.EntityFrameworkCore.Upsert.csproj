@@ -16,7 +16,7 @@
 Uses `INSERT … ON CONFLICT DO UPDATE` in PostgreSQL/Sqlite, `MERGE` in SqlServer and `INSERT INTO … ON DUPLICATE KEY UPDATE` in MySQL.
 
 Also supports injecting sql command generators to add support for other providers</Description>
-    <Copyright>Artiom Chilaru © 2023</Copyright>
+    <Copyright>Artiom Chilaru © 2018-2026</Copyright>
     <PackageProjectUrl>https://github.com/artiomchi/FlexLabs.Upsert</PackageProjectUrl>
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

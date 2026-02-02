@@ -28,18 +28,10 @@ internal sealed class UpsertContextOptionsExtension<TRunner> : IDbContextOptions
         { }
 
         public override bool IsDatabaseProvider => false;
-        public override string LogFragment => "UpsertContextOptionsExtension";
+        public override string LogFragment => $"UpsertContextOptionsExtension (Runner: {typeof(TRunner).Name})";
 
-#if NET6_0_OR_GREATER
-        public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other)
-        {
-            return string.Equals(LogFragment, other.LogFragment, StringComparison.Ordinal);
-        }
-        public override int GetServiceProviderHashCode() => 0;
-
-#else
-        public override long GetServiceProviderHashCode() => 0;
-#endif
+        public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other) => other is ExtensionInfo;
+        public override int GetServiceProviderHashCode() => typeof(TRunner).GetHashCode();
 
         public override void PopulateDebugInfo(IDictionary<string, string> debugInfo) { }
     }

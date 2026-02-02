@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.Text;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners;
 
@@ -19,6 +20,15 @@ public class PostgreSqlUpsertCommandRunner : RelationalUpsertCommandRunner
     protected override string? TargetPrefix => "\"T\".";
     /// <inheritdoc/>
     protected override int? MaxQueryParams => 32767;
+
+    /// <inheritdoc/>
+    protected override bool ShouldMapColumn(IProperty property)
+    {
+        return property
+            .GetAnnotations()
+            .FirstOrDefault(a => a.Name == "Npgsql:ValueGenerationStrategy")
+            ?.Value?.ToString() != "IdentityAlwaysColumn";
+    }
 
     /// <inheritdoc/>
     public override string GenerateCommand(

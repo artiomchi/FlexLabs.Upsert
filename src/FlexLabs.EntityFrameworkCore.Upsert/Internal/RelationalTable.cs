@@ -6,15 +6,15 @@ internal sealed class RelationalTable : RelationalTableBase
 {
     private readonly bool _allowIdentityMatch;
 
-    internal RelationalTable(IEntityType entityType, string tableName, bool allowIdentityMatch)
+    internal RelationalTable(IEntityType entityType, string tableName, bool allowIdentityMatch, Func<IProperty, bool>? propertyFilter = null)
     {
         _allowIdentityMatch = allowIdentityMatch;
         EntityType = entityType;
         TableName = tableName;
 
-        var columns = GetColumns(entityType)
+        var columns = GetColumns(entityType, propertyFilter)
             .Concat(GetComplexColumns(entityType))
-            .Concat(GetOwnedColumns(entityType));
+            .Concat(GetOwnedColumns(entityType, propertyFilter: propertyFilter));
 
         AddColumnRange(columns);
     }
@@ -43,11 +43,11 @@ internal sealed class RelationalTable : RelationalTableBase
         return null;
     }
 
-    private IEnumerable<IColumnBase> GetColumns(IEntityType entityType)
+    private IEnumerable<IColumnBase> GetColumns(IEntityType entityType, Func<IProperty, bool>? propertyFilter)
     {
         return entityType
             .GetProperties()
-            .Where(IsPropertyValid)
+            .Where(p => IsPropertyValid(p, propertyFilter))
             .Select(p => new RelationalColumn(
                 Property: p,
                 ColumnName: p.GetColumnName(),
@@ -143,14 +143,14 @@ internal sealed class RelationalTable : RelationalTableBase
         }
     }
 
-    private IEnumerable<IColumnBase> GetOwnedColumns(IEntityType entityType, string? path = null, Func<object, object?>? getter = null)
+    private IEnumerable<IColumnBase> GetOwnedColumns(IEntityType entityType, string? path = null, Func<object, object?>? getter = null, Func<IProperty, bool>? propertyFilter = null)
     {
         // Find all properties of Owned Entities
         var owned = entityType.GetNavigations().Where(_ => _.ForeignKey.IsOwnership);
 
         foreach (var navigation in owned)
         {
-            object? currentGetter(object entity)
+            object? CurrentGetter(object entity)
             {
                 var obj = getter is null ? entity : getter(entity);
                 return obj != null
@@ -186,33 +186,24 @@ internal sealed class RelationalTable : RelationalTableBase
                 var parent = navigation.TargetEntityType;
                 var currentPath = $"{path}.{navigation.Name}";
 
-                var properties = parent
-                    .GetProperties()
-                    .Where(IsPropertyValid);
-
-                foreach (var property in properties)
+                var tableMapping = GetTableMapping(parent, EntityType);
+                if (tableMapping != null)
                 {
-                    var columnName = (string?)property.FindAnnotation(RelationalAnnotationNames.ColumnName)?.Value;
-                    if (columnName is null)
+                    foreach (var mapping in tableMapping.ColumnMappings)
                     {
-                        var table = StoreObjectIdentifier.Create(property.DeclaringType, StoreObjectType.Table);
-                        columnName = table != null ? property.GetDefaultColumnName(table.Value) : null;
-                    }
+                        if (!IsPropertyValid(mapping.Property, propertyFilter))
+                            continue;
 
-                    if (columnName is null)
-                    {
-                        throw new NotSupportedException(Resources.FormatUnsupportedOwnedEntityColumnNameNotFoundForProperty(navigation.Name, property.Name));
+                        yield return new RelationalColumn(
+                            Property: mapping.Property,
+                            ColumnName: mapping.Column.Name,
+                            Owned: OwnershipType.Inline,
+                            Path: currentPath,
+                            EntityGetter: CurrentGetter);
                     }
-
-                    yield return new RelationalColumn(
-                        Property: property,
-                        ColumnName: columnName,
-                        Owned: OwnershipType.Inline,
-                        Path: currentPath,
-                        EntityGetter: currentGetter);
                 }
 
-                foreach (var column in GetOwnedColumns(parent, currentPath, currentGetter))
+                foreach (var column in GetOwnedColumns(parent, currentPath, CurrentGetter, propertyFilter))
                 {
                     yield return column;
                 }
@@ -220,7 +211,7 @@ internal sealed class RelationalTable : RelationalTableBase
         }
     }
 
-    private bool IsPropertyValid(IProperty property)
+    private bool IsPropertyValid(IProperty property, Func<IProperty, bool>? propertyFilter)
     {
         var valid =
             _allowIdentityMatch ||
@@ -229,10 +220,9 @@ internal sealed class RelationalTable : RelationalTableBase
         if (!valid)
             return false;
 
-        var pgIdentity = property
-            .GetAnnotations()
-            .FirstOrDefault(a => a.Name == "Npgsql:ValueGenerationStrategy")
-            ?.Value?.ToString() == "IdentityAlwaysColumn";
-        return !pgIdentity && !property.IsShadowProperty();
+        if (propertyFilter != null && !propertyFilter(property))
+            return false;
+
+        return !property.IsShadowProperty();
     }
 }

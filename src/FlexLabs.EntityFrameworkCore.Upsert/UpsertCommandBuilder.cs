@@ -198,6 +198,9 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     /// <summary>
     /// Execute the upsert command against the database and return new or updated entities
     /// </summary>
+    /// <remarks>
+    /// Relational database providers will ignore any global query filters and auto-includes when retrieving the entities from the database.
+    /// </remarks>
     public ICollection<TEntity> RunAndReturn()
     {
         if (_entities.Count == 0)
@@ -224,6 +227,9 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     /// <summary>
     /// Execute the upsert command against the database and return new or updated entities
     /// </summary>
+    /// <remarks>
+    /// Relational database providers will ignore any global query filters and auto-includes when retrieving the entities from the database.
+    /// </remarks>
     /// <param name="token">The cancellation token for this transaction</param>
     public Task<ICollection<TEntity>> RunAndReturnAsync(CancellationToken token = default)
     {

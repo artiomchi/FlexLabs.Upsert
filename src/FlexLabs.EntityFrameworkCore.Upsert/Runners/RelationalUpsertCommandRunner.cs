@@ -1,8 +1,10 @@
+using System.Collections.Concurrent;
 using System.Data;
 using System.Data.Common;
 using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -14,6 +16,8 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners;
 /// </summary>
 public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
 {
+    private static readonly ConcurrentDictionary<(Type RunnerType, IEntityType EntityType, bool AllowIdentityMatch), RelationalTable> TableCache = new();
+
     /// <summary>
     /// Generate a full command for the upsert operation, given the inputs passed
     /// </summary>
@@ -90,10 +94,17 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     /// </summary>
     protected virtual int? MaxQueryParams => null;
 
+    /// <summary>
+    /// Checks if a column should be mapped or ignored based on provider-specific rules.
+    /// </summary>
+    protected virtual bool ShouldMapColumn(IProperty property) => true;
+
     private IEnumerable<(string SqlCommand, IEnumerable<ConstantValue> Arguments)> PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
         UpsertCommandArgs<TEntity> commandArgs, bool returnResult = false)
     {
-        var table = new RelationalTable(entityType, GetTableName(entityType), commandArgs.AllowIdentityMatch);
+        var table = TableCache.GetOrAdd(
+            (GetType(), entityType, commandArgs.AllowIdentityMatch),
+            k => new RelationalTable(k.EntityType, GetTableName(k.EntityType), k.AllowIdentityMatch, ShouldMapColumn));
         var expressionParser = new ExpressionParser<TEntity>(table, commandArgs);
 
         var joinColumnNames = commandArgs.MatchProperties.Select(c => (ColumnName: c.GetColumnName(), Nullable: c.IsColumnNullable())).ToArray();
@@ -414,7 +425,8 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     /// Attaches or updates entities in the change tracker with fresh database values.
     /// If an entity is already tracked (by matching primary key), updates its values. Otherwise, attaches it.
     /// </summary>
-    private static void AttachOrUpdateEntities<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities) where TEntity : class
+    private static void AttachOrUpdateEntities<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities)
+        where TEntity : class
     {
         if (entities.Length == 0)
             return;
@@ -422,37 +434,69 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
         // Get primary key properties once (same for all entities of this type)
         var keyProperties = entityType.FindPrimaryKey()!.Properties;
 
-        // Build dictionary of tracked entities by their composite key for lookup
-        var trackedEntries = dbContext.ChangeTracker.Entries<TEntity>()
-            .ToDictionary(e => CompositeKey.FromEntity(e, keyProperties));
-
-        // Early exit if nothing is tracked
-        if (trackedEntries.Count == 0)
+        // Local function to handle the attach-or-update code
+        void ProcessEntities<TKey>(Dictionary<TKey, EntityEntry<TEntity>> trackedEntries, Func<TEntity, TKey> keyExtractor)
+            where TKey : notnull
         {
-            dbContext.AttachRange(entities);
+            foreach (var entity in entities)
+            {
+                var key = keyExtractor(entity);
+                if (trackedEntries.TryGetValue(key, out var trackedEntry))
+                {
+                    trackedEntry.CurrentValues.SetValues(entity);
+                }
+                else
+                {
+                    dbContext.Attach(entity);
+                }
+            }
+        }
+
+        // Shadow properties: Use EntityEntry-based key extraction (slower but necessary)
+        if (keyProperties.Any(p => p.IsShadowProperty()))
+        {
+            var trackedEntries = dbContext.ChangeTracker.Entries<TEntity>()
+                .ToDictionary(e => CompositeKey.FromEntityEntry(e, keyProperties));
+
+            ProcessEntities(trackedEntries, e => CompositeKey.FromEntityEntry(dbContext.Entry(e), keyProperties));
             return;
         }
 
-        // Process each entity: update if tracked, attach if new
-        foreach (var entity in entities)
-        {
-            var entry = dbContext.Entry(entity);
-            var key = CompositeKey.FromEntity(entry, keyProperties);
+        // Fast path: Use CLR property getters directly
+        var keyGetters = keyProperties.Select(p => p.GetGetter()).ToArray();
 
-            if (trackedEntries.TryGetValue(key, out var trackedEntry))
-            {
-                trackedEntry.CurrentValues.SetValues(entity);
-            }
-            else
-            {
-                dbContext.Attach(entity);
-            }
+        // Single key: Avoid CompositeKey allocation for better performance
+        if (keyProperties.Count == 1)
+        {
+            var getter = keyGetters[0];
+            var trackedEntries = dbContext.ChangeTracker.Entries<TEntity>()
+                .ToDictionary(e => getter.GetClrValue(e.Entity)!);
+
+            ProcessEntities(trackedEntries, entity => getter.GetClrValue(entity)!);
+        }
+        else
+        {
+            // Composite key: Use CompositeKey for multiple-column primary keys
+            var trackedEntries = dbContext.ChangeTracker.Entries<TEntity>()
+                .ToDictionary(e => CompositeKey.FromEntity(e.Entity, keyGetters));
+
+            ProcessEntities(trackedEntries, entity => CompositeKey.FromEntity(entity, keyGetters));
         }
     }
 
     private readonly record struct CompositeKey(object[] Values)
     {
-        public bool Equals(CompositeKey other) => Values.SequenceEqual(other.Values);
+        public bool Equals(CompositeKey other)
+        {
+            if (Values.Length != other.Values.Length)
+                return false;
+            for (var i = 0; i < Values.Length; i++)
+            {
+                if (!Equals(Values[i], other.Values[i]))
+                    return false;
+            }
+            return true;
+        }
 
         public override int GetHashCode()
         {
@@ -462,12 +506,24 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
             return hash.ToHashCode();
         }
 
-        public static CompositeKey FromEntity(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, IReadOnlyList<IProperty> keyProperties)
+        public static CompositeKey FromEntity(object entity, IClrPropertyGetter[] getters)
         {
-            var keyValues = keyProperties
-                .Select(p => entry.Property(p.Name).CurrentValue!)
-                .ToArray();
-            return new CompositeKey(keyValues);
+            var values = new object[getters.Length];
+            for (int i = 0; i < getters.Length; i++)
+            {
+                values[i] = getters[i].GetClrValue(entity)!;
+            }
+            return new CompositeKey(values);
+        }
+
+        public static CompositeKey FromEntityEntry(EntityEntry entry, IReadOnlyList<IProperty> keyProperties)
+        {
+            var values = new object[keyProperties.Count];
+            for (int i = 0; i < keyProperties.Count; i++)
+            {
+                values[i] = entry.Property(keyProperties[i].Name).CurrentValue!;
+            }
+            return new CompositeKey(values);
         }
     }
 }

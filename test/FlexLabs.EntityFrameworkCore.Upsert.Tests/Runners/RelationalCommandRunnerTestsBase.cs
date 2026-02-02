@@ -74,11 +74,7 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
     protected static EntityType AddEntity<TEntity>(Model model)
     {
         var clrType = typeof(TEntity);
-#if NET6_0_OR_GREATER
         var entityType = model.AddEntityType(clrType, true, ConfigurationSource.Convention);
-#else
-        var entityType = model.AddEntityType(clrType, ConfigurationSource.Convention);
-#endif
         foreach (var property in clrType.GetProperties())
         {
             entityType.AddProperty(property.Name, ConfigurationSource.Explicit);

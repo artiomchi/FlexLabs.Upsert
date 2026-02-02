@@ -8,7 +8,7 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 internal class UpdateExpressionVisitor(
     RelationalTableBase table,
     ParameterExpression leftParameter,
-    ParameterExpression rigthParameter,
+    ParameterExpression rightParameter,
     bool useExpressionCompiler
 ) : ExpressionVisitor
 {
@@ -146,7 +146,7 @@ internal class UpdateExpressionVisitor(
         {
             return new ParameterValue(isLeftParameter: true);
         }
-        else if (node == rigthParameter)
+        else if (node == rightParameter)
         {
             return new ParameterValue(isLeftParameter: false);
         }
