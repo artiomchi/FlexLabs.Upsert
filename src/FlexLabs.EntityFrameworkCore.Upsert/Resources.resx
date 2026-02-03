@@ -141,6 +141,9 @@
   <data name="ExcludeColumnsHaveToBePropertiesOfTheTEntityClass" xml:space="preserve">
     <value>Exclude columns have to be properties of the TEntity class</value>
   </data>
+  <data name="ExcludeColumnsShouldNotBeExcludedTwice" xml:space="preserve">
+    <value>Exclude columns should not be excluded twice</value>
+  </data>
   <data name="MatchColumnsHaveToBePropertiesOfTheTEntityClass" xml:space="preserve">
     <value>Match columns have to be properties of the TEntity class</value>
   </data>

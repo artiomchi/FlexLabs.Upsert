@@ -18,7 +18,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     private readonly IEntityType _entityType;
     private readonly ICollection<TEntity> _entities;
     private Expression<Func<TEntity, object>>? _matchExpression;
-    private Expression<Func<TEntity, object>>? _excludeExpression;
+    private List<Expression<Func<TEntity, object>>>? _excludeExpressions;
     private Expression<Func<TEntity, TEntity, TEntity>>? _updateExpression;
     private Expression<Func<TEntity, TEntity, bool>>? _updateCondition;
     private bool _allowIdentityMatch;
@@ -69,12 +69,11 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     /// <returns>The current instance of the UpsertCommandBuilder</returns>
     public UpsertCommandBuilder<TEntity> Exclude(Expression<Func<TEntity, object>> exclude)
     {
-        if (_excludeExpression != null)
-            throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(Exclude)));
         if (_updateExpression != null)
             throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(Exclude), nameof(WhenMatched)));
 
-        _excludeExpression = exclude ?? throw new ArgumentNullException(nameof(exclude));
+        _excludeExpressions ??= [];
+        _excludeExpressions.Add(exclude ?? throw new ArgumentNullException(nameof(exclude)));
         return this;
     }
 
@@ -90,7 +89,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
             throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
         if (_noUpdate)
             throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(NoUpdate)));
-        if (_excludeExpression != null)
+        if (_excludeExpressions != null)
             throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(Exclude)));
 
         _updateExpression =
@@ -113,7 +112,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
             throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WhenMatched)));
         if (_noUpdate)
             throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(NoUpdate)));
-        if (_excludeExpression != null)
+        if (_excludeExpressions != null)
             throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(WhenMatched), nameof(Exclude)));
 
         _updateExpression = updater ?? throw new ArgumentNullException(nameof(updater));
@@ -258,6 +257,17 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
         if (!_allowIdentityMatch && matchProperties.Any(p => p.ValueGenerated != ValueGenerated.Never))
             throw new InvalidMatchColumnsException();
 
+        var excludeProperties = _excludeExpressions switch
+        {
+            { Count: 1 } => ProcessPropertiesExpression(_entityType, _excludeExpressions[0], false),
+            not null => _excludeExpressions
+                .SelectMany(e => ProcessPropertiesExpression(_entityType, e, false))
+                .ToArray(),
+            _ => []
+        };
+        if (_excludeExpressions?.Count > 1 && excludeProperties.GroupBy(p => p.PropertyInfo).Any(g => g.Count() > 1))
+            throw new InvalidOperationException(Resources.ExcludeColumnsShouldNotBeExcludedTwice);
+
         return new()
         {
             AllowIdentityMatch = _allowIdentityMatch,
@@ -265,9 +275,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
             UseExpressionCompiler = _useExpressionCompiler,
             MatchExpressions = _matchExpression,
             MatchProperties = matchProperties,
-            ExcludeProperties = _excludeExpression != null
-                ? ProcessPropertiesExpression(_entityType, _excludeExpression, false)
-                : [],
+            ExcludeProperties = excludeProperties,
             UpdateExpression = _updateExpression,
             UpdateCondition = _updateCondition,
         };
