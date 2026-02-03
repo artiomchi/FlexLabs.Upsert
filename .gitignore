@@ -262,3 +262,6 @@ __pycache__/
 
 *.snk
 *.gpg
+
+# Environment variables
+.env
