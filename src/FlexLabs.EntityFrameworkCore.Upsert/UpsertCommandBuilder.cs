@@ -18,7 +18,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     private readonly IEntityType _entityType;
     private readonly ICollection<TEntity> _entities;
     private Expression<Func<TEntity, object>>? _matchExpression;
-    private List<Expression<Func<TEntity, object>>>? _excludeExpressions;
+    private List<Expression<Func<TEntity, object?>>>? _excludeExpressions;
     private Expression<Func<TEntity, TEntity, TEntity>>? _updateExpression;
     private Expression<Func<TEntity, TEntity, bool>>? _updateCondition;
     private bool _allowIdentityMatch;
@@ -67,7 +67,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     /// </summary>
     /// <param name="exclude">The expression that will identify the columns to exclude</param>
     /// <returns>The current instance of the UpsertCommandBuilder</returns>
-    public UpsertCommandBuilder<TEntity> Exclude(Expression<Func<TEntity, object>> exclude)
+    public UpsertCommandBuilder<TEntity> Exclude(Expression<Func<TEntity, object?>> exclude)
     {
         if (_updateExpression != null)
             throw new InvalidOperationException(Resources.FormatCantCallMethodWhenMethodHasBeenCalledAsTheyAreMutuallyExclusive(nameof(Exclude), nameof(WhenMatched)));
@@ -252,7 +252,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     private UpsertCommandArgs<TEntity> CreateCommandArgs()
     {
         var matchProperties = _matchExpression != null
-            ? ProcessPropertiesExpression(_entityType, _matchExpression, true)
+            ? ProcessPropertiesExpression(_entityType, _matchExpression!, true)
             : _entityType.GetProperties().Where(p => p.IsKey()).ToArray();
         if (!_allowIdentityMatch && matchProperties.Any(p => p.ValueGenerated != ValueGenerated.Never))
             throw new InvalidMatchColumnsException();
@@ -281,7 +281,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
         };
     }
 
-    private static IProperty[] ProcessPropertiesExpression(IEntityType entityType, Expression<Func<TEntity, object>> propertiesExpression, bool match)
+    private static IProperty[] ProcessPropertiesExpression(IEntityType entityType, Expression<Func<TEntity, object?>> propertiesExpression, bool match)
     {
         static string UnknownPropertiesExceptionMessage(bool match)
             => match
