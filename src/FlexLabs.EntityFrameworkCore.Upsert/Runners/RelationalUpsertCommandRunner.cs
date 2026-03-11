@@ -1,431 +1,529 @@
-using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Data;
 using System.Data.Common;
-using System.Globalization;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Threading;
-using System.Threading.Tasks;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
-using Microsoft.EntityFrameworkCore;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.Runners
+namespace FlexLabs.EntityFrameworkCore.Upsert.Runners;
+
+/// <summary>
+/// Base class with common functionality for most relational database runners
+/// </summary>
+public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
 {
+    private static readonly ConcurrentDictionary<(Type RunnerType, IEntityType EntityType, bool AllowIdentityMatch), RelationalTable> TableCache = new();
+
     /// <summary>
-    /// Base class with common functionality for most relational database runners
+    /// Generate a full command for the upsert operation, given the inputs passed
     /// </summary>
-    public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
+    /// <param name="tableName">The name of the database table</param>
+    /// <param name="entities">A collection of entity data (column names and values) to be upserted</param>
+    /// <param name="joinColumns">The columns used to match existing items in the database</param>
+    /// <param name="updateExpressions">The expressions that represent update commands for matched entities</param>
+    /// <param name="updateCondition">The expression that tests whether existing entities should be updated</param>
+    /// <param name="returnResult">If true, the generated command should return upserted entities</param>
+    /// <returns>A fully formed database query</returns>
+    public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts)>> entities,
+        ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
+        KnownExpression? updateCondition, bool returnResult = false);
+    /// <summary>
+    /// Escape the name of the table/column/schema in a given database language
+    /// </summary>
+    /// <param name="name">The name of the entity</param>
+    /// <returns>The escaped name of the entity</returns>
+    protected abstract string EscapeName(string name);
+    /// <summary>
+    /// Reference an indexed parameter passed to the query in a given database language
+    /// </summary>
+    /// <param name="index">The 0 based index of the parameter</param>
+    /// <returns>The reference to the parameter</returns>
+    protected virtual string Parameter(int index) => "@p" + index;
+    /// <summary>
+    /// Reference a named variable defined by the query runner
+    /// </summary>
+    /// <param name="name">The name of the variable</param>
+    /// <returns>The reference to the variable</returns>
+    protected virtual string Variable(string name) => "@x" + name;
+    /// <summary>
+    /// Get the escaped database table schema
+    /// </summary>
+    /// <param name="entityType">The entity type of the table</param>
+    /// <returns>The escaped schema name of the table, followed by a '.'. If the table has no schema - returns null</returns>
+    protected virtual string? GetSchema(IEntityType entityType)
     {
-        /// <summary>
-        /// Generate a full command for the opsert operation, given the inputs passed
-        /// </summary>
-        /// <param name="tableName">The name of the database table</param>
-        /// <param name="entities">A collection of entity data (column names and values) to be upserted</param>
-        /// <param name="joinColumns">The columns used to match existing items in the database</param>
-        /// <param name="updateExpressions">The expressions that represent update commands for matched entities</param>
-        /// <param name="updateCondition">The expression that tests whether existing entities should be updated</param>
-        /// <returns>A fully formed database query</returns>
-        public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>> entities,
-            ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
-            KnownExpression? updateCondition);
-        /// <summary>
-        /// Escape the name of the table/column/schema in a given database language
-        /// </summary>
-        /// <param name="name">The name of the entity</param>
-        /// <returns>The escaped name of the entity</returns>
-        protected abstract string EscapeName(string name);
-        /// <summary>
-        /// Reference an indexed parameter passed to the query in a given database language
-        /// </summary>
-        /// <param name="index">The 0 based index of the parameter</param>
-        /// <returns>The reference to the parameter</returns>
-        protected virtual string Parameter(int index) => "@p" + index;
-        /// <summary>
-        /// Reference an named variable defined by the query runner
-        /// </summary>
-        /// <param name="name">The name of the variable</param>
-        /// <returns>The reference to the variable</returns>
-        protected virtual string Variable(string name) => "@x" + name;
-        /// <summary>
-        /// Get the escaped database table schema
-        /// </summary>
-        /// <param name="entityType">The entity type of the table</param>
-        /// <returns>The escaped schema name of the table, followed by a '.'. If the table has no schema - returns null</returns>
-        protected virtual string? GetSchema(IEntityType entityType)
+        var schema = entityType.GetSchema();
+        return schema != null
+            ? EscapeName(schema) + "."
+            : null;
+    }
+    /// <summary>
+    /// Get the fully qualified, escaped table name
+    /// </summary>
+    /// <param name="entityType">The entity type of the table</param>
+    /// <returns>The fully qualified and escaped table reference</returns>
+    protected virtual string GetTableName(IEntityType entityType)
+    {
+        var tableName = entityType.GetTableName() ?? entityType.GetViewName()
+            ?? throw new InvalidOperationException(Resources.FormatCouldNotGetTableNameForEntityType(entityType?.Name));
+        return GetSchema(entityType) + EscapeName(tableName);
+    }
+
+    /// <summary>
+    /// Prefix used to reference source dataset columns
+    /// </summary>
+    protected abstract string? SourcePrefix { get; }
+    /// <summary>
+    /// Suffix used when referencing source dataset columns
+    /// </summary>
+    protected virtual string? SourceSuffix => null;
+    /// <summary>
+    /// Prefix used to reference target table columns
+    /// </summary>
+    protected abstract string? TargetPrefix { get; }
+    /// <summary>
+    /// Suffix used when referencing target table columns
+    /// </summary>
+    protected virtual string? TargetSuffix => null;
+    /// <summary>
+    /// The maximum number of parameters that the db engine allows to be passed to a query
+    /// </summary>
+    protected virtual int? MaxQueryParams => null;
+
+    /// <summary>
+    /// Checks if a column should be mapped or ignored based on provider-specific rules.
+    /// </summary>
+    protected virtual bool ShouldMapColumn(IProperty property) => true;
+
+    private IEnumerable<(string SqlCommand, IEnumerable<ConstantValue> Arguments)> PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
+        UpsertCommandArgs<TEntity> commandArgs, bool returnResult = false)
+    {
+        var table = TableCache.GetOrAdd(
+            (GetType(), entityType, commandArgs.AllowIdentityMatch),
+            k => new RelationalTable(k.EntityType, GetTableName(k.EntityType), k.AllowIdentityMatch, ShouldMapColumn));
+        var expressionParser = new ExpressionParser<TEntity>(table, commandArgs);
+
+        var joinColumnNames = commandArgs.MatchProperties.Select(c => (ColumnName: c.GetColumnName(), Nullable: c.IsColumnNullable())).ToArray();
+
+        var updateExpressions = commandArgs.UpdateExpression != null
+            ? expressionParser.ParseUpdateExpression(commandArgs.UpdateExpression)
+            : expressionParser.GetUpdateMappings(joinColumnNames, commandArgs.ExcludeProperties);
+        var updateConditionExpression = expressionParser.ParseUpdateConditionExpression(commandArgs.UpdateCondition);
+        var newEntities = entities
+            .Select(e => table.Columns
+                .Select(p => p.GetValue(e!))
+                .ToArray())
+            .ToArray();
+
+        var constantArgumentSourceValues = updateExpressions?.Select(e => e.Value);
+        if (updateConditionExpression != null)
+            constantArgumentSourceValues = constantArgumentSourceValues?.Append(updateConditionExpression) ?? [updateConditionExpression];
+        var expressionConstants = constantArgumentSourceValues?.SelectMany(v => v.GetConstantValues()).ToArray();
+
+        var entitiesProcessed = 0;
+        var singleEntityArguments = newEntities[0].Length + (expressionConstants?.Length ?? 0);
+        while (entitiesProcessed < newEntities.Length)
         {
-            var schema = entityType.GetSchema();
-            return schema != null
-                ? EscapeName(schema) + "."
+            var arguments = new List<ConstantValue>();
+
+            var entitiesHere = 0;
+            do
+            {
+                arguments.AddRange(newEntities[entitiesProcessed].Select(p => p.Value));
+                entitiesProcessed++;
+                entitiesHere++;
+            }
+            while (entitiesProcessed < newEntities.Length &&
+                (MaxQueryParams == null || arguments.Count + singleEntityArguments < MaxQueryParams));
+
+            if (expressionConstants != null)
+                arguments.AddRange(expressionConstants);
+
+            foreach (var (arg, index) in arguments.Select((a, i) => (a, i)))
+                arg.ArgumentIndex = index;
+
+            var columnUpdateExpressions = updateExpressions?.Length > 0
+                ? updateExpressions.Select(x => (x.Property.ColumnName, x.Value)).ToArray()
                 : null;
+            var sqlCommand = GenerateCommand(table.TableName, newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression, returnResult);
+            yield return (sqlCommand, arguments);
         }
-        /// <summary>
-        /// Get the fully qualified, escaped table name
-        /// </summary>
-        /// <param name="entityType">The entity type of the table</param>
-        /// <returns>The fully qualified and escaped table reference</returns>
-        protected virtual string GetTableName(IEntityType entityType)
+    }
+
+    /// <summary>
+    /// Expand a known value into database syntax
+    /// </summary>
+    /// <param name="value">The KnownValue that has to be converted to database language</param>
+    /// <param name="expandLeftColumn">Override the way the table column names are rendered</param>
+    /// <returns>A string containing the expression converted to database language</returns>
+    protected virtual string ExpandValue(IKnownValue value, Func<string, string>? expandLeftColumn = null)
+    {
+        switch (value)
         {
-            var tableName = entityType.GetTableName()
-                ?? throw new InvalidOperationException(string.Format(CultureInfo.InvariantCulture, Resources.CouldNotGetTableNameForEntityType, entityType?.Name));
-            return GetSchema(entityType) + EscapeName(tableName);
+            case PropertyValue prop:
+                var columnName = prop.Column.ColumnName;
+                if (expandLeftColumn != null && prop.IsLeftParameter)
+                    return expandLeftColumn(columnName);
+
+                var prefix = prop.IsLeftParameter ? TargetPrefix : SourcePrefix;
+                var suffix = prop.IsLeftParameter ? TargetSuffix : SourceSuffix;
+                return prefix + EscapeName(columnName) + suffix;
+
+            case ConstantValue constVal:
+                return Parameter(constVal.ArgumentIndex);
+
+            case KnownExpression expression:
+                return $"( {ExpandExpression(expression, expandLeftColumn)} )";
+
+            default:
+                throw new InvalidOperationException();
         }
+    }
 
-        /// <summary>
-        /// Prefix used to reference source dataset columns
-        /// </summary>
-        protected abstract string? SourcePrefix { get; }
-        /// <summary>
-        /// Suffix used when referencing source dataset columns
-        /// </summary>
-        protected virtual string? SourceSuffix => null;
-        /// <summary>
-        /// Prefix used to reference target table columns
-        /// </summary>
-        protected abstract string? TargetPrefix { get; }
-        /// <summary>
-        /// Suffix used when referencing target table columns
-        /// </summary>
-        protected virtual string? TargetSuffix => null;
-        /// <summary>
-        /// The maximum number of parameters that the db engine allows to be passed to a query
-        /// </summary>
-        protected virtual int? MaxQueryParams => null;
+    /// <summary>
+    /// Expand a known expression into database syntax
+    /// </summary>
+    /// <param name="expression">The KnownExpression that has to be converted to database language</param>
+    /// <param name="expandLeftColumn">Override the way the table column names are rendered</param>
+    /// <returns>A string containing the expression converted to database language</returns>
+    protected virtual string ExpandExpression(KnownExpression expression, Func<string, string>? expandLeftColumn = null)
+    {
+        ArgumentNullException.ThrowIfNull(expression);
 
-        private IEnumerable<(string SqlCommand, IEnumerable<ConstantValue> Arguments)> PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
-            Expression<Func<TEntity, object>>? match, Expression<Func<TEntity, TEntity, TEntity>>? updater, Expression<Func<TEntity, TEntity, bool>>? updateCondition,
-            RunnerQueryOptions queryOptions)
+        switch (expression.ExpressionType)
         {
-            var joinColumns = ProcessMatchExpression(entityType, match, queryOptions);
-            var joinColumnNames = joinColumns.Select(c => (ColumnName: c.GetColumnName(), c.IsColumnNullable())).ToArray();
-
-            var properties = entityType.GetProperties()
-                .Where(p => queryOptions.AllowIdentityMatch || p.ValueGenerated == ValueGenerated.Never || p.GetAfterSaveBehavior() == PropertySaveBehavior.Save)
-                .Where(p => p.GetAnnotations()
-                    .FirstOrDefault(a => a.Name == "Npgsql:ValueGenerationStrategy")
-                    ?.Value?.ToString() != "IdentityAlwaysColumn")
-                .Where(p => p.PropertyInfo != null)
-                .ToArray();
-
-            List<(IProperty Property, IKnownValue Value)>? updateExpressions = null;
-            if (updater != null)
-            {
-                if (updater.Body is not MemberInitExpression entityUpdater)
-                    throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, Resources.UpdaterMustBeAnInitialiserOfTheTEntityType, nameof(updater)), nameof(updater));
-
-                updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
-                foreach (MemberAssignment binding in entityUpdater.Bindings)
+            case ExpressionType.Add:
+            case ExpressionType.And:
+            case ExpressionType.Divide:
+            case ExpressionType.Modulo:
+            case ExpressionType.Multiply:
+            case ExpressionType.Or:
+            case ExpressionType.Subtract:
+            case ExpressionType.LessThan:
+            case ExpressionType.LessThanOrEqual:
+            case ExpressionType.GreaterThan:
+            case ExpressionType.GreaterThanOrEqual:
                 {
-                    var property = entityType.FindProperty(binding.Member.Name);
-                    if (property == null)
-                        throw new InvalidOperationException("Unknown property " + binding.Member.Name);
+                    var left = ExpandValue(expression.Value1, expandLeftColumn);
+                    var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                    var op = GetSimpleOperator(expression.ExpressionType);
+                    return $"{left} {op} {right}";
+                }
 
-                    var value = binding.Expression.GetValue<TEntity>(updater, entityType.FindProperty, queryOptions.UseExpressionCompiler);
-                    if (value is not IKnownValue knownVal)
-                        knownVal = new ConstantValue(value, property);
+            case ExpressionType.Equal:
+            case ExpressionType.NotEqual:
+                {
+                    var value1Null = expression.Value1 is ConstantValue constant1 && constant1.Value == null;
+                    var value2Null = expression.Value2 is ConstantValue constant2 && constant2.Value == null;
+                    if (value1Null || value2Null)
+                    {
+                        return IsNullExpression(value2Null ? expression.Value1! : expression.Value2!, expression.ExpressionType == ExpressionType.NotEqual);
+                    }
 
-                    updateExpressions.Add((property, knownVal));
+                    var left = ExpandValue(expression.Value1, expandLeftColumn);
+                    var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                    var op = GetSimpleOperator(expression.ExpressionType);
+                    return $"{left} {op} {right}";
+                }
+
+            case ExpressionType.Coalesce:
+                {
+                    var left = ExpandValue(expression.Value1, expandLeftColumn);
+                    var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                    return $"COALESCE({left}, {right})";
+                }
+
+            case ExpressionType.Conditional:
+                {
+                    var ifTrue = ExpandValue(expression.Value1, expandLeftColumn);
+                    var ifFalse = ExpandValue(expression.Value2!, expandLeftColumn);
+                    var test = ExpandValue(expression.Value3!, expandLeftColumn);
+                    return $"CASE WHEN {test} THEN {ifTrue} ELSE {ifFalse} END";
+                }
+
+            case ExpressionType.MemberAccess:
+            case ExpressionType.Constant:
+                {
+                    return ExpandValue(expression.Value1, expandLeftColumn);
+                }
+
+            case ExpressionType.AndAlso:
+            case ExpressionType.OrElse:
+                {
+                    var exp = expression.ExpressionType == ExpressionType.AndAlso ? "AND" : "OR";
+                    var left = ExpandValue(expression.Value1, expandLeftColumn);
+                    var right = ExpandValue(expression.Value2!, expandLeftColumn);
+                    return $"{left} {exp} {right}";
+                }
+
+            default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
+        }
+    }
+
+    /// <summary>
+    /// Translates a check for null values to sql
+    /// </summary>
+    /// <param name="value">Value to be checked for null</param>
+    /// <param name="notNull">Reverse the check to test for non null value</param>
+    /// <returns>Sql statement representing the check</returns>
+    protected virtual string IsNullExpression(IKnownValue value, bool notNull)
+    {
+        return !notNull
+            ? $"{ExpandValue(value)} IS NULL"
+            : $"{ExpandValue(value)} IS NOT NULL";
+    }
+
+    /// <summary>
+    /// Get the symbol used for basic expression operators in the database's syntax
+    /// </summary>
+    /// <param name="expressionType">Type of the basic expression</param>
+    /// <returns>A string containing the operator</returns>
+    protected virtual string GetSimpleOperator(ExpressionType expressionType)
+    {
+        return expressionType switch
+        {
+            ExpressionType.Add => "+",
+            ExpressionType.And => "&",
+            ExpressionType.Divide => "/",
+            ExpressionType.Modulo => "%",
+            ExpressionType.Multiply => "*",
+            ExpressionType.Or => "|",
+            ExpressionType.Subtract => "-",
+            ExpressionType.LessThan => "<",
+            ExpressionType.LessThanOrEqual => "<=",
+            ExpressionType.GreaterThan => ">",
+            ExpressionType.GreaterThanOrEqual => ">=",
+            ExpressionType.Equal => "=",
+            ExpressionType.NotEqual => "!=",
+            _ => throw new InvalidOperationException($"{expressionType} is not a simple arithmetic operation"),
+        };
+    }
+
+    /// <inheritdoc/>
+    public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs)
+    {
+        ArgumentNullException.ThrowIfNull(dbContext);
+        ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
+
+        var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
+        var commands = PrepareCommand(entityType, entities, commandArgs);
+
+        int result = 0;
+        foreach (var (sqlCommand, arguments) in commands)
+        {
+            using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
+            var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
+            result += dbContext.Database.ExecuteSqlRaw(sqlCommand, dbArguments);
+        }
+        return result;
+    }
+
+    /// <inheritdoc/>
+    public override ICollection<TEntity> RunAndReturn<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs)
+    {
+        ArgumentNullException.ThrowIfNull(dbContext);
+        ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
+
+        var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
+        var commands = PrepareCommand(entityType, entities, commandArgs, true);
+
+        var result = new List<TEntity>();
+        foreach (var (sqlCommand, arguments) in commands)
+        {
+            using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
+            var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)).ToArray();
+            var returnedEntities = dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).AsNoTracking().IgnoreQueryFilters().IgnoreAutoIncludes().ToArray();
+            AttachOrUpdateEntities(dbContext, entityType, returnedEntities);
+            result.AddRange(returnedEntities);
+        }
+        return result;
+    }
+
+    /// <inheritdoc/>
+    public override async Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+        UpsertCommandArgs<TEntity> commandArgs, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(dbContext);
+        ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
+
+        var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
+        var commands = PrepareCommand(entityType, entities, commandArgs);
+
+        int result = 0;
+        foreach (var (sqlCommand, arguments) in commands)
+        {
+            using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
+            var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
+            result += await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments, cancellationToken).ConfigureAwait(false);
+        }
+        return result;
+    }
+
+    /// <inheritdoc/>
+    public override async Task<ICollection<TEntity>> RunAndReturnAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+        UpsertCommandArgs<TEntity> commandArgs, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(dbContext);
+        ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
+
+        var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
+        var commands = PrepareCommand(entityType, entities, commandArgs, true);
+
+        var result = new List<TEntity>();
+        foreach (var (sqlCommand, arguments) in commands)
+        {
+            using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
+            var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)).ToArray();
+            var returnedEntities = await dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).AsNoTracking().IgnoreQueryFilters().IgnoreAutoIncludes().ToArrayAsync(cancellationToken).ConfigureAwait(false);
+            AttachOrUpdateEntities(dbContext, entityType, returnedEntities);
+            result.AddRange(returnedEntities);
+        }
+        return result;
+    }
+
+    private DbParameter PrepareDbCommandArgument(DbCommand dbCommand, IRelationalTypeMappingSource relationalTypeMappingSource, ConstantValue constantValue)
+    {
+        RelationalTypeMapping? relationalTypeMapping = null;
+
+        if (constantValue.ColumnProperty is RelationalColumn relational)
+        {
+            relationalTypeMapping = relationalTypeMappingSource.FindMapping(relational.Property);
+        }
+        if (constantValue.ColumnProperty is ComplexJsonColumn complexJson)
+        {
+            relationalTypeMapping = relationalTypeMappingSource.FindMapping(complexJson.Column.ProviderClrType, complexJson.Column.Table.Model.Model, complexJson.Column.StoreTypeMapping);
+        }
+        else if (constantValue.ColumnProperty is JsonColumn json)
+        {
+            relationalTypeMapping = relationalTypeMappingSource.FindMapping(json.Column.ProviderClrType, json.Column.Table.Model.Model, json.Column.StoreTypeMapping);
+        }
+        else if (constantValue.MemberInfo != null)
+        {
+            relationalTypeMapping = relationalTypeMappingSource.FindMapping(constantValue.MemberInfo);
+        }
+
+        var dbParameter = relationalTypeMapping?.CreateParameter(dbCommand, Parameter(constantValue.ArgumentIndex), constantValue.Value);
+        if (dbParameter == null)
+        {
+            dbParameter = dbCommand.CreateParameter();
+            dbParameter.Direction = ParameterDirection.Input;
+            dbParameter.Value = constantValue.Value ?? DBNull.Value;
+            dbParameter.ParameterName = Parameter(constantValue.ArgumentIndex);
+        }
+        return dbParameter;
+    }
+
+    /// <summary>
+    /// Attaches or updates entities in the change tracker with fresh database values.
+    /// If an entity is already tracked (by matching primary key), updates its values. Otherwise, attaches it.
+    /// </summary>
+    private static void AttachOrUpdateEntities<TEntity>(DbContext dbContext, IEntityType entityType, TEntity[] entities)
+        where TEntity : class
+    {
+        if (entities.Length == 0)
+            return;
+
+        // Get primary key properties once (same for all entities of this type)
+        var keyProperties = entityType.FindPrimaryKey()!.Properties;
+
+        // Local function to handle the attach-or-update code
+        void ProcessEntities<TKey>(Dictionary<TKey, EntityEntry<TEntity>> trackedEntries, Func<TEntity, TKey> keyExtractor)
+            where TKey : notnull
+        {
+            foreach (var entity in entities)
+            {
+                var key = keyExtractor(entity);
+                if (trackedEntries.TryGetValue(key, out var trackedEntry))
+                {
+                    trackedEntry.CurrentValues.SetValues(entity);
+                }
+                else
+                {
+                    dbContext.Attach(entity);
                 }
             }
-            else if (!queryOptions.NoUpdate)
-            {
-                updateExpressions = new List<(IProperty Property, IKnownValue Value)>();
-                foreach (var property in properties)
-                {
-                    if (joinColumnNames.Any(c => c.ColumnName == property.GetColumnName()))
-                        continue;
-
-                    var propertyAccess = new PropertyValue(property.Name, false, property);
-                    updateExpressions.Add((property, propertyAccess));
-                }
-            }
-
-            KnownExpression? updateConditionExpression = null;
-            if (updateCondition != null)
-            {
-                var updateConditionValue = updateCondition.Body.GetValue<TEntity>(updateCondition, entityType.FindProperty, queryOptions.UseExpressionCompiler);
-                if (updateConditionValue is not KnownExpression updateConditionExp)
-                    throw new InvalidOperationException(Resources.TheUpdateConditionMustBeAComparisonExpression);
-                updateConditionExpression = updateConditionExp;
-            }
-
-            var newEntities = entities
-                .Select(e => properties
-                    .Select(p =>
-                    {
-                        var columnName = p.GetColumnName();
-                        var rawValue = p.PropertyInfo?.GetValue(e);
-                        string? defaultSql = null;
-                        if (rawValue == null)
-                        {
-                            if (p.GetDefaultValue() != null)
-                                rawValue = p.GetDefaultValue();
-                            else
-                                defaultSql = p.GetDefaultValueSql();
-                        }
-                        var value = new ConstantValue(rawValue, p);
-                        var allowInserts = p.ValueGenerated == ValueGenerated.Never || p.GetAfterSaveBehavior() == PropertySaveBehavior.Save;
-                        return (columnName, value, defaultSql, allowInserts);
-                    })
-                    .ToArray() as ICollection<(string ColumnName, ConstantValue Value, string DefaultSql, bool AllowInserts)>)
-                .ToArray();
-
-            var entitiesProcessed = 0;
-            var singleEntityArguments = newEntities[0].Count;
-            while (entitiesProcessed < newEntities.Length)
-            {
-                var arguments = new List<ConstantValue>();
-
-                var entitiesHere = 0;
-                do
-                {
-                    arguments.AddRange(newEntities[entitiesProcessed].Select(p => p.Value));
-                    entitiesProcessed++;
-                    entitiesHere++;
-                }
-                while (entitiesProcessed < newEntities.Length &&
-                    (MaxQueryParams == null || arguments.Count + singleEntityArguments < MaxQueryParams));
-
-                if (updateExpressions != null)
-                    arguments.AddRange(updateExpressions.SelectMany(e => e.Value.GetConstantValues()));
-
-#pragma warning disable CA1508 // Avoid dead conditional code. Analyzer is drunk - this can clearly be not null!
-                if (updateConditionExpression != null)
-                    arguments.AddRange(updateConditionExpression.GetConstantValues().Where(c => c.Value != null));
-#pragma warning restore CA1508 // Avoid dead conditional code
-
-                int i = 0;
-                foreach (var arg in arguments)
-                    arg.ArgumentIndex = i++;
-
-                var columnUpdateExpressions = updateExpressions?.Count > 0
-                    ? updateExpressions.Select(x => (x.Property.GetColumnName(), x.Value)).ToArray()
-                    : null;
-                var sqlCommand = GenerateCommand(GetTableName(entityType), newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression);
-                yield return (sqlCommand, arguments);
-            }
         }
 
-        /// <summary>
-        /// Expand a known value into database syntax
-        /// </summary>
-        /// <param name="value">The KnownValue that has to be converted to database language</param>
-        /// <param name="expandLeftColumn">Override the way the table column names are rendered</param>
-        /// <returns>A string containing the expression converted to database language</returns>
-        protected virtual string ExpandValue(IKnownValue value, Func<string, string>? expandLeftColumn = null)
+        // Shadow properties: Use EntityEntry-based key extraction (slower but necessary)
+        if (keyProperties.Any(p => p.IsShadowProperty()))
         {
-            switch (value)
-            {
-                case PropertyValue prop:
-                    var columnName = prop.Property.GetColumnName();
-                    if (expandLeftColumn != null && prop.IsLeftParameter)
-                        return expandLeftColumn(columnName);
+            var trackedEntries = dbContext.ChangeTracker.Entries<TEntity>()
+                .ToDictionary(e => CompositeKey.FromEntityEntry(e, keyProperties));
 
-                    var prefix = prop.IsLeftParameter ? TargetPrefix : SourcePrefix;
-                    var suffix = prop.IsLeftParameter ? TargetSuffix : SourceSuffix;
-                    return prefix + EscapeName(columnName) + suffix;
-
-                case ConstantValue constVal:
-                    return Parameter(constVal.ArgumentIndex);
-
-                case KnownExpression expression:
-                    return $"( {ExpandExpression(expression, expandLeftColumn)} )";
-
-                default:
-                    throw new InvalidOperationException();
-            }
+            ProcessEntities(trackedEntries, e => CompositeKey.FromEntityEntry(dbContext.Entry(e), keyProperties));
+            return;
         }
 
-        /// <summary>
-        /// Expand a known expression into database syntax
-        /// </summary>
-        /// <param name="expression">The KnownExpression that has to be converted to database language</param>
-        /// <param name="expandLeftColumn">Override the way the table column names are rendered</param>
-        /// <returns>A string containing the expression converted to database language</returns>
-        protected virtual string ExpandExpression(KnownExpression expression, Func<string, string>? expandLeftColumn = null)
+        // Fast path: Use CLR property getters directly
+        var keyGetters = keyProperties.Select(p => p.GetGetter()).ToArray();
+
+        // Single key: Avoid CompositeKey allocation for better performance
+        if (keyProperties.Count == 1)
         {
-            if (expression == null)
-                throw new ArgumentNullException(nameof(expression));
+            var getter = keyGetters[0];
+            var trackedEntries = dbContext.ChangeTracker.Entries<TEntity>()
+                .ToDictionary(e => getter.GetClrValue(e.Entity)!);
 
-            switch (expression.ExpressionType)
+            ProcessEntities(trackedEntries, entity => getter.GetClrValue(entity)!);
+        }
+        else
+        {
+            // Composite key: Use CompositeKey for multiple-column primary keys
+            var trackedEntries = dbContext.ChangeTracker.Entries<TEntity>()
+                .ToDictionary(e => CompositeKey.FromEntity(e.Entity, keyGetters));
+
+            ProcessEntities(trackedEntries, entity => CompositeKey.FromEntity(entity, keyGetters));
+        }
+    }
+
+    private readonly record struct CompositeKey(object[] Values)
+    {
+        public bool Equals(CompositeKey other)
+        {
+            if (Values.Length != other.Values.Length)
+                return false;
+            for (var i = 0; i < Values.Length; i++)
             {
-                case ExpressionType.Add:
-                case ExpressionType.And:
-                case ExpressionType.Divide:
-                case ExpressionType.Modulo:
-                case ExpressionType.Multiply:
-                case ExpressionType.Or:
-                case ExpressionType.Subtract:
-                case ExpressionType.LessThan:
-                case ExpressionType.LessThanOrEqual:
-                case ExpressionType.GreaterThan:
-                case ExpressionType.GreaterThanOrEqual:
-                    {
-                        var left = ExpandValue(expression.Value1, expandLeftColumn);
-                        var right = ExpandValue(expression.Value2!, expandLeftColumn);
-                        var op = GetSimpleOperator(expression.ExpressionType);
-                        return $"{left} {op} {right}";
-                    }
-
-                case ExpressionType.Equal:
-                case ExpressionType.NotEqual:
-                    {
-                        var value1Null = expression.Value1 is ConstantValue constant1 && constant1.Value == null;
-                        var value2Null = expression.Value2 is ConstantValue constant2 && constant2.Value == null;
-                        if (value1Null || value2Null)
-                        {
-                            return IsNullExpression(value2Null ? expression.Value1! : expression.Value2!, expression.ExpressionType == ExpressionType.NotEqual);
-                        }
-
-                        var left = ExpandValue(expression.Value1, expandLeftColumn);
-                        var right = ExpandValue(expression.Value2!, expandLeftColumn);
-                        var op = GetSimpleOperator(expression.ExpressionType);
-                        return $"{left} {op} {right}";
-                    }
-
-                case ExpressionType.Coalesce:
-                    {
-                        var left = ExpandValue(expression.Value1, expandLeftColumn);
-                        var right = ExpandValue(expression.Value2!, expandLeftColumn);
-                        return $"COALESCE({left}, {right})";
-                    }
-
-                case ExpressionType.Conditional:
-                    {
-                        var ifTrue = ExpandValue(expression.Value1, expandLeftColumn);
-                        var ifFalse = ExpandValue(expression.Value2!, expandLeftColumn);
-                        var test = ExpandValue(expression.Value3!, expandLeftColumn);
-                        return $"CASE WHEN {test} THEN {ifTrue} ELSE {ifFalse} END";
-                    }
-
-                case ExpressionType.MemberAccess:
-                case ExpressionType.Constant:
-                    {
-                        return ExpandValue(expression.Value1, expandLeftColumn);
-                    }
-
-                case ExpressionType.AndAlso:
-                case ExpressionType.OrElse:
-                    {
-                        var exp = expression.ExpressionType == ExpressionType.AndAlso ? "AND" : "OR";
-                        var left = ExpandValue(expression.Value1, expandLeftColumn);
-                        var right = ExpandValue(expression.Value2!, expandLeftColumn);
-                        return $"{left} {exp} {right}";
-                    }
-
-                default: throw new NotSupportedException("Don't know how to process operation: " + expression.ExpressionType);
+                if (!Equals(Values[i], other.Values[i]))
+                    return false;
             }
+            return true;
         }
 
-        /// <summary>
-        /// Translates a check for null values to sql
-        /// </summary>
-        /// <param name="value">Value to be checked for null</param>
-        /// <param name="notNull">Reverse the check to test for non null value</param>
-        /// <returns>Sql statement representing the check</returns>
-        protected virtual string IsNullExpression(IKnownValue value, bool notNull)
+        public override int GetHashCode()
         {
-            return !notNull
-                ? $"{ExpandValue(value)} IS NULL"
-                : $"{ExpandValue(value)} IS NOT NULL";
+            var hash = new HashCode();
+            foreach (var value in Values)
+                hash.Add(value);
+            return hash.ToHashCode();
         }
 
-        /// <summary>
-        /// Get the symbol used for basic expression operators in the database's syntax
-        /// </summary>
-        /// <param name="expressionType">Type of the basic expression</param>
-        /// <returns>A string containing the operator</returns>
-        protected virtual string GetSimpleOperator(ExpressionType expressionType)
+        public static CompositeKey FromEntity(object entity, IClrPropertyGetter[] getters)
         {
-            return expressionType switch
+            var values = new object[getters.Length];
+            for (int i = 0; i < getters.Length; i++)
             {
-                ExpressionType.Add => "+",
-                ExpressionType.And => "&",
-                ExpressionType.Divide => "/",
-                ExpressionType.Modulo => "%",
-                ExpressionType.Multiply => "*",
-                ExpressionType.Or => "|",
-                ExpressionType.Subtract => "-",
-                ExpressionType.LessThan => "<",
-                ExpressionType.LessThanOrEqual => "<=",
-                ExpressionType.GreaterThan => ">",
-                ExpressionType.GreaterThanOrEqual => ">=",
-                ExpressionType.Equal => "=",
-                ExpressionType.NotEqual => "!=",
-                _ => throw new InvalidOperationException($"{expressionType} is not a simple arithmetic operation"),
-            };
+                values[i] = getters[i].GetClrValue(entity)!;
+            }
+            return new CompositeKey(values);
         }
 
-        /// <inheritdoc/>
-        public override int Run<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions)
+        public static CompositeKey FromEntityEntry(EntityEntry entry, IReadOnlyList<IProperty> keyProperties)
         {
-            if (dbContext == null)
-                throw new ArgumentNullException(nameof(dbContext));
-            if (entityType == null)
-                throw new ArgumentNullException(nameof(entityType));
-
-            var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-            var commands = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
-
-            int result = 0;
-            foreach (var (sqlCommand, arguments) in commands)
+            var values = new object[keyProperties.Count];
+            for (int i = 0; i < keyProperties.Count; i++)
             {
-                using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
-                var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
-                result += dbContext.Database.ExecuteSqlRaw(sqlCommand, dbArguments);
+                values[i] = entry.Property(keyProperties[i].Name).CurrentValue!;
             }
-            return result;
-        }
-
-        /// <inheritdoc/>
-        public override async Task<int> RunAsync<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, Expression<Func<TEntity, object>>? matchExpression,
-            Expression<Func<TEntity, TEntity, TEntity>>? updateExpression, Expression<Func<TEntity, TEntity, bool>>? updateCondition, RunnerQueryOptions queryOptions,
-            CancellationToken cancellationToken)
-        {
-            if (dbContext == null)
-                throw new ArgumentNullException(nameof(dbContext));
-            if (entityType == null)
-                throw new ArgumentNullException(nameof(entityType));
-
-            var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-            var commands = PrepareCommand(entityType, entities, matchExpression, updateExpression, updateCondition, queryOptions);
-
-            int result = 0;
-            foreach (var (sqlCommand, arguments) in commands)
-            {
-                using var dbCommand = dbContext.Database.GetDbConnection().CreateCommand();
-                var dbArguments = arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a));
-                result += await dbContext.Database.ExecuteSqlRawAsync(sqlCommand, dbArguments, cancellationToken).ConfigureAwait(false);
-            }
-            return result;
-        }
-
-        private object PrepareDbCommandArgument(DbCommand dbCommand, IRelationalTypeMappingSource relationalTypeMappingSource, ConstantValue constantValue)
-        {
-            RelationalTypeMapping? relationalTypeMapping = null;
-
-            if (constantValue.Property != null)
-            {
-                relationalTypeMapping = relationalTypeMappingSource.FindMapping(constantValue.Property);
-            }
-            else if (constantValue.MemberInfo != null)
-            {
-                relationalTypeMapping = relationalTypeMappingSource.FindMapping(constantValue.MemberInfo);
-            }
-
-            var dbParameter = relationalTypeMapping?.CreateParameter(dbCommand, Parameter(constantValue.ArgumentIndex), constantValue.Value);
-            if (dbParameter == null)
-            {
-                dbParameter = dbCommand.CreateParameter();
-                dbParameter.Direction = ParameterDirection.Input;
-                dbParameter.Value = constantValue.Value;
-                dbParameter.ParameterName = Parameter(constantValue.ArgumentIndex);
-            }
-            return dbParameter;
+            return new CompositeKey(values);
         }
     }
 }

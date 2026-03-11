@@ -1,21 +1,22 @@
 ﻿using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
-using Xunit;
-using Xunit.Abstractions;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
+namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests;
+
+public class DbTests_Sqlite(DbTests_Sqlite.DatabaseInitializer contexts) : DbTestsBase(contexts), IClassFixture<DbTests_Sqlite.DatabaseInitializer>
 {
-    public class DbTests_Sqlite : DbTestsBase, IClassFixture<DbTests_Sqlite.DatabaseInitializer>
+    public sealed class DatabaseInitializer : DatabaseInitializerFixture
     {
-        public sealed class DatabaseInitializer : DatabaseInitializerFixture
-        {
-            public DatabaseInitializer(IMessageSink diagnosticMessageSink)
-                : base(diagnosticMessageSink, DbDriver.Sqlite)
-            { }
-        }
+        private const string DbFilePath = "testdb.db";
+        public override DbDriver DbDriver => DbDriver.Sqlite;
 
-        public DbTests_Sqlite(DatabaseInitializer contexts)
-            : base(contexts)
-        { }
+        protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
+            => builder.UseSqlite($"Data Source={DbFilePath}");
+
+        public override ValueTask InitializeAsync()
+        {
+            File.Delete(DbFilePath);
+            return base.InitializeAsync();
+        }
     }
 }

@@ -261,3 +261,7 @@ __pycache__/
 *.pyc
 
 *.snk
+*.gpg
+
+# Environment variables
+.env

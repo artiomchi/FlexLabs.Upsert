@@ -1,23 +1,17 @@
 ﻿using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
-using Xunit;
-using Xunit.Abstractions;
 
-namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests
+namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests;
+
+[Trait("Category", "in-memory")]
+[Collection("InMemory")]
+public class DbTests_InMemory(DbTests_InMemory.DatabaseInitializer contexts) : DbTestsBase(contexts), IClassFixture<DbTests_InMemory.DatabaseInitializer>
 {
-    [Trait("Category", "in-memory")]
-    [Collection("InMemory")]
-    public class DbTests_InMemory : DbTestsBase, IClassFixture<DbTests_InMemory.DatabaseInitializer>
+    public sealed class DatabaseInitializer : DatabaseInitializerFixture
     {
-        public sealed class DatabaseInitializer : DatabaseInitializerFixture
-        {
-            public DatabaseInitializer(IMessageSink diagnosticMessageSink)
-                : base(diagnosticMessageSink, DbDriver.InMemory)
-            { }
-        }
+        public override DbDriver DbDriver => DbDriver.InMemory;
 
-        public DbTests_InMemory(DatabaseInitializer contexts)
-            : base(contexts)
-        { }
+        protected override void ConfigureContextOptions(DbContextOptionsBuilder<TestDbContext> builder)
+            => builder.UseInMemoryDatabase("Upsert_TestDbContext_Tests");
     }
 }

@@ -1,11 +1,11 @@
-﻿namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base
+﻿namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
+
+public enum DbDriver
 {
-    public enum DbDriver
-    {
-        Postgres,
-        MSSQL,
-        MySQL,
-        InMemory,
-        Sqlite,
-    }
+    Postgres,
+    MSSQL,
+    MySQL,
+    InMemory,
+    Sqlite,
+    Oracle,
 }
