@@ -28,7 +28,8 @@ internal sealed record RelationalColumn(
             : null;
 
         string? defaultSql = null;
-        if (rawValue == null)
+        var hasConfiguredDefault = Property.GetDefaultValue() != null || Property.GetDefaultValueSql() != null;
+        if (rawValue == null || (hasConfiguredDefault && Equals(rawValue, Property.Sentinel)))
         {
             if (Property.GetDefaultValue() != null)
                 rawValue = Property.GetDefaultValue();

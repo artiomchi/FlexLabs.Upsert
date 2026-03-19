@@ -2350,6 +2350,90 @@ public abstract partial class DbTestsBase
             r => r.Text.Should().Be("B"));
     }
 
+    [Fact(DisplayName = "Insert with CLR default value (0) should use HasDefaultValue(27)")]
+    public void Upsert_ValueType_DefaultValue_Insert()
+    {
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var newItem = new TestEntity
+        {
+            Num1 = 1,
+            Num2 = 0,
+            Text1 = "Test",
+            Text2 = "Value",
+        };
+
+        dbContext.TestEntities.Upsert(newItem)
+            .On(j => j.Num1)
+            .Run();
+
+        dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+            test => test.Num2.Should().Be(27));
+    }
+
+    [Fact(DisplayName = "Insert with explicit non-default value (42) should preserve it despite HasDefaultValue(27)")]
+    public void Upsert_ValueType_ExplicitValue_Insert()
+    {
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var newItem = new TestEntity
+        {
+            Num1 = 1,
+            Num2 = 42,
+            Text1 = "Test",
+            Text2 = "Value",
+        };
+
+        dbContext.TestEntities.Upsert(newItem)
+            .On(j => j.Num1)
+            .Run();
+
+        dbContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+            test => test.Num2.Should().Be(newItem.Num2));
+    }
+
+    [Fact(DisplayName = "With HasSentinel(-1), inserting Num2=0 should preserve 0 (not sentinel)")]
+    public void Upsert_ValueType_CustomSentinel_Insert()
+    {
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var newItem = new SentinelEntity
+        {
+            Num1 = 1,
+            Num2 = 0,
+        };
+
+        dbContext.SentinelEntities.Upsert(newItem)
+            .On(j => j.Num1)
+            .Run();
+
+        dbContext.SentinelEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+            test => test.Num2.Should().Be(0));
+    }
+
+    [Fact(DisplayName = "With HasSentinel(-1), inserting Num2=-1 should use HasDefaultValue(27)")]
+    public void Upsert_ValueType_CustomSentinel_UsesDefault()
+    {
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var newItem = new SentinelEntity
+        {
+            Num1 = 1,
+            Num2 = -1,
+        };
+
+        dbContext.SentinelEntities.Upsert(newItem)
+            .On(j => j.Num1)
+            .Run();
+
+        dbContext.SentinelEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+            test => test.Num2.Should().Be(27));
+    }
+
     [Fact]
     public void Upsert_100k_Insert_MultiQuery()
     {

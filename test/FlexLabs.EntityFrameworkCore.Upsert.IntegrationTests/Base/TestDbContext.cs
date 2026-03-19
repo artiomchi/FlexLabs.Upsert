@@ -17,6 +17,8 @@ public class TestDbContext : DbContext
 
         modelBuilder.Entity<TestEntity>().HasIndex(b => b.Num1).IsUnique();
         modelBuilder.Entity<TestEntity>().Property(e => e.Num2).HasDefaultValue(27);
+        modelBuilder.Entity<SentinelEntity>().HasIndex(b => b.Num1).IsUnique();
+        modelBuilder.Entity<SentinelEntity>().Property(e => e.Num2).HasDefaultValue(27).HasSentinel(-1);
         modelBuilder.Entity<TestEntityFiltered>().HasIndex(b => b.Key).IsUnique();
         modelBuilder.Entity<TestEntityFiltered>().HasQueryFilter(b => !b.IsDeleted);
         modelBuilder.Entity<ULongEntity>().HasIndex(b => b.Num1).IsUnique();
@@ -122,6 +124,7 @@ public class TestDbContext : DbContext
     public DbSet<Status> Statuses { get; set; }
     public DbSet<StringKey> StringKeys { get; set; }
     public DbSet<StringKeyAutoGen> StringKeysAutoGen { get; set; }
+    public DbSet<SentinelEntity> SentinelEntities { get; set; }
     public DbSet<TestEntity> TestEntities { get; set; }
     public DbSet<TestEntityFiltered> TestEntitiesFiltered { get; set; }
     public DbSet<ULongEntity> ULongEntities { get; set; }
