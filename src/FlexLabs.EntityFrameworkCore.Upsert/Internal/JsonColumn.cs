@@ -24,7 +24,7 @@ internal sealed record JsonColumn(
         // we are now forced to rebuild the serialization logic here in our `RelationalJsonHelper`.
         var jsonValue = RelationalJsonHelper.SerializeToJson(Navigation, rawValue);
 
-        var value = new ConstantValue(jsonValue, this);
+        var value = new ConstantValue(jsonValue, this, isJson: true);
 
         return (ColumnName, value, DefaultSql: null, AllowInserts: true);
     }
