@@ -407,7 +407,8 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
 
     /// <inheritdoc/>
     public override ICollection<TOutput> RunAndReturn<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity, TEntity, TOutput>> returnExpression)
+        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression)
+        where TEntity : class
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
@@ -419,7 +420,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
 
         var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
         var returnColumns = ParseReturnExpression(returnExpression, entityType);
-        var mapper = CreateReaderMapper<TEntity, TOutput>(returnExpression);
+        var mapper = CreateReaderMapper(returnExpression);
         var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: returnColumns).ToArray();
 
         var result = new List<TOutput>();
@@ -451,7 +452,8 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
 
     /// <inheritdoc/>
     public override async Task<ICollection<TOutput>> RunAndReturnAsync<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity, TEntity, TOutput>> returnExpression, CancellationToken cancellationToken)
+        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression, CancellationToken cancellationToken)
+        where TEntity : class
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
@@ -463,7 +465,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
 
         var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
         var returnColumns = ParseReturnExpression(returnExpression, entityType);
-        var mapper = CreateReaderMapper<TEntity, TOutput>(returnExpression);
+        var mapper = CreateReaderMapper(returnExpression);
         var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: returnColumns).ToArray();
 
         var result = new List<TOutput>();
@@ -480,9 +482,10 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
                 dbCommand.Transaction = dbContext.Database.CurrentTransaction?.GetDbTransaction();
                 foreach (var arg in arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)))
                     dbCommand.Parameters.Add(arg);
-                using var reader = await dbCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
-                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
-                    result.Add(mapper(reader));
+                var reader = await dbCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                await using(reader.ConfigureAwait(false))
+                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                        result.Add(mapper(reader));
             }
         }
         finally
@@ -644,23 +647,20 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
         var deletedParam = expression.Parameters[0];
         var insertedParam = expression.Parameters[1];
 
-        switch (expression.Body)
+        return expression.Body switch
         {
-            case MemberInitExpression memberInit:
-                return memberInit.Bindings.Cast<MemberAssignment>()
+            MemberInitExpression memberInit =>
+                memberInit.Bindings.Cast<MemberAssignment>()
                     .Select(b => ParseReturnColumn(b.Member.Name, b.Expression, deletedParam, insertedParam, entityType))
-                    .ToArray();
-
-            case NewExpression { Members: not null } newExpr:
-                return newExpr.Members.Select((m, i) =>
-                    ParseReturnColumn(m.Name, newExpr.Arguments[i], deletedParam, insertedParam, entityType))
-                    .ToArray();
-
-            default:
-                throw new ArgumentException(
-                    Resources.FormatReturnExpressionMustBeAnInitialiserOfTOutputType(typeof(TOutput).Name),
-                    nameof(expression));
-        }
+                    .ToArray(),
+            NewExpression { Members: not null } newExpr =>
+                newExpr.Members.Select((m, i) =>
+                        ParseReturnColumn(m.Name, newExpr.Arguments[i], deletedParam, insertedParam, entityType))
+                    .ToArray(),
+            _ => throw new ArgumentException(
+                Resources.FormatReturnExpressionMustBeAnInitialiserOfTOutputType(typeof(TOutput).Name),
+                nameof(expression))
+        };
     }
 
     private static (string Alias, bool IsDeletedParam, string ColumnName) ParseReturnColumn(
@@ -697,7 +697,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     /// <see cref="ParseReturnExpression{TEntity,TOutput}"/>.
     /// </summary>
     protected static Func<DbDataReader, TOutput> CreateReaderMapper<TEntity, TOutput>(
-        Expression<Func<TEntity, TEntity, TOutput>> expression)
+        Expression<Func<TEntity?, TEntity?, TOutput>> expression)
     {
         ArgumentNullException.ThrowIfNull(expression);
         switch (expression.Body)

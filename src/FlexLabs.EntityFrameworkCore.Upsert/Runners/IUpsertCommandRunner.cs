@@ -82,7 +82,7 @@ public interface IUpsertCommandRunner
     /// <param name="entities">Array of entities to be upserted</param>
     /// <param name="commandArgs">Arguments for the upsert command</param>
     /// <param name="returnExpression">Expression selecting output columns from deleted (first parameter) and inserted (second parameter) pseudo-tables</param>
-    ICollection<TOutput> RunAndReturn<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity, TEntity, TOutput>> returnExpression)
+    ICollection<TOutput> RunAndReturn<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression)
         where TEntity : class;
 
     /// <summary>
@@ -100,6 +100,6 @@ public interface IUpsertCommandRunner
     /// <param name="commandArgs">Arguments for the upsert command</param>
     /// <param name="returnExpression">Expression selecting output columns from deleted (first parameter) and inserted (second parameter) pseudo-tables</param>
     /// <param name="cancellationToken">The CancellationToken to observe while waiting for the task to complete.</param>
-    Task<ICollection<TOutput>> RunAndReturnAsync<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity, TEntity, TOutput>> returnExpression, CancellationToken cancellationToken)
+    Task<ICollection<TOutput>> RunAndReturnAsync<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression, CancellationToken cancellationToken)
         where TEntity : class;
 }

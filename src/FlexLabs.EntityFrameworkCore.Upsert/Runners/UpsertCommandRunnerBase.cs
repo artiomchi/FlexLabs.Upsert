@@ -31,13 +31,13 @@ public abstract class UpsertCommandRunnerBase : IUpsertCommandRunner
 
     /// <inheritdoc/>
     public virtual ICollection<TOutput> RunAndReturn<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity, TEntity, TOutput>> returnExpression)
+        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression)
         where TEntity : class
         => throw new NotSupportedException(Resources.ReturnWithDeletedNotSupported);
 
     /// <inheritdoc/>
     public virtual Task<ICollection<TOutput>> RunAndReturnAsync<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity, TEntity, TOutput>> returnExpression, CancellationToken cancellationToken)
+        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression, CancellationToken cancellationToken)
         where TEntity : class
         => throw new NotSupportedException(Resources.ReturnWithDeletedNotSupported);
 }

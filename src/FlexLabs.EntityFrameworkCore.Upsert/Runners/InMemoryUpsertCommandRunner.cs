@@ -257,29 +257,13 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
 
     /// <inheritdoc/>
     public override ICollection<TOutput> RunAndReturn<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity, TEntity, TOutput>> returnExpression)
-    {
-        ArgumentNullException.ThrowIfNull(dbContext);
-        ArgumentNullException.ThrowIfNull(entityType);
-        ArgumentNullException.ThrowIfNull(commandArgs);
-        ArgumentNullException.ThrowIfNull(returnExpression);
-
-        var result = RunCoreWithDeleted(dbContext, entityType, entities, commandArgs);
-        dbContext.SaveChanges();
-        return result.Select(m => returnExpression.Compile()(m.OldEntity, m.NewEntity)).ToArray();
-    }
+        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression)
+        where TEntity : class =>
+        throw new NotImplementedException("InMemory runner does not support returning the result of the upsert operation yet");
 
     /// <inheritdoc/>
     public override async Task<ICollection<TOutput>> RunAndReturnAsync<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
-        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity, TEntity, TOutput>> returnExpression, CancellationToken cancellationToken)
-    {
-        ArgumentNullException.ThrowIfNull(dbContext);
-        ArgumentNullException.ThrowIfNull(entityType);
-        ArgumentNullException.ThrowIfNull(commandArgs);
-        ArgumentNullException.ThrowIfNull(returnExpression);
-
-        var result = RunCoreWithDeleted(dbContext, entityType, entities, commandArgs);
-        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        return result.Select(m => returnExpression.Compile()(m.OldEntity, m.NewEntity)).ToArray();
-    }
+        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression, CancellationToken cancellationToken)
+        where TEntity : class =>
+        throw new NotImplementedException("InMemory runner does not support returning the result of the upsert operation yet");
 }
