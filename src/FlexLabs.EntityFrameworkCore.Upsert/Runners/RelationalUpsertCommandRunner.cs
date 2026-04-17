@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Data;
 using System.Data.Common;
 using System.Linq.Expressions;
+using System.Reflection;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -26,11 +27,19 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     /// <param name="joinColumns">The columns used to match existing items in the database</param>
     /// <param name="updateExpressions">The expressions that represent update commands for matched entities</param>
     /// <param name="updateCondition">The expression that tests whether existing entities should be updated</param>
-    /// <param name="returnResult">If true, the generated command should return upserted entities</param>
+    /// <param name="returnColumns">
+    /// Controls what the generated command returns:
+    /// <list type="bullet">
+    /// <item><description><see langword="null"/> – do not return any rows.</description></item>
+    /// <item><description>empty collection – return all columns via <c>inserted.*</c> / <c>RETURNING *</c>.</description></item>
+    /// <item><description>non-empty collection – return the specified columns from the <c>deleted</c>/<c>inserted</c> pseudo-tables. Providers that do not support this should throw <see cref="NotSupportedException"/>.</description></item>
+    /// </list>
+    /// </param>
     /// <returns>A fully formed database query</returns>
     public abstract string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts)>> entities,
         ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
-        KnownExpression? updateCondition, bool returnResult = false);
+        KnownExpression? updateCondition,
+        ICollection<(string Alias, bool IsDeletedParam, string ColumnName)>? returnColumns = null);
     /// <summary>
     /// Escape the name of the table/column/schema in a given database language
     /// </summary>
@@ -99,8 +108,15 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     /// </summary>
     protected virtual bool ShouldMapColumn(IProperty property) => true;
 
+    /// <summary>
+    /// Gets whether this runner supports returning custom projections with access to deleted (before-update) values.
+    /// Only SQL Server supports this via the MERGE...OUTPUT deleted.* syntax.
+    /// </summary>
+    protected virtual bool SupportsDeletedInReturn => false;
+
     private IEnumerable<(string SqlCommand, IEnumerable<ConstantValue> Arguments)> PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
-        UpsertCommandArgs<TEntity> commandArgs, bool returnResult = false)
+        UpsertCommandArgs<TEntity> commandArgs,
+        ICollection<(string Alias, bool IsDeletedParam, string ColumnName)>? returnColumns = null)
     {
         var table = TableCache.GetOrAdd(
             (GetType(), entityType, commandArgs.AllowIdentityMatch),
@@ -149,7 +165,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
             var columnUpdateExpressions = updateExpressions?.Length > 0
                 ? updateExpressions.Select(x => (x.Property.ColumnName, x.Value)).ToArray()
                 : null;
-            var sqlCommand = GenerateCommand(table.TableName, newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression, returnResult);
+            var sqlCommand = GenerateCommand(table.TableName, newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression, returnColumns);
             yield return (sqlCommand, arguments);
         }
     }
@@ -331,7 +347,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
         ArgumentNullException.ThrowIfNull(commandArgs);
 
         var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-        var commands = PrepareCommand(entityType, entities, commandArgs, true);
+        var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: []);
 
         var result = new List<TEntity>();
         foreach (var (sqlCommand, arguments) in commands)
@@ -375,7 +391,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
         ArgumentNullException.ThrowIfNull(commandArgs);
 
         var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
-        var commands = PrepareCommand(entityType, entities, commandArgs, true);
+        var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: []);
 
         var result = new List<TEntity>();
         foreach (var (sqlCommand, arguments) in commands)
@@ -385,6 +401,94 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
             var returnedEntities = await dbContext.Set<TEntity>().FromSqlRaw(sqlCommand, dbArguments).AsNoTracking().IgnoreQueryFilters().IgnoreAutoIncludes().ToArrayAsync(cancellationToken).ConfigureAwait(false);
             AttachOrUpdateEntities(dbContext, entityType, returnedEntities);
             result.AddRange(returnedEntities);
+        }
+        return result;
+    }
+
+    /// <inheritdoc/>
+    public override ICollection<TOutput> RunAndReturn<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity, TEntity, TOutput>> returnExpression)
+    {
+        ArgumentNullException.ThrowIfNull(dbContext);
+        ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
+        ArgumentNullException.ThrowIfNull(returnExpression);
+
+        if (!SupportsDeletedInReturn)
+            throw new NotSupportedException(Resources.ReturnWithDeletedNotSupported);
+
+        var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
+        var returnColumns = ParseReturnExpression(returnExpression, entityType);
+        var mapper = CreateReaderMapper<TEntity, TOutput>(returnExpression);
+        var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: returnColumns).ToArray();
+
+        var result = new List<TOutput>();
+        var connection = dbContext.Database.GetDbConnection();
+        var wasOpen = connection.State == System.Data.ConnectionState.Open;
+        if (!wasOpen)
+            connection.Open();
+        try
+        {
+            foreach (var (sqlCommand, arguments) in commands)
+            {
+                using var dbCommand = connection.CreateCommand();
+                dbCommand.CommandText = sqlCommand;
+                dbCommand.Transaction = dbContext.Database.CurrentTransaction?.GetDbTransaction();
+                foreach (var arg in arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)))
+                    dbCommand.Parameters.Add(arg);
+                using var reader = dbCommand.ExecuteReader();
+                while (reader.Read())
+                    result.Add(mapper(reader));
+            }
+        }
+        finally
+        {
+            if (!wasOpen)
+                connection.Close();
+        }
+        return result;
+    }
+
+    /// <inheritdoc/>
+    public override async Task<ICollection<TOutput>> RunAndReturnAsync<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity, TEntity, TOutput>> returnExpression, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(dbContext);
+        ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(commandArgs);
+        ArgumentNullException.ThrowIfNull(returnExpression);
+
+        if (!SupportsDeletedInReturn)
+            throw new NotSupportedException(Resources.ReturnWithDeletedNotSupported);
+
+        var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
+        var returnColumns = ParseReturnExpression(returnExpression, entityType);
+        var mapper = CreateReaderMapper<TEntity, TOutput>(returnExpression);
+        var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: returnColumns).ToArray();
+
+        var result = new List<TOutput>();
+        var connection = dbContext.Database.GetDbConnection();
+        var wasOpen = connection.State == System.Data.ConnectionState.Open;
+        if (!wasOpen)
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            foreach (var (sqlCommand, arguments) in commands)
+            {
+                using var dbCommand = connection.CreateCommand();
+                dbCommand.CommandText = sqlCommand;
+                dbCommand.Transaction = dbContext.Database.CurrentTransaction?.GetDbTransaction();
+                foreach (var arg in arguments.Select(a => PrepareDbCommandArgument(dbCommand, relationalTypeMappingSource, a)))
+                    dbCommand.Parameters.Add(arg);
+                using var reader = await dbCommand.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                    result.Add(mapper(reader));
+            }
+        }
+        finally
+        {
+            if (!wasOpen)
+                await connection.CloseAsync().ConfigureAwait(false);
         }
         return result;
     }
@@ -525,5 +629,129 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
             }
             return new CompositeKey(values);
         }
+    }
+
+    /// <summary>
+    /// Parses a return expression to produce the list of OUTPUT columns.
+    /// Supports <see cref="MemberInitExpression"/> (named class initialisers) and
+    /// <see cref="NewExpression"/> (anonymous types).
+    /// </summary>
+    internal static ICollection<(string Alias, bool IsDeletedParam, string ColumnName)> ParseReturnExpression<TEntity, TOutput>(
+        Expression<Func<TEntity, TEntity, TOutput>> expression,
+        IEntityType entityType)
+    {
+        ArgumentNullException.ThrowIfNull(expression);
+        var deletedParam = expression.Parameters[0];
+        var insertedParam = expression.Parameters[1];
+
+        switch (expression.Body)
+        {
+            case MemberInitExpression memberInit:
+                return memberInit.Bindings.Cast<MemberAssignment>()
+                    .Select(b => ParseReturnColumn(b.Member.Name, b.Expression, deletedParam, insertedParam, entityType))
+                    .ToArray();
+
+            case NewExpression { Members: not null } newExpr:
+                return newExpr.Members.Select((m, i) =>
+                    ParseReturnColumn(m.Name, newExpr.Arguments[i], deletedParam, insertedParam, entityType))
+                    .ToArray();
+
+            default:
+                throw new ArgumentException(
+                    Resources.FormatReturnExpressionMustBeAnInitialiserOfTOutputType(typeof(TOutput).Name),
+                    nameof(expression));
+        }
+    }
+
+    private static (string Alias, bool IsDeletedParam, string ColumnName) ParseReturnColumn(
+        string alias,
+        Expression valueExpr,
+        ParameterExpression deletedParam,
+        ParameterExpression insertedParam,
+        IEntityType entityType)
+    {
+        // Strip type-conversion wrappers
+        while (valueExpr is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } u)
+            valueExpr = u.Operand;
+
+        if (valueExpr is MemberExpression { Member: PropertyInfo propInfo, Expression: ParameterExpression paramExpr })
+        {
+            if (!ReferenceEquals(paramExpr, deletedParam) && !ReferenceEquals(paramExpr, insertedParam))
+                throw new ArgumentException(
+                    Resources.FormatReturnExpressionBindingMustAccessDeletedOrInserted(alias));
+
+            var isDeleted = ReferenceEquals(paramExpr, deletedParam);
+            var property = entityType.FindProperty(propInfo.Name)
+                ?? throw new ArgumentException(Resources.FormatUnknownProperty(propInfo.Name));
+
+            return (alias, isDeleted, property.GetColumnName());
+        }
+
+        throw new ArgumentException(
+            Resources.FormatReturnExpressionBindingMustAccessDeletedOrInserted(alias));
+    }
+
+    /// <summary>
+    /// Creates a <see cref="DbDataReader"/>-to-<typeparamref name="TOutput"/> mapper from the return expression.
+    /// Columns are read by ordinal position matching the order produced by
+    /// <see cref="ParseReturnExpression{TEntity,TOutput}"/>.
+    /// </summary>
+    protected static Func<DbDataReader, TOutput> CreateReaderMapper<TEntity, TOutput>(
+        Expression<Func<TEntity, TEntity, TOutput>> expression)
+    {
+        ArgumentNullException.ThrowIfNull(expression);
+        switch (expression.Body)
+        {
+            case MemberInitExpression memberInit:
+            {
+                var properties = memberInit.Bindings.Cast<MemberAssignment>()
+                    .Select(b => (PropertyInfo)(PropertyInfo)b.Member)
+                    .ToArray();
+
+                return reader =>
+                {
+                    var obj = Activator.CreateInstance<TOutput>();
+                    for (var i = 0; i < properties.Length; i++)
+                        properties[i].SetValue(obj, ReadValue(reader, i, properties[i].PropertyType));
+                    return obj;
+                };
+            }
+
+            case NewExpression { Constructor: not null } newExpr:
+            {
+                var ctor = newExpr.Constructor;
+                var paramTypes = ctor.GetParameters().Select(p => p.ParameterType).ToArray();
+
+                return reader =>
+                {
+                    var args = new object?[paramTypes.Length];
+                    for (var i = 0; i < paramTypes.Length; i++)
+                        args[i] = ReadValue(reader, i, paramTypes[i]);
+                    return (TOutput)ctor.Invoke(args);
+                };
+            }
+
+            default:
+                throw new ArgumentException(
+                    Resources.FormatReturnExpressionMustBeAnInitialiserOfTOutputType(typeof(TOutput).Name),
+                    nameof(expression));
+        }
+    }
+
+    private static object? ReadValue(DbDataReader reader, int ordinal, Type targetType)
+    {
+        if (reader.IsDBNull(ordinal))
+            return null;
+
+        var value = reader.GetValue(ordinal);
+        var underlyingType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
+        if (underlyingType.IsEnum)
+            return Enum.ToObject(underlyingType, value);
+
+        if (underlyingType.IsInstanceOfType(value))
+            return value;
+
+        return Convert.ChangeType(value, underlyingType, System.Globalization.CultureInfo.InvariantCulture);
     }
 }

@@ -239,6 +239,43 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
         return commandRunner.RunAndReturnAsync(_dbContext, _entityType, _entities, CreateCommandArgs(), token);
     }
 
+    /// <summary>
+    /// Execute the upsert command and return a custom projection using both deleted (pre-update) and inserted (post-upsert) values.
+    /// </summary>
+    /// <remarks>
+    /// Only supported by database providers that can access pre-update values (e.g. SQL Server via MERGE OUTPUT).
+    /// For unsupported providers a <see cref="NotSupportedException"/> is thrown.
+    /// </remarks>
+    /// <typeparam name="TOutput">The type of the projected result</typeparam>
+    /// <param name="returnExpression">Expression selecting columns from deleted (first parameter) and inserted (second parameter) pseudo-tables</param>
+    public ICollection<TOutput> RunAndReturn<TOutput>(Expression<Func<TEntity, TEntity, TOutput>> returnExpression)
+    {
+        if (_entities.Count == 0)
+            return [];
+
+        var commandRunner = GetCommandRunner();
+        return commandRunner.RunAndReturn(_dbContext, _entityType, _entities, CreateCommandArgs(), returnExpression);
+    }
+
+    /// <summary>
+    /// Execute the upsert command asynchronously and return a custom projection using both deleted (pre-update) and inserted (post-upsert) values.
+    /// </summary>
+    /// <remarks>
+    /// Only supported by database providers that can access pre-update values (e.g. SQL Server via MERGE OUTPUT).
+    /// For unsupported providers a <see cref="NotSupportedException"/> is thrown.
+    /// </remarks>
+    /// <typeparam name="TOutput">The type of the projected result</typeparam>
+    /// <param name="returnExpression">Expression selecting columns from deleted (first parameter) and inserted (second parameter) pseudo-tables</param>
+    /// <param name="token">The cancellation token for this transaction</param>
+    public Task<ICollection<TOutput>> RunAndReturnAsync<TOutput>(Expression<Func<TEntity, TEntity, TOutput>> returnExpression, CancellationToken token = default)
+    {
+        if (_entities.Count == 0)
+            return Task.FromResult<ICollection<TOutput>>([]);
+
+        var commandRunner = GetCommandRunner();
+        return commandRunner.RunAndReturnAsync(_dbContext, _entityType, _entities, CreateCommandArgs(), returnExpression, token);
+    }
+
     private IUpsertCommandRunner GetCommandRunner()
     {
         var dbProvider = _dbContext.GetService<IDatabaseProvider>();
