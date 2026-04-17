@@ -204,4 +204,13 @@
   <data name="ComplexPropertyIsMappedToJsonButContainingTypeIsNot" xml:space="preserve">
     <value>Complex property '{0}' is mapped to JSON but its containing type '{1}' is not. Map the root complex type to JSON.</value>
   </data>
+  <data name="ReturnWithDeletedNotSupported" xml:space="preserve">
+    <value>This database provider does not support returning custom projections with deleted values. Only SQL Server supports this feature.</value>
+  </data>
+  <data name="ReturnExpressionMustBeAnInitialiserOfTOutputType" xml:space="preserve">
+    <value>The return expression must be an initialiser of the {0} type</value>
+  </data>
+  <data name="ReturnExpressionBindingMustAccessDeletedOrInserted" xml:space="preserve">
+    <value>The return expression binding '{0}' must be a simple property access on the deleted or inserted parameter</value>
+  </data>
 </root>

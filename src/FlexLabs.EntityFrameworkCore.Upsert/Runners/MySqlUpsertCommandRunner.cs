@@ -32,9 +32,9 @@ public class MySqlUpsertCommandRunner : RelationalUpsertCommandRunner
         ICollection<(string ColumnName, bool IsNullable)> joinColumns,
         ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
         KnownExpression? updateCondition,
-        bool returnResult = false)
+        ICollection<(string Alias, bool IsDeletedParam, string ColumnName)>? returnColumns = null)
     {
-        if (returnResult)
+        if (returnColumns != null)
             throw new NotImplementedException("MySql runner does not support returning the result of the upsert operation yet");
 
         var result = new StringBuilder("INSERT ");
