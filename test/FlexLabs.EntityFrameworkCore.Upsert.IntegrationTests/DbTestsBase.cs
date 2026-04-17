@@ -2515,6 +2515,67 @@ public abstract partial class DbTestsBase
     }
 
     [Fact]
+    public async Task Upsert_WithUpdate_RunAndReturnAsync_Expression_ReturnsUpdatedValuesNotTrackedValues()
+    {
+        Assert.SkipWhen(_fixture.DbDriver is not DbDriver.MSSQL, "Returning records with expression is only implemented in MsSQL");
+
+        // Arrange - Insert initial record with Visits = 10
+        ResetDb();
+        await using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var initialVisit = new PageVisit
+        {
+            UserID = 99,
+            Date = _today,
+            Visits = 10,
+            FirstVisit = _now,
+            LastVisit = _now,
+        };
+
+        dbContext.PageVisits.Add(initialVisit);
+        await dbContext.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        // Act - UPSERT with delta +5 (should result in Visits = 15)
+        var upsertEntity = new PageVisit
+        {
+            UserID = 99,
+            Date = _today,
+            Visits = 5,  // Delta to add
+            FirstVisit = _now,
+            LastVisit = _now.AddHours(1),
+        };
+
+        var result = await dbContext.PageVisits.Upsert(upsertEntity)
+            .On(v => new { v.UserID, v.Date })
+            .WhenMatched((existing, inserted) => new PageVisit
+            {
+                Visits = existing.Visits + inserted.Visits, // 10 + 5 = 15
+                LastVisit = inserted.LastVisit,
+            })
+            .RunAndReturnAsync((deleted, inserted) => new PageVisitResult
+                    { PreviousVisits = deleted.Visits, CurrentVisits = inserted.Visits },
+                TestContext.Current.CancellationToken);
+
+        // Assert - Should return the updated value from database (15), not the input value (5)
+        result.Should().SatisfyRespectively(
+            item => item.PreviousVisits.Should().Be(initialVisit.Visits, "RunAndReturnAsync should return old values from database after UPSERT, not stale tracked entities"));
+        result.Should().SatisfyRespectively(
+            item => item.CurrentVisits.Should().Be(15, "RunAndReturnAsync should return fresh values from database after UPSERT, not stale tracked entities"));
+
+        // Verify database actually has correct value
+        var dbValue = await dbContext.PageVisits
+            .AsNoTracking()
+            .FirstAsync(v => v.UserID == 99 && v.Date == _today, TestContext.Current.CancellationToken);
+        dbValue.Visits.Should().Be(15, "the database should have the correct value");
+    }
+
+    internal sealed class PageVisitResult
+    {
+        public int PreviousVisits { get; init; }
+        public int CurrentVisits { get; init; }
+    }
+
+    [Fact]
     public void Upsert_WithUpdate_RunAndReturn_ReturnsUpdatedValuesNotTrackedValues()
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
