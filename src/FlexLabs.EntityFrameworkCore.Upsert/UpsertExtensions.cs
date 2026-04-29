@@ -40,7 +40,7 @@ public static class UpsertExtensions
         ArgumentNullException.ThrowIfNull(entities);
 
         var entityType = dbContext.Model.FindEntityType(typeof(TEntity))
-            ?? (entities.Length == 0 ? null : dbContext.Model.FindEntityType(entities.First().GetType()))
+            ?? (entities.Length > 0 ? dbContext.Model.FindEntityType(entities.First().GetType()) : null)
             ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
         return new UpsertCommandBuilder<TEntity>(dbContext, entityType, entities);
     }
@@ -64,7 +64,7 @@ public static class UpsertExtensions
             _ => entities.ToArray()
         };
         var entityType = dbContext.Model.FindEntityType(typeof(TEntity))
-            ?? (collection.Count > 0 ? null : dbContext.Model.FindEntityType(collection.First().GetType()))
+            ?? (collection.Count > 0 ? dbContext.Model.FindEntityType(collection.First().GetType()) : null)
             ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
         return new UpsertCommandBuilder<TEntity>(dbContext, entityType, collection);
     }
