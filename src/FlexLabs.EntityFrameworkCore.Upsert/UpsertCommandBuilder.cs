@@ -245,6 +245,11 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     /// <remarks>
     /// Only supported by database providers that can access pre-update values (e.g. SQL Server via MERGE OUTPUT).
     /// For unsupported providers a <see cref="NotSupportedException"/> is thrown.
+    /// <para>
+    /// This overload does <b>not</b> update the <see cref="DbContext"/> change tracker because the
+    /// SQL only returns the projected columns, not the full entity. If you need tracked entities,
+    /// use the non-projection <see cref="RunAndReturn()"/> overload instead.
+    /// </para>
     /// </remarks>
     /// <typeparam name="TOutput">The type of the projected result</typeparam>
     /// <param name="returnExpression">Expression selecting columns from deleted (first parameter) and inserted (second parameter) pseudo-tables</param>
@@ -265,6 +270,11 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     /// <remarks>
     /// Only supported by database providers that can access pre-update values (e.g. SQL Server via MERGE OUTPUT).
     /// For unsupported providers a <see cref="NotSupportedException"/> is thrown.
+    /// <para>
+    /// This overload does <b>not</b> update the <see cref="DbContext"/> change tracker because the
+    /// SQL only returns the projected columns, not the full entity. If you need tracked entities,
+    /// use the non-projection <see cref="RunAndReturnAsync(CancellationToken)"/> overload instead.
+    /// </para>
     /// </remarks>
     /// <typeparam name="TOutput">The type of the projected result</typeparam>
     /// <param name="returnExpression">Expression selecting columns from deleted (first parameter) and inserted (second parameter) pseudo-tables</param>
