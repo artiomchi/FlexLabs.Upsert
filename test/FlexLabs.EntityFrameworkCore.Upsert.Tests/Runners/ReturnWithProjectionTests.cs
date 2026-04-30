@@ -247,4 +247,95 @@ public class ReturnWithProjectionTests
         Assert.False(col.IsDeletedParam);
         Assert.Equal("Total", col.ColumnName);
     }
+
+    // ── ParseReturnExpression: parameterised constructor (NewExpression without Members) ──
+
+    [Fact]
+    public void ParseReturnExpression_CtorOnly_Parses()
+    {
+        var entityType = BuildEntityType();
+
+        Expression<Func<TestEntity, TestEntity, CtorOnlyDto>> expr =
+            (deleted, inserted) => new CtorOnlyDto(deleted.Name, inserted.Total);
+
+        var columns = RelationalUpsertCommandRunner.ParseReturnExpression(expr, entityType);
+
+        Assert.Equal(2, columns.Count);
+        var list = columns.ToList();
+        Assert.Equal("oldName", list[0].Alias);
+        Assert.True(list[0].IsDeletedParam);
+        Assert.Equal("Name", list[0].ColumnName);
+        Assert.Equal("newTotal", list[1].Alias);
+        Assert.False(list[1].IsDeletedParam);
+        Assert.Equal("Total", list[1].ColumnName);
+    }
+
+    // ── ParseReturnExpression: constructor + property bindings (MemberInitExpression with ctor args) ──
+
+    [Fact]
+    public void ParseReturnExpression_CtorPlusProps_Parses()
+    {
+        var entityType = BuildEntityType();
+
+        Expression<Func<TestEntity, TestEntity, CtorPlusPropsDto>> expr =
+            (deleted, inserted) => new CtorPlusPropsDto(deleted.ID) { Name = inserted.Name, Total = inserted.Total };
+
+        var columns = RelationalUpsertCommandRunner.ParseReturnExpression(expr, entityType);
+
+        Assert.Equal(3, columns.Count);
+        var list = columns.ToList();
+        // Constructor arg comes first
+        Assert.Equal("id", list[0].Alias);
+        Assert.True(list[0].IsDeletedParam);
+        Assert.Equal("ID", list[0].ColumnName);
+        // Then property bindings
+        Assert.Equal("Name", list[1].Alias);
+        Assert.False(list[1].IsDeletedParam);
+        Assert.Equal("Name", list[1].ColumnName);
+        Assert.Equal("Total", list[2].Alias);
+        Assert.False(list[2].IsDeletedParam);
+        Assert.Equal("Total", list[2].ColumnName);
+    }
+
+    [Fact]
+    public void ParseReturnExpression_CtorPlusProps_ReturnsProperty()
+    {
+        var entityType = BuildEntityType();
+
+        Expression<Func<TestEntity, TestEntity, CtorPlusPropsDto>> expr =
+            (deleted, inserted) => new CtorPlusPropsDto(deleted.ID) { Name = inserted.Name };
+
+        var columns = RelationalUpsertCommandRunner.ParseReturnExpression(expr, entityType);
+
+        Assert.Equal(2, columns.Count);
+        var list = columns.ToList();
+        // Each column should carry the IProperty from the entity type
+        Assert.Equal("ID", list[0].Property.Name);
+        Assert.Equal("Name", list[1].Property.Name);
+    }
+
+    // ── SQL Server GenerateCommand with constructor-based returnColumns ────────
+
+    [Fact]
+    public void SqlServer_GenerateCommand_CtorPlusProps_OutputClause()
+    {
+        // Simulates the columns ParseReturnExpression would produce for:
+        //   new CtorPlusPropsDto(deleted.ID) { Name = inserted.Name, Total = inserted.Total }
+        var returnColumns = new List<(string Alias, bool IsDeletedParam, string ColumnName)>
+        {
+            ("id", true, "ID"),
+            ("Name", false, "Name"),
+            ("Total", false, "Total"),
+        };
+
+        var sql = _sqlServerRunner.GenerateCommand(
+            "[TestEntity]",
+            MakeEntities(),
+            MakeJoinColumns(),
+            updateExpressions: null,
+            updateCondition: null,
+            returnColumns: returnColumns);
+
+        Assert.Contains("OUTPUT deleted.[ID] AS [id], inserted.[Name] AS [Name], inserted.[Total] AS [Total]", sql);
+    }
 }

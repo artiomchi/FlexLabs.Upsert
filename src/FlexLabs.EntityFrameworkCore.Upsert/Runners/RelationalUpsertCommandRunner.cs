@@ -420,8 +420,10 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
 
         var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
         var returnColumns = ParseReturnExpression(returnExpression, entityType);
-        var mapper = CreateReaderMapper(returnExpression);
-        var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: returnColumns).ToArray();
+        var sqlReturnColumns = returnColumns.Select(c => (c.Alias, c.IsDeletedParam, c.ColumnName)).ToArray();
+        var columnProperties = returnColumns.Select(c => c.Property).ToArray();
+        var mapper = CreateReaderMapper(returnExpression, columnProperties, relationalTypeMappingSource);
+        var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: sqlReturnColumns).ToArray();
 
         var result = new List<TOutput>();
         var connection = dbContext.Database.GetDbConnection();
@@ -465,8 +467,10 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
 
         var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
         var returnColumns = ParseReturnExpression(returnExpression, entityType);
-        var mapper = CreateReaderMapper(returnExpression);
-        var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: returnColumns).ToArray();
+        var sqlReturnColumns = returnColumns.Select(c => (c.Alias, c.IsDeletedParam, c.ColumnName)).ToArray();
+        var columnProperties = returnColumns.Select(c => c.Property).ToArray();
+        var mapper = CreateReaderMapper(returnExpression, columnProperties, relationalTypeMappingSource);
+        var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: sqlReturnColumns).ToArray();
 
         var result = new List<TOutput>();
         var connection = dbContext.Database.GetDbConnection();
@@ -636,10 +640,12 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
 
     /// <summary>
     /// Parses a return expression to produce the list of OUTPUT columns.
-    /// Supports <see cref="MemberInitExpression"/> (named class initialisers) and
-    /// <see cref="NewExpression"/> (anonymous types).
+    /// Supports <see cref="MemberInitExpression"/> (named class initialisers),
+    /// <see cref="NewExpression"/> with <see cref="NewExpression.Members"/> (anonymous types / records),
+    /// and <see cref="NewExpression"/> without Members (plain classes with parameterised constructors,
+    /// where the constructor parameter name is used as the output alias).
     /// </summary>
-    internal static ICollection<(string Alias, bool IsDeletedParam, string ColumnName)> ParseReturnExpression<TEntity, TOutput>(
+    internal static ICollection<(string Alias, bool IsDeletedParam, string ColumnName, IProperty Property)> ParseReturnExpression<TEntity, TOutput>(
         Expression<Func<TEntity, TEntity, TOutput>> expression,
         IEntityType entityType)
     {
@@ -650,12 +656,15 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
         return expression.Body switch
         {
             MemberInitExpression memberInit =>
-                memberInit.Bindings.Cast<MemberAssignment>()
-                    .Select(b => ParseReturnColumn(b.Member.Name, b.Expression, deletedParam, insertedParam, entityType))
-                    .ToArray(),
+                ParseMemberInitColumns(memberInit, deletedParam, insertedParam, entityType),
             NewExpression { Members: not null } newExpr =>
                 newExpr.Members.Select((m, i) =>
                         ParseReturnColumn(m.Name, newExpr.Arguments[i], deletedParam, insertedParam, entityType))
+                    .ToArray(),
+            NewExpression { Constructor: not null } newExpr =>
+                newExpr.Constructor.GetParameters()
+                    .Select((p, i) =>
+                        ParseReturnColumn(p.Name!, newExpr.Arguments[i], deletedParam, insertedParam, entityType))
                     .ToArray(),
             _ => throw new ArgumentException(
                 Resources.FormatReturnExpressionMustBeAnInitialiserOfTOutputType(typeof(TOutput).Name),
@@ -663,7 +672,29 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
         };
     }
 
-    private static (string Alias, bool IsDeletedParam, string ColumnName) ParseReturnColumn(
+    /// <summary>
+    /// Parses a <see cref="MemberInitExpression"/> that may have both constructor arguments
+    /// and property bindings: <c>new MyDto(deleted.Id) { Name = inserted.Name }</c>.
+    /// Constructor arguments are emitted first, followed by property bindings.
+    /// </summary>
+    private static (string Alias, bool IsDeletedParam, string ColumnName, IProperty Property)[] ParseMemberInitColumns(
+        MemberInitExpression memberInit,
+        ParameterExpression deletedParam,
+        ParameterExpression insertedParam,
+        IEntityType entityType)
+    {
+        var ctorArgs = memberInit.NewExpression.Constructor?.GetParameters() ?? [];
+        var ctorColumns = ctorArgs
+            .Select((p, i) =>
+                ParseReturnColumn(p.Name!, memberInit.NewExpression.Arguments[i], deletedParam, insertedParam, entityType));
+
+        var bindingColumns = memberInit.Bindings.Cast<MemberAssignment>()
+            .Select(b => ParseReturnColumn(b.Member.Name, b.Expression, deletedParam, insertedParam, entityType));
+
+        return ctorColumns.Concat(bindingColumns).ToArray();
+    }
+
+    private static (string Alias, bool IsDeletedParam, string ColumnName, IProperty Property) ParseReturnColumn(
         string alias,
         Expression valueExpr,
         ParameterExpression deletedParam,
@@ -684,7 +715,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
             var property = entityType.FindProperty(propInfo.Name)
                 ?? throw new ArgumentException(Resources.FormatUnknownProperty(propInfo.Name));
 
-            return (alias, isDeleted, property.GetColumnName());
+            return (alias, isDeleted, property.GetColumnName(), property);
         }
 
         throw new ArgumentException(
@@ -695,40 +726,133 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     /// Creates a <see cref="DbDataReader"/>-to-<typeparamref name="TOutput"/> mapper from the return expression.
     /// Columns are read by ordinal position matching the order produced by
     /// <see cref="ParseReturnExpression{TEntity,TOutput}"/>.
+    /// <para>
+    /// When <paramref name="columnProperties"/> and <paramref name="typeMappingSource"/> are provided,
+    /// each column is read through EF Core's <see cref="RelationalTypeMapping"/> obtained from the
+    /// corresponding <see cref="IProperty"/>. This ensures that value converters, custom store type
+    /// mappings, and provider-specific type handling are applied correctly — the same pipeline EF Core
+    /// uses when materialising entities from <c>FromSqlRaw</c> / <c>Join</c> result selectors.
+    /// </para>
     /// </summary>
     protected static Func<DbDataReader, TOutput> CreateReaderMapper<TEntity, TOutput>(
-        Expression<Func<TEntity?, TEntity?, TOutput>> expression)
+        Expression<Func<TEntity?, TEntity?, TOutput>> expression,
+        IProperty[]? columnProperties = null,
+        IRelationalTypeMappingSource? typeMappingSource = null)
     {
         ArgumentNullException.ThrowIfNull(expression);
+
+        // Build per-column readers: when EF Core type mappings are available, use them;
+        // otherwise fall back to the generic ReadValue helper.
+        RelationalTypeMapping?[]? typeMappings = null;
+        if (columnProperties != null && typeMappingSource != null)
+        {
+            typeMappings = columnProperties
+                .Select(p => typeMappingSource.FindMapping(p))
+                .ToArray();
+        }
+
+        // The single parameter our compiled lambda will receive
+        var readerParam = Expression.Parameter(typeof(DbDataReader), "reader");
+        var readValueMethod = typeof(RelationalUpsertCommandRunner)
+            .GetMethod(nameof(ReadValue), BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        // Build a ReadColumn call for ordinal i targeting CLR type targetType
+        Expression BuildReadColumn(int i, Type targetType)
+        {
+            if (typeMappings?[i] is { } mapping)
+            {
+                var converter = mapping.Converter;
+                // The provider type is what the DB actually returns.
+                // If there's a converter, its ProviderClrType is the store type;
+                // otherwise the mapping's ClrType is used directly.
+                var providerClrType = converter?.ProviderClrType ?? mapping.ClrType;
+
+                // reader.IsDBNull(ordinal)
+                var isDbNullCall = Expression.Call(readerParam,
+                    typeof(DbDataReader).GetMethod(nameof(DbDataReader.IsDBNull))!,
+                    Expression.Constant(i));
+
+                // reader.GetFieldValue<providerClrType>(ordinal)
+                var getFieldValueMethod = typeof(DbDataReader)
+                    .GetMethod(nameof(DbDataReader.GetFieldValue))!
+                    .MakeGenericMethod(providerClrType);
+                Expression readExpr = Expression.Call(readerParam, getFieldValueMethod, Expression.Constant(i));
+
+                // Apply value converter if present
+                if (converter != null)
+                {
+                    var convertFromProvider = converter.ConvertFromProvider;
+                    var convertExpr = Expression.Invoke(
+                        Expression.Constant(convertFromProvider),
+                        Expression.Convert(readExpr, typeof(object)));
+                    readExpr = Expression.Convert(convertExpr, Nullable.GetUnderlyingType(targetType) ?? targetType);
+                }
+                else
+                {
+                    readExpr = Expression.Convert(readExpr, Nullable.GetUnderlyingType(targetType) ?? targetType);
+                }
+
+                // For nullable types, wrap with null check
+                if (Nullable.GetUnderlyingType(targetType) != null || !targetType.IsValueType)
+                {
+                    return Expression.Condition(
+                        isDbNullCall,
+                        Expression.Default(targetType),
+                        targetType.IsValueType && Nullable.GetUnderlyingType(targetType) != null
+                            ? Expression.Convert(readExpr, targetType)
+                            : readExpr);
+                }
+
+                return readExpr;
+            }
+
+            // Fallback: use the generic ReadValue helper
+            var readCall = Expression.Call(readValueMethod, readerParam,
+                Expression.Constant(i), Expression.Constant(targetType));
+            return Expression.Convert(readCall, targetType);
+        }
+
         switch (expression.Body)
         {
             case MemberInitExpression memberInit:
             {
-                var properties = memberInit.Bindings.Cast<MemberAssignment>()
-                    .Select(b => (PropertyInfo)(PropertyInfo)b.Member)
+                // Constructor arguments come first in the ordinal sequence,
+                // followed by property bindings — matching ParseMemberInitColumns order.
+                var ctorParams = memberInit.NewExpression.Constructor?.GetParameters() ?? [];
+                var ordinal = 0;
+
+                var ctorArgs = ctorParams
+                    .Select(p => BuildReadColumn(ordinal++, p.ParameterType))
                     .ToArray();
 
-                return reader =>
-                {
-                    var obj = Activator.CreateInstance<TOutput>();
-                    for (var i = 0; i < properties.Length; i++)
-                        properties[i].SetValue(obj, ReadValue(reader, i, properties[i].PropertyType));
-                    return obj;
-                };
+                var bindings = memberInit.Bindings.Cast<MemberAssignment>()
+                    .Select(b =>
+                    {
+                        var propInfo = (PropertyInfo)b.Member;
+                        return Expression.Bind(propInfo, BuildReadColumn(ordinal++, propInfo.PropertyType));
+                    })
+                    .ToArray();
+
+                var newExprNode = ctorArgs.Length > 0
+                    ? Expression.New(memberInit.NewExpression.Constructor!, ctorArgs)
+                    : Expression.New(typeof(TOutput));
+
+                var body = bindings.Length > 0
+                    ? (Expression)Expression.MemberInit(newExprNode, bindings)
+                    : newExprNode;
+
+                return Expression.Lambda<Func<DbDataReader, TOutput>>(body, readerParam).Compile();
             }
 
             case NewExpression { Constructor: not null } newExpr:
             {
-                var ctor = newExpr.Constructor;
-                var paramTypes = ctor.GetParameters().Select(p => p.ParameterType).ToArray();
+                // Build: new TOutput(ReadColumn(0, T0), ReadColumn(1, T1), ...)
+                var args = newExpr.Constructor.GetParameters()
+                    .Select((p, i) => BuildReadColumn(i, p.ParameterType))
+                    .ToArray();
 
-                return reader =>
-                {
-                    var args = new object?[paramTypes.Length];
-                    for (var i = 0; i < paramTypes.Length; i++)
-                        args[i] = ReadValue(reader, i, paramTypes[i]);
-                    return (TOutput)ctor.Invoke(args);
-                };
+                var body = Expression.New(newExpr.Constructor, args);
+                return Expression.Lambda<Func<DbDataReader, TOutput>>(body, readerParam).Compile();
             }
 
             default:
