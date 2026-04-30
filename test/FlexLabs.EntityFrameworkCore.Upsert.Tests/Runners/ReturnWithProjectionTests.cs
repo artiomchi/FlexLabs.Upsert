@@ -2,8 +2,8 @@ using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners;
 
@@ -30,14 +30,16 @@ public class ReturnWithProjectionTests
 
     private static IEntityType BuildEntityType()
     {
-        var model = new Model();
-        var clrType = typeof(TestEntity);
-        var entityType = model.AddEntityType(clrType, true, ConfigurationSource.Convention);
-        foreach (var prop in clrType.GetProperties())
-            entityType.AddProperty(prop.Name, ConfigurationSource.Explicit);
-        var idProp = entityType.FindProperty("ID")!;
-        entityType.AddKey(idProp, ConfigurationSource.Convention);
-        return entityType;
+        var options = new DbContextOptionsBuilder<TestEntityDbContext>()
+            .UseSqlite("Data Source=:memory:")
+            .Options;
+        using var context = new TestEntityDbContext(options);
+        return context.Model.FindEntityType(typeof(TestEntity))!;
+    }
+
+    private sealed class TestEntityDbContext(DbContextOptions options) : DbContext(options)
+    {
+        public DbSet<TestEntity> TestEntities { get; set; } = null!;
     }
 
     // ── SQL Server GenerateCommand with returnColumns ──────────────────────────

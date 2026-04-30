@@ -2552,15 +2552,20 @@ public abstract partial class DbTestsBase
                 Visits = existing.Visits + inserted.Visits, // 10 + 5 = 15
                 LastVisit = inserted.LastVisit,
             })
-            .RunAndReturnAsync((deleted, inserted) => new PageVisitResult
-                    { PreviousVisits = deleted.Visits, CurrentVisits = inserted.Visits },
+            .RunAndReturnAsync((deleted, inserted) => new PageVisitResult(deleted.Visits, inserted.Visits)
+                    { LastVisit = inserted.LastVisit },
                 TestContext.Current.CancellationToken);
 
         // Assert - Should return the updated value from database (15), not the input value (5)
-        result.Should().SatisfyRespectively(
-            item => item.PreviousVisits.Should().Be(initialVisit.Visits, "RunAndReturnAsync should return old values from database after UPSERT, not stale tracked entities"));
-        result.Should().SatisfyRespectively(
-            item => item.CurrentVisits.Should().Be(15, "RunAndReturnAsync should return fresh values from database after UPSERT, not stale tracked entities"));
+        result.Should().SatisfyRespectively(item =>
+        {
+            item.PreviousVisits.Should().Be(initialVisit.Visits,
+                "RunAndReturnAsync should return old values from database after UPSERT, not stale tracked entities");
+            item.CurrentVisits.Should().Be(initialVisit.Visits + upsertEntity.Visits,
+                "RunAndReturnAsync should return fresh values from database after UPSERT, not stale tracked entities");
+            item.LastVisit.Should().Be(upsertEntity.LastVisit,
+                "RunAndReturnAsync should return fresh values from database after UPSERT, not stale tracked entities");
+        });
 
         // Verify database actually has correct value
         var dbValue = await dbContext.PageVisits
@@ -2569,10 +2574,9 @@ public abstract partial class DbTestsBase
         dbValue.Visits.Should().Be(15, "the database should have the correct value");
     }
 
-    internal sealed class PageVisitResult
+    internal sealed record PageVisitResult(int PreviousVisits, int CurrentVisits)
     {
-        public int PreviousVisits { get; init; }
-        public int CurrentVisits { get; init; }
+        public DateTime LastVisit { get; set; }
     }
 
     [Fact]
