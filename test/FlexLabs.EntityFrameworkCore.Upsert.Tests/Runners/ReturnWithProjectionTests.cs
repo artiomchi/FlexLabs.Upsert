@@ -340,4 +340,38 @@ public class ReturnWithProjectionTests
 
         Assert.Contains("OUTPUT deleted.[ID] AS [id], inserted.[Name] AS [Name], inserted.[Total] AS [Total]", sql);
     }
+
+    // ── ParseReturnExpression: scalar projections ─────────────────────────────
+
+    [Fact]
+    public void ParseReturnExpression_ScalarProperty_Parses()
+    {
+        var entityType = BuildEntityType();
+
+        Expression<Func<TestEntity, TestEntity, string>> expr =
+            (deleted, inserted) => inserted.Name;
+
+        var columns = RelationalUpsertCommandRunner.ParseReturnExpression(expr, entityType);
+
+        Assert.Single(columns);
+        var col = columns.First();
+        Assert.False(col.IsDeletedParam);
+        Assert.Equal("Name", col.ColumnName);
+    }
+
+    [Fact]
+    public void ParseReturnExpression_ScalarWithConvert_Parses()
+    {
+        var entityType = BuildEntityType();
+
+        Expression<Func<TestEntity, TestEntity, int?>> expr =
+            (deleted, inserted) => (int?)deleted.Total;
+
+        var columns = RelationalUpsertCommandRunner.ParseReturnExpression(expr, entityType);
+
+        Assert.Single(columns);
+        var col = columns.First();
+        Assert.True(col.IsDeletedParam);
+        Assert.Equal("Total", col.ColumnName);
+    }
 }

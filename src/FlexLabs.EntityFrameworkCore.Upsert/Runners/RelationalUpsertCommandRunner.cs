@@ -423,7 +423,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
         var sqlReturnColumns = returnColumns.Select(c => (c.Alias, c.IsDeletedParam, c.ColumnName)).ToArray();
         var columnProperties = returnColumns.Select(c => c.Property).ToArray();
         var mapper = CreateReaderMapper(returnExpression, columnProperties, relationalTypeMappingSource);
-        var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: sqlReturnColumns).ToArray();
+        var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: sqlReturnColumns);
 
         var result = new List<TOutput>();
         var connection = dbContext.Database.GetDbConnection();
@@ -470,7 +470,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
         var sqlReturnColumns = returnColumns.Select(c => (c.Alias, c.IsDeletedParam, c.ColumnName)).ToArray();
         var columnProperties = returnColumns.Select(c => c.Property).ToArray();
         var mapper = CreateReaderMapper(returnExpression, columnProperties, relationalTypeMappingSource);
-        var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: sqlReturnColumns).ToArray();
+        var commands = PrepareCommand(entityType, entities, commandArgs, returnColumns: sqlReturnColumns);
 
         var result = new List<TOutput>();
         var connection = dbContext.Database.GetDbConnection();
@@ -666,9 +666,8 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
                     .Select((p, i) =>
                         ParseReturnColumn(p.Name!, newExpr.Arguments[i], deletedParam, insertedParam, entityType))
                     .ToArray(),
-            _ => throw new ArgumentException(
-                Resources.FormatReturnExpressionMustBeAnInitialiserOfTOutputType(typeof(TOutput).Name),
-                nameof(expression))
+            // Scalar projection: (d, i) => i.Name  or  (d, i) => (int?)d.Visits
+            _ => [ParseReturnColumn(typeof(TOutput).Name, expression.Body, deletedParam, insertedParam, entityType)]
         };
     }
 
@@ -856,9 +855,11 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
             }
 
             default:
-                throw new ArgumentException(
-                    Resources.FormatReturnExpressionMustBeAnInitialiserOfTOutputType(typeof(TOutput).Name),
-                    nameof(expression));
+            {
+                // Scalar projection: single column at ordinal 0, cast to TOutput
+                var scalarBody = BuildReadColumn(0, typeof(TOutput));
+                return Expression.Lambda<Func<DbDataReader, TOutput>>(scalarBody, readerParam).Compile();
+            }
         }
     }
 
