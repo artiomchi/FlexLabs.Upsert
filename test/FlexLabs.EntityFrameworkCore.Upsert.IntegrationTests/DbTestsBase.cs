@@ -2558,9 +2558,11 @@ public abstract partial class DbTestsBase
 
         // Assert - Should return the updated value from database (15), not the input value (5)
         result.Should().SatisfyRespectively(
-            item => item.PreviousVisits.Should().Be(initialVisit.Visits, "RunAndReturnAsync should return old values from database after UPSERT, not stale tracked entities"));
-        result.Should().SatisfyRespectively(
-            item => item.CurrentVisits.Should().Be(15, "RunAndReturnAsync should return fresh values from database after UPSERT, not stale tracked entities"));
+            item =>
+            {
+                item.PreviousVisits.Should().Be(initialVisit.Visits, "RunAndReturnAsync should return old values from database after UPSERT, not stale tracked entities");
+                item.CurrentVisits.Should().Be(15, "RunAndReturnAsync should return fresh values from database after UPSERT, not stale tracked entities");
+            });
 
         // Verify database actually has correct value
         var dbValue = await dbContext.PageVisits

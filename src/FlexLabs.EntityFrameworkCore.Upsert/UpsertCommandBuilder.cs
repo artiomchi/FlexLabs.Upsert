@@ -240,7 +240,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     }
 
     /// <summary>
-    /// Execute the upsert command and return a custom projection using both deleted (pre-update) and inserted (post-upsert) values (only support sql server).
+    /// Execute the upsert command and return a custom projection using both deleted (pre-update) and inserted (post-upsert) values (only supports SQL Server).
     /// </summary>
     /// <remarks>
     /// Only supported by database providers that can access pre-update values (e.g. SQL Server via MERGE OUTPUT).
@@ -250,6 +250,8 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     /// <param name="returnExpression">Expression selecting columns from deleted (first parameter) and inserted (second parameter) pseudo-tables</param>
     public ICollection<TOutput> RunAndReturn<TOutput>(Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression)
     {
+        ArgumentNullException.ThrowIfNull(returnExpression);
+
         if (_entities.Count == 0)
             return [];
 
@@ -258,7 +260,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     }
 
     /// <summary>
-    /// Execute the upsert command asynchronously and return a custom projection using both deleted (pre-update) and inserted (post-upsert) values (only support sql server).
+    /// Execute the upsert command asynchronously and return a custom projection using both deleted (pre-update) and inserted (post-upsert) values (only supports SQL Server).
     /// </summary>
     /// <remarks>
     /// Only supported by database providers that can access pre-update values (e.g. SQL Server via MERGE OUTPUT).
@@ -269,6 +271,8 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     /// <param name="token">The cancellation token for this transaction</param>
     public Task<ICollection<TOutput>> RunAndReturnAsync<TOutput>(Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression, CancellationToken token = default)
     {
+        ArgumentNullException.ThrowIfNull(returnExpression);
+
         if (_entities.Count == 0)
             return Task.FromResult<ICollection<TOutput>>([]);
 

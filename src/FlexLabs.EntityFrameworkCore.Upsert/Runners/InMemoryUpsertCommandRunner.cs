@@ -259,11 +259,11 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
     public override ICollection<TOutput> RunAndReturn<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
         UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression)
         where TEntity : class =>
-        throw new NotImplementedException("InMemory runner does not support returning the result of the upsert operation yet");
+        throw new NotSupportedException(Resources.ReturnWithDeletedNotSupported);
 
     /// <inheritdoc/>
-    public override async Task<ICollection<TOutput>> RunAndReturnAsync<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+    public override Task<ICollection<TOutput>> RunAndReturnAsync<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
         UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression, CancellationToken cancellationToken)
         where TEntity : class =>
-        throw new NotImplementedException("InMemory runner does not support returning the result of the upsert operation yet");
+        throw new NotSupportedException(Resources.ReturnWithDeletedNotSupported);
 }

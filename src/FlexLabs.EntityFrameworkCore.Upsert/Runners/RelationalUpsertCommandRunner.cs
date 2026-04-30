@@ -704,8 +704,13 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
         {
             case MemberInitExpression memberInit:
             {
+                var ctor = typeof(TOutput).GetConstructor(Type.EmptyTypes);
+                if (ctor is null)
+                    throw new InvalidOperationException(
+                        $"Type '{typeof(TOutput).Name}' does not have a public parameterless constructor, which is required for member-init projection.");
+
                 var properties = memberInit.Bindings.Cast<MemberAssignment>()
-                    .Select(b => (PropertyInfo)(PropertyInfo)b.Member)
+                    .Select(b => (PropertyInfo)b.Member)
                     .ToArray();
 
                 return reader =>
