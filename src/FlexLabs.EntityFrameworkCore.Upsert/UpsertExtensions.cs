@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using FlexLabs.EntityFrameworkCore.Upsert;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace Microsoft.EntityFrameworkCore;
 
@@ -40,8 +39,8 @@ public static class UpsertExtensions
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entities);
 
-        var entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity))
-            ?? (entities.Length == 0 ? null : dbContext.GetService<IModel>().FindEntityType(entities.First().GetType()))
+        var entityType = dbContext.Model.FindEntityType(typeof(TEntity))
+            ?? (entities.Length > 0 ? dbContext.Model.FindEntityType(entities.First().GetType()) : null)
             ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
         return new UpsertCommandBuilder<TEntity>(dbContext, entityType, entities);
     }
@@ -64,8 +63,8 @@ public static class UpsertExtensions
             ICollection<TEntity> entityCollection => entityCollection,
             _ => entities.ToArray()
         };
-        var entityType = dbContext.GetService<IModel>().FindEntityType(typeof(TEntity))
-            ?? (collection.Count > 0 ? null : dbContext.GetService<IModel>().FindEntityType(collection.First().GetType()))
+        var entityType = dbContext.Model.FindEntityType(typeof(TEntity))
+            ?? (collection.Count > 0 ? dbContext.Model.FindEntityType(collection.First().GetType()) : null)
             ?? throw new InvalidOperationException(Resources.EntityTypeMustBeMappedInDbContext);
         return new UpsertCommandBuilder<TEntity>(dbContext, entityType, collection);
     }
