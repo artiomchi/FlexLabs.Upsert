@@ -10,10 +10,12 @@ namespace FlexLabs.EntityFrameworkCore.Upsert.Runners;
 public class MySqlUpsertCommandRunner : RelationalUpsertCommandRunner
 {
     /// <inheritdoc/>
-    public override bool Supports(string providerName) =>
-        providerName == "MySql.Data.EntityFrameworkCore" ||
-        providerName == "MySql.EntityFrameworkCore" ||
-        providerName == "Pomelo.EntityFrameworkCore.MySql";
+    public override bool Supports(string providerName)
+    {
+        ArgumentNullException.ThrowIfNull(providerName);
+        return providerName.Contains("MySql", StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <inheritdoc/>
     protected override string EscapeName(string name) => "`" + name + "`";
     /// <inheritdoc/>
