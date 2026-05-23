@@ -17,10 +17,6 @@
     <DefineConstants>$(DefineConstants);NOMSSQL;NOMYSQL;NOORACLE;POSTGRES_ONLY</DefineConstants>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <DefineConstants>$(DefineConstants);NOORACLE</DefineConstants>
-  </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="EFCore.NamingConventions" />
     <PackageReference Include="FluentAssertions" />
