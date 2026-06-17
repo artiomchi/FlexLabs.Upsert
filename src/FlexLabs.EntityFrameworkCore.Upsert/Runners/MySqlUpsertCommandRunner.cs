@@ -5,7 +5,9 @@ using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners;
 
 /// <summary>
-/// Upsert command runner for the MySql.Data.EntityFrameworkCore or the Pomelo.EntityFrameworkCore.MySql providers
+/// Upsert command runner for MySQL providers.
+/// <para/>
+/// This includes <c>Microting.EntityFrameworkCore.MySql</c>, <c>MySql.EntityFrameworkCore</c> and <c>Pomelo.EntityFrameworkCore.MySql</c> or any other provider that contains <c>MySql</c> in their name.
 /// </summary>
 public class MySqlUpsertCommandRunner : RelationalUpsertCommandRunner
 {
