@@ -18,14 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Extract test results
-      uses: dorny/test-reporter@v1
+      uses: dorny/test-reporter@v3
       with:
         artifact: test-results
         name: Test Results (Ubuntu)
         path: '**/TestResults/*.trx'
         reporter: dotnet-trx
     - name: Extract test results (Windows)
-      uses: dorny/test-reporter@v1
+      uses: dorny/test-reporter@v3
       with:
         artifact: test-results-win
         name: Test Results (Windows)
