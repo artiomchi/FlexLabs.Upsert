@@ -18,8 +18,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <!--Disabling MySQL tests until they have a stable and working version-->
-    <DefineConstants>$(DefineConstants);NOMYSQL;NOORACLE</DefineConstants>
+    <DefineConstants>$(DefineConstants);NOORACLE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,10 +30,10 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Oracle.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="Microting.EntityFrameworkCore.MySql" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="NSubstitute.Analyzers.CSharp" PrivateAssets="all" />
-    <!-- <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" /> -->
     <PackageReference Include="Testcontainers.MsSql" />
     <PackageReference Include="Testcontainers.MySql" />
     <PackageReference Include="Testcontainers.PostgreSql" />

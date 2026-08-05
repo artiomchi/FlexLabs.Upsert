@@ -80,12 +80,12 @@ public class TestDbContext : DbContext
                 .ComplexProperty(j => j.Meta, b => b.ToJson());
         }
 
-        if (!DatabaseIsMySql()) // Can't have a default value on TEXT columns in MySql
+        if (!Database.IsMySql()) // Can't have a default value on TEXT columns in MySql
         {
             modelBuilder.Entity<NullableRequired>().Property(e => e.Text).HasDefaultValue("B");
         }
 
-        if (!DatabaseIsMySql() && !Database.IsOracle()) // Can't have table schemas in MySql and Oracle
+        if (!Database.IsMySql() && !Database.IsOracle()) // Can't have table schemas in MySql and Oracle
         {
             modelBuilder.Entity<SchemaTable>().Metadata.SetSchema("testsch");
         }
@@ -97,7 +97,7 @@ public class TestDbContext : DbContext
         {
             return $"[{columnName}]";
         }
-        if (DatabaseIsMySql())
+        if (Database.IsMySql())
         {
             return $"`{columnName}`";
         }
@@ -107,12 +107,6 @@ public class TestDbContext : DbContext
         }
         return $"\"{columnName}\"";
     }
-
-#if NOMYSQL
-    private static bool DatabaseIsMySql() => false;
-#else
-    private bool DatabaseIsMySql => Database.IsMySql();
-#endif
 
     public DbSet<Book> Books { get; set; }
     public DbSet<Country> Countries { get; set; }
