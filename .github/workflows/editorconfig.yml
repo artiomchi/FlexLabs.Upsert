@@ -3,12 +3,15 @@ name: .editorconfig
 on:
   push:
     branches: [main]
-  pull_request:
-    types: [opened, synchronize, labeled]
+  workflow_dispatch:
+    inputs:
+      auto_fix:
+        description: 'Automatically fix issues'
+        required: false
+        default: 'false'
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   editorconfig:
@@ -21,3 +24,4 @@ jobs:
       - uses: artiomchi/editorconfig@v1
         with:
           token: ${{ vars.EDITORCONFIG_TOKEN }}
+          auto-fix: ${{ github.event.inputs.auto_fix }}
