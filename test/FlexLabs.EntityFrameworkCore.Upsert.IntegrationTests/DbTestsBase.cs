@@ -1,7 +1,7 @@
-using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests;
-using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests;
+using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
 

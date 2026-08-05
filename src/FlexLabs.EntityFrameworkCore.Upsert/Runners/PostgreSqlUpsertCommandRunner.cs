@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using Microsoft.EntityFrameworkCore.Metadata;

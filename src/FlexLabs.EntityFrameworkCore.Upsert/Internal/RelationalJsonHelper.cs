@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;

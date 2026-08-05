@@ -1,4 +1,4 @@
-﻿using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
+using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests;

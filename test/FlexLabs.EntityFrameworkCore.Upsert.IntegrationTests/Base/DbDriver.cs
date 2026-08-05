@@ -1,4 +1,4 @@
-﻿namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
+namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 
 public enum DbDriver
 {

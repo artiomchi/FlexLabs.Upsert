@@ -1,4 +1,4 @@
-﻿namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal;
+namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal;
 
 public class TestEntity
 {

@@ -1,4 +1,4 @@
-﻿using FlexLabs.EntityFrameworkCore.Upsert.Internal;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 

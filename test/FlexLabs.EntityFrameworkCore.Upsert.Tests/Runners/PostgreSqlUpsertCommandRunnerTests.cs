@@ -1,4 +1,4 @@
-﻿using FlexLabs.EntityFrameworkCore.Upsert.Runners;
+using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
