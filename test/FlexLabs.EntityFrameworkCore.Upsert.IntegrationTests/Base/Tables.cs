@@ -2,8 +2,8 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq.Expressions;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using Newtonsoft.Json.Linq;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 
@@ -60,7 +60,7 @@ public class JObjectData
 {
     [Key, DatabaseGenerated(DatabaseGeneratedOption.None)]
     public int ID { get; set; }
-    public JObject Data { get; set; }
+    public JsonObject Data { get; set; }
 }
 
 public class PageVisit

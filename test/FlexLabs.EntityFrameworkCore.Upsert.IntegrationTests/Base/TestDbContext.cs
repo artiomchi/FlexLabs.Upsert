@@ -1,5 +1,5 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 
@@ -25,8 +25,8 @@ public class TestDbContext : DbContext
         modelBuilder.Entity<JObjectData>()
             .Property(d => d.Data)
             .HasConversion(
-                v => JsonConvert.SerializeObject(v),
-                v => JsonConvert.DeserializeObject<JObject>(v));
+                v => v.ToJsonString(),
+                v => JsonNode.Parse(v)!.AsObject());
         modelBuilder.Entity<PageVisit>().HasIndex(pv => new { pv.UserID, pv.Date }).IsUnique();
         modelBuilder.Entity<SchemaTable>().HasIndex(t => t.Name).IsUnique();
         modelBuilder.Entity<KeyOnly>().HasKey(t => new { t.ID1, t.ID2 });

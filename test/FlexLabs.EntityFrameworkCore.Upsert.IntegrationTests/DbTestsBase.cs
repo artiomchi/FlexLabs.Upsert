@@ -1,7 +1,7 @@
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests;
 using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
 
@@ -1150,14 +1150,14 @@ public abstract partial class DbTestsBase
 
         var newJson = new JObjectData
         {
-            Data = new JObject(new JProperty("hello", "world")),
+            Data = new JsonObject { ["hello"] = "world" },
         };
 
         dbContext.JObjectDatas.Upsert(newJson)
             .Run();
 
         dbContext.JObjectDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
-            j => JToken.DeepEquals(newJson.Data, j.Data).Should().BeTrue());
+            j => JsonNode.DeepEquals(newJson.Data, j.Data).Should().BeTrue());
     }
 
     [Fact]
@@ -1165,28 +1165,28 @@ public abstract partial class DbTestsBase
     {
         var existingJson = new JObjectData
         {
-            Data = new JObject(new JProperty("hello", "world")),
+            Data = new JsonObject { ["hello"] = "world" },
         };
 
         ResetDb(existingJson);
         using (var testContext = new TestDbContext(_fixture.DataContextOptions))
         {
             testContext.JObjectDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
-                j => JToken.DeepEquals(existingJson.Data, j.Data).Should().BeTrue());
+                j => JsonNode.DeepEquals(existingJson.Data, j.Data).Should().BeTrue());
         }
 
         using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
         var updatedJson = new JObjectData
         {
-            Data = new JObject(new JProperty("welcome", "world 2.0")),
+            Data = new JsonObject { ["welcome"] = "world 2.0" },
         };
 
         dbContext.JObjectDatas.Upsert(updatedJson)
             .Run();
 
         dbContext.JObjectDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
-            j => JToken.DeepEquals(updatedJson.Data, j.Data).Should().BeTrue());
+            j => JsonNode.DeepEquals(updatedJson.Data, j.Data).Should().BeTrue());
     }
 
     [Fact]
@@ -1197,14 +1197,14 @@ public abstract partial class DbTestsBase
 
         var newJson = new JsonData
         {
-            Data = JsonConvert.SerializeObject(new { hello = "world" }),
+            Data = JsonSerializer.Serialize(new { hello = "world" }),
         };
 
         dbContext.JsonDatas.Upsert(newJson)
             .Run();
 
         dbContext.JsonDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
-            j => JToken.DeepEquals(JObject.Parse(newJson.Data), JObject.Parse(j.Data)).Should().BeTrue());
+            j => JsonNode.DeepEquals(JsonNode.Parse(newJson.Data), JsonNode.Parse(j.Data)).Should().BeTrue());
     }
 
     [Fact]
@@ -1212,28 +1212,28 @@ public abstract partial class DbTestsBase
     {
         var existingJson = new JsonData
         {
-            Data = JsonConvert.SerializeObject(new { hello = "world" }),
+            Data = JsonSerializer.Serialize(new { hello = "world" }),
         };
 
         ResetDb(existingJson);
         using (var testContext = new TestDbContext(_fixture.DataContextOptions))
         {
             testContext.JsonDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
-                j => JToken.DeepEquals(JObject.Parse(existingJson.Data), JObject.Parse(j.Data)).Should().BeTrue());
+                j => JsonNode.DeepEquals(JsonNode.Parse(existingJson.Data), JsonNode.Parse(j.Data)).Should().BeTrue());
         }
 
         using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
         var updatedJson = new JsonData
         {
-            Data = JsonConvert.SerializeObject(new { welcome = "world 2.0" }),
+            Data = JsonSerializer.Serialize(new { welcome = "world 2.0" }),
         };
 
         dbContext.JsonDatas.Upsert(updatedJson)
             .Run();
 
         dbContext.JsonDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
-            j => JToken.DeepEquals(JObject.Parse(updatedJson.Data), JObject.Parse(j.Data)).Should().BeTrue());
+            j => JsonNode.DeepEquals(JsonNode.Parse(updatedJson.Data), JsonNode.Parse(j.Data)).Should().BeTrue());
     }
 
     [Fact]
@@ -1243,14 +1243,14 @@ public abstract partial class DbTestsBase
 
         var existingJson = new JsonData
         {
-            Data = JsonConvert.SerializeObject(new { hello = "world" }),
+            Data = JsonSerializer.Serialize(new { hello = "world" }),
         };
 
         ResetDb(existingJson);
         using (var testContext = new TestDbContext(_fixture.DataContextOptions))
         {
             testContext.JsonDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
-                j => JToken.DeepEquals(JObject.Parse(existingJson.Data), JObject.Parse(j.Data)).Should().BeTrue());
+                j => JsonNode.DeepEquals(JsonNode.Parse(existingJson.Data), JsonNode.Parse(j.Data)).Should().BeTrue());
         }
 
         using var dbContext = new TestDbContext(_fixture.DataContextOptions);
