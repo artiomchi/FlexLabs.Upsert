@@ -89,6 +89,90 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
         return matches.Select(m => m.DbEntity ?? m.NewEntity);
     }
 
+    private record struct EntityMatchWithDeleted<TEntity>(TEntity OldEntity, TEntity NewEntity);
+
+    /// <summary>
+    /// Runs the upsert core logic and returns both the old (deleted) and new (inserted) entity snapshots.
+    /// For new inserts, both OldEntity and NewEntity refer to the newly added entity.
+    /// </summary>
+    private static IEnumerable<EntityMatchWithDeleted<TEntity>> RunCoreWithDeleted<TEntity>(
+        DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs)
+        where TEntity : class
+    {
+        var matches = FindMatches(entityType, entities, dbContext, commandArgs.MatchExpressions);
+
+        Action<TEntity, TEntity>? updateAction = null;
+        Func<TEntity, TEntity, bool>? updateTest = commandArgs.UpdateCondition?.Compile();
+        if (commandArgs.UpdateExpression != null)
+        {
+            if (commandArgs.UpdateExpression.Body is not MemberInitExpression entityUpdater)
+                throw new ArgumentException(Resources.FormatArgumentMustBeAnInitialiserOfTheTEntityType("updater"), nameof(commandArgs.UpdateExpression));
+
+            var properties = entityUpdater.Bindings.Select(b => b.Member).OfType<PropertyInfo>();
+            var updateFunc = commandArgs.UpdateExpression.Compile();
+            updateAction = (dbEntity, newEntity) =>
+            {
+                var tmp = updateFunc(dbEntity, newEntity);
+                foreach (var prop in properties)
+                {
+                    var property = entityType.FindProperty(prop.Name);
+                    prop.SetValue(dbEntity, prop.GetValue(tmp) ?? property?.GetDefaultValue());
+                }
+            };
+        }
+        else if (!commandArgs.NoUpdate)
+        {
+            var properties = entityType.GetProperties()
+                .Where(p => p.ValueGenerated == ValueGenerated.Never)
+                .Select(p => typeof(TEntity).GetProperty(p.Name))
+                .Where(p => p != null)
+                .Except(commandArgs.MatchProperties.Select(c => c.PropertyInfo))
+                .Except(commandArgs.ExcludeProperties.Select(c => c.PropertyInfo));
+            updateAction = (dbEntity, newEntity) =>
+            {
+                foreach (var prop in properties)
+                {
+                    var property = entityType.FindProperty(prop!.Name);
+                    prop.SetValue(dbEntity, prop.GetValue(newEntity) ?? property?.GetDefaultValue());
+                }
+            };
+        }
+
+        foreach (var match in matches)
+        {
+            if (match.DbEntity == null)
+            {
+                foreach (var prop in typeof(TEntity).GetProperties())
+                {
+                    if (prop.GetValue(match.NewEntity) == null)
+                    {
+                        var property = entityType.FindProperty(prop.Name);
+                        if (property != null)
+                        {
+                            var defaultValue = property.GetDefaultValue();
+                            if (defaultValue != null)
+                                prop.SetValue(match.NewEntity, defaultValue);
+                        }
+                    }
+                }
+                dbContext.Add(match.NewEntity);
+                yield return new EntityMatchWithDeleted<TEntity>(match.NewEntity, match.NewEntity);
+                continue;
+            }
+
+            if (updateTest?.Invoke(match.DbEntity, match.NewEntity) == false)
+            {
+                yield return new EntityMatchWithDeleted<TEntity>(match.DbEntity, match.DbEntity);
+                continue;
+            }
+
+            // Capture old values before update
+            var oldEntity = (TEntity)dbContext.Entry(match.DbEntity).OriginalValues.ToObject();
+            updateAction?.Invoke(match.DbEntity, match.NewEntity);
+            yield return new EntityMatchWithDeleted<TEntity>(oldEntity, match.DbEntity);
+        }
+    }
+
     private record struct EntityMatch<TEntity>(
         TEntity? DbEntity,
         TEntity NewEntity
@@ -172,4 +256,16 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
 
         return result.ToArray();
     }
+
+    /// <inheritdoc/>
+    public override ICollection<TOutput> RunAndReturn<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression)
+        where TEntity : class =>
+        throw new NotSupportedException(Resources.ReturnWithDeletedNotSupported);
+
+    /// <inheritdoc/>
+    public override Task<ICollection<TOutput>> RunAndReturnAsync<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression, CancellationToken cancellationToken)
+        where TEntity : class =>
+        throw new NotSupportedException(Resources.ReturnWithDeletedNotSupported);
 }
