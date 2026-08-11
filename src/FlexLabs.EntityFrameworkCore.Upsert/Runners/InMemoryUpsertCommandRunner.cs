@@ -63,16 +63,14 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
             {
                 foreach (var prop in typeof(TEntity).GetProperties())
                 {
-                    if (prop.GetValue(match.NewEntity) == null)
+                    var propValue = prop.GetValue(match.NewEntity);
+                    var property = entityType.FindProperty(prop.Name);
+                    if (property != null)
                     {
-                        var property = entityType.FindProperty(prop.Name);
-                        if (property != null)
+                        var defaultValue = property.GetDefaultValue();
+                        if (defaultValue != null && (propValue == null || Equals(propValue, property.Sentinel)))
                         {
-                            var defaultValue = property.GetDefaultValue();
-                            if (defaultValue != null)
-                            {
-                                prop.SetValue(match.NewEntity, defaultValue);
-                            }
+                            prop.SetValue(match.NewEntity, defaultValue);
                         }
                     }
                 }
