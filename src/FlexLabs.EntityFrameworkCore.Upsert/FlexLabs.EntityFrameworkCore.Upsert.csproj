@@ -22,8 +22,11 @@ Also supports injecting sql command generators to add support for other provider
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>Entity Framework Core entity-framework-core EF EntityFramework EntityFrameworkCore EFCore Upsert</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <VersionPrefix>10.0.0</VersionPrefix>
+    <VersionPrefix>10.1.0</VersionPrefix>
     <PackageReleaseNotes>
+v10.1.0
+* Support more MySql database engines (Thanks to @0xced)
+
 v10.0.0
 + Adding support for EF Core 10
 
