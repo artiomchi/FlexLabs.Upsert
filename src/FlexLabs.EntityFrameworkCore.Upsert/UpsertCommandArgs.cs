@@ -39,6 +39,12 @@ public record UpsertCommandArgs<TEntity>
     public required IReadOnlyCollection<IProperty> ExcludeProperties { get; init; }
 
     /// <summary>
+    /// The predicate of the partial unique index to match on, for indexes the model doesn't describe.
+    /// When null, the predicate is taken from the matching filtered unique index in the model, if there is one
+    /// </summary>
+    public string? IndexPredicate { get; init; }
+
+    /// <summary>
     /// Expression that represents which properties will be updated, and what values will be set
     /// </summary>
     public required Expression<Func<TEntity, TEntity, TEntity>>? UpdateExpression { get; init; }

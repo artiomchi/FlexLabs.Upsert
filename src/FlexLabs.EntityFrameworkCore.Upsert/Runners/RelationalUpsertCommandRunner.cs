@@ -32,6 +32,30 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
         ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
         KnownExpression? updateCondition, bool returnResult = false);
     /// <summary>
+    /// Generate a full command for the upsert operation, given the inputs passed, narrowing the match to a partial
+    /// (filtered) unique index
+    /// </summary>
+    /// <param name="tableName">The name of the database table</param>
+    /// <param name="entities">A collection of entity data (column names and values) to be upserted</param>
+    /// <param name="joinColumns">The columns used to match existing items in the database</param>
+    /// <param name="updateExpressions">The expressions that represent update commands for matched entities</param>
+    /// <param name="updateCondition">The expression that tests whether existing entities should be updated</param>
+    /// <param name="indexPredicate">
+    /// The predicate of the partial unique index to match against, or null when the match is backed by a
+    /// non-partial index. Runners for engines that cannot express an index predicate ignore this
+    /// </param>
+    /// <param name="returnResult">If true, the generated command should return upserted entities</param>
+    /// <returns>A fully formed database query</returns>
+    /// <remarks>
+    /// Overridden by runners that support partial indexes. The default implementation drops the predicate and
+    /// defers to <see cref="GenerateCommand(string, ICollection{ICollection{ValueTuple{string, ConstantValue, string, bool}}}, ICollection{ValueTuple{string, bool}}, ICollection{ValueTuple{string, IKnownValue}}, KnownExpression, bool)"/>,
+    /// so runners written before this overload existed keep working unchanged
+    /// </remarks>
+    public virtual string GenerateCommand(string tableName, ICollection<ICollection<(string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts)>> entities,
+        ICollection<(string ColumnName, bool IsNullable)> joinColumns, ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
+        KnownExpression? updateCondition, string? indexPredicate, bool returnResult)
+        => GenerateCommand(tableName, entities, joinColumns, updateExpressions, updateCondition, returnResult);
+    /// <summary>
     /// Escape the name of the table/column/schema in a given database language
     /// </summary>
     /// <param name="name">The name of the entity</param>
@@ -108,6 +132,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
         var expressionParser = new ExpressionParser<TEntity>(table, commandArgs);
 
         var joinColumnNames = commandArgs.MatchProperties.Select(c => (ColumnName: c.GetColumnName(), Nullable: c.IsColumnNullable())).ToArray();
+        var indexPredicate = commandArgs.IndexPredicate ?? FindIndexPredicate(entityType, commandArgs.MatchProperties);
 
         var updateExpressions = commandArgs.UpdateExpression != null
             ? expressionParser.ParseUpdateExpression(commandArgs.UpdateExpression)
@@ -149,9 +174,43 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
             var columnUpdateExpressions = updateExpressions?.Length > 0
                 ? updateExpressions.Select(x => (x.Property.ColumnName, x.Value)).ToArray()
                 : null;
-            var sqlCommand = GenerateCommand(table.TableName, newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression, returnResult);
+            var sqlCommand = GenerateCommand(table.TableName, newEntities.Skip(entitiesProcessed - entitiesHere).Take(entitiesHere).ToArray(), joinColumnNames, columnUpdateExpressions, updateConditionExpression, indexPredicate, returnResult);
             yield return (sqlCommand, arguments);
         }
+    }
+
+    /// <summary>
+    /// Find the predicate of the partial unique index that backs the match columns, if that is the only thing
+    /// backing them.
+    /// </summary>
+    /// <remarks>
+    /// A conflict target listing only column names cannot match a partial index - PostgreSQL requires the
+    /// predicate to be repeated before it will infer one - so a match backed solely by a filtered index fails
+    /// with 42P10. Falling back to the index's own filter is safe precisely because of that: a key or unfiltered
+    /// unique index is preferred whenever one exists, so the only commands whose behaviour changes are commands
+    /// that could not run at all.
+    /// </remarks>
+    private static string? FindIndexPredicate(IEntityType entityType, IReadOnlyCollection<IProperty> matchProperties)
+    {
+        bool CoversMatchColumns(IReadOnlyList<IProperty> properties)
+            => properties.Count == matchProperties.Count && !properties.Except(matchProperties).Any();
+
+        if (entityType.GetKeys().Any(key => CoversMatchColumns(key.Properties)))
+            return null;
+
+        var uniqueIndexes = entityType.GetIndexes()
+            .Where(index => index.IsUnique && CoversMatchColumns(index.Properties))
+            .ToArray();
+
+        if (uniqueIndexes.Length == 0 || uniqueIndexes.Any(index => index.GetFilter() == null))
+            return null;
+
+        // Several filtered indexes over the same columns leave nothing to infer from, so leave the command as it
+        // was rather than picking one of them arbitrarily.
+        var predicates = uniqueIndexes.Select(index => index.GetFilter()!).Distinct(StringComparer.Ordinal).ToArray();
+        return predicates.Length == 1
+            ? predicates[0]
+            : null;
     }
 
     /// <summary>

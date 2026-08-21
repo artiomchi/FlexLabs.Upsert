@@ -21,6 +21,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     private List<Expression<Func<TEntity, object>>>? _excludeExpressions;
     private Expression<Func<TEntity, TEntity, TEntity>>? _updateExpression;
     private Expression<Func<TEntity, TEntity, bool>>? _updateCondition;
+    private string? _indexPredicate;
     private bool _allowIdentityMatch;
     private bool _noUpdate;
     private bool _useExpressionCompiler;
@@ -49,6 +50,24 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
             throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(On)));
 
         _matchExpression = match ?? throw new ArgumentNullException(nameof(match));
+        return this;
+    }
+
+    /// <summary>
+    /// Specifies the predicate of the partial (filtered) unique index that the match columns are backed by.
+    /// Only needed for indexes that aren't described by the model - when the model declares the index with
+    /// HasFilter(), its predicate is used automatically
+    /// </summary>
+    /// <param name="indexPredicate">The index predicate, in the database's own syntax, e.g. "deleted_at IS NULL"</param>
+    /// <returns>The current instance of the UpsertCommandBuilder</returns>
+    /// <remarks>Ignored by database engines that can't express an index predicate</remarks>
+    public UpsertCommandBuilder<TEntity> WithIndexPredicate(string indexPredicate)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(indexPredicate);
+        if (_indexPredicate != null)
+            throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(WithIndexPredicate)));
+
+        _indexPredicate = indexPredicate;
         return this;
     }
 
@@ -276,6 +295,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
             MatchExpressions = _matchExpression,
             MatchProperties = matchProperties,
             ExcludeProperties = excludeProperties,
+            IndexPredicate = _indexPredicate,
             UpdateExpression = _updateExpression,
             UpdateCondition = _updateCondition,
         };

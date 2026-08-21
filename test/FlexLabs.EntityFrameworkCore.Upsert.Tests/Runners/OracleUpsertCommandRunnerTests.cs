@@ -110,4 +110,27 @@ public class OracleUpsertCommandRunnerTests : RelationalCommandRunnerTestsBase<O
         "ON (t.\"ID\" = s.\"ID\") " +
         "WHEN NOT MATCHED THEN INSERT (\"ID\", \"Name\", \"Status\", \"Total\") VALUES (s.\"ID\", s.\"Name\", s.\"Status\", s.\"Total\") " +
         "WHEN MATCHED THEN UPDATE SET t.\"Name\" = ( CASE WHEN ( s.\"Name\" IS NULL ) THEN :p4 ELSE s.\"Name\" END )";
+
+    // Oracle matches on an explicit MERGE condition rather than by inferring an index, so the
+    // predicate is dropped and the command is unchanged
+    protected override string Update_MatchOnFilteredUniqueIndex_Sql =>
+        "MERGE INTO \"TestEntityWithFilteredIndex\" t " +
+        "USING (SELECT :p0 AS \"ID\", :p1 AS \"Name\", :p2 AS \"Status\", :p3 AS \"Total\" FROM dual) s " +
+        "ON (t.\"Name\" = s.\"Name\") " +
+        "WHEN NOT MATCHED THEN INSERT (\"ID\", \"Name\", \"Status\", \"Total\") VALUES (s.\"ID\", s.\"Name\", s.\"Status\", s.\"Total\") " +
+        "WHEN MATCHED THEN UPDATE SET t.\"Status\" = :p4";
+
+    protected override string Update_ExplicitIndexPredicate_Sql =>
+        "MERGE INTO \"TestEntity\" t " +
+        "USING (SELECT :p0 AS \"ID\", :p1 AS \"Name\", :p2 AS \"Status\", :p3 AS \"Total\" FROM dual) s " +
+        "ON (t.\"Name\" = s.\"Name\") " +
+        "WHEN NOT MATCHED THEN INSERT (\"ID\", \"Name\", \"Status\", \"Total\") VALUES (s.\"ID\", s.\"Name\", s.\"Status\", s.\"Total\") " +
+        "WHEN MATCHED THEN UPDATE SET t.\"Status\" = :p4";
+
+    protected override string Update_ExplicitIndexPredicate_OverridesModel_Sql =>
+        "MERGE INTO \"TestEntityWithFilteredIndex\" t " +
+        "USING (SELECT :p0 AS \"ID\", :p1 AS \"Name\", :p2 AS \"Status\", :p3 AS \"Total\" FROM dual) s " +
+        "ON (t.\"Name\" = s.\"Name\") " +
+        "WHEN NOT MATCHED THEN INSERT (\"ID\", \"Name\", \"Status\", \"Total\") VALUES (s.\"ID\", s.\"Name\", s.\"Status\", s.\"Total\") " +
+        "WHEN MATCHED THEN UPDATE SET t.\"Status\" = :p4";
 }
