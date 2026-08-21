@@ -126,4 +126,19 @@ public class PostgreSqlUpsertCommandRunnerTests : RelationalCommandRunnerTestsBa
             Arg.Any<IEnumerable<object>>(),
             Arg.Any<IModel>());
     }
+
+    protected override string Update_MatchOnFilteredUniqueIndex_Sql =>
+        "INSERT INTO \"TestEntityWithFilteredIndex\" AS \"T\" (\"ID\", \"Name\", \"Status\", \"Total\") " +
+        "VALUES (@p0, @p1, @p2, @p3) ON CONFLICT (\"Name\") WHERE \"Status\" IS NOT NULL " +
+        "DO UPDATE SET \"Status\" = @p4";
+
+    protected override string Update_ExplicitIndexPredicate_Sql =>
+        "INSERT INTO \"TestEntity\" AS \"T\" (\"ID\", \"Name\", \"Status\", \"Total\") " +
+        "VALUES (@p0, @p1, @p2, @p3) ON CONFLICT (\"Name\") WHERE \"Total\" > 0 " +
+        "DO UPDATE SET \"Status\" = @p4";
+
+    protected override string Update_ExplicitIndexPredicate_OverridesModel_Sql =>
+        "INSERT INTO \"TestEntityWithFilteredIndex\" AS \"T\" (\"ID\", \"Name\", \"Status\", \"Total\") " +
+        "VALUES (@p0, @p1, @p2, @p3) ON CONFLICT (\"Name\") WHERE \"Total\" > 0 " +
+        "DO UPDATE SET \"Status\" = @p4";
 }

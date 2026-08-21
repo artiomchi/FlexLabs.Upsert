@@ -84,4 +84,20 @@ public class MySqlUpsertCommandRunnerTests : RelationalCommandRunnerTestsBase<My
         "INSERT INTO `TestEntity` (`ID`, `Name`, `Status`, `Total`) " +
         "VALUES (@p0, @p1, @p2, @p3) " +
         "ON DUPLICATE KEY UPDATE `Name` = ( CASE WHEN ( VALUES(`Name`) IS NULL ) THEN @p4 ELSE VALUES(`Name`) END )";
+
+    // MySql has nowhere to put an index predicate, so it is dropped and the command is unchanged
+    protected override string Update_MatchOnFilteredUniqueIndex_Sql =>
+        "INSERT INTO `TestEntityWithFilteredIndex` (`ID`, `Name`, `Status`, `Total`) " +
+        "VALUES (@p0, @p1, @p2, @p3) " +
+        "ON DUPLICATE KEY UPDATE `Status` = @p4";
+
+    protected override string Update_ExplicitIndexPredicate_Sql =>
+        "INSERT INTO `TestEntity` (`ID`, `Name`, `Status`, `Total`) " +
+        "VALUES (@p0, @p1, @p2, @p3) " +
+        "ON DUPLICATE KEY UPDATE `Status` = @p4";
+
+    protected override string Update_ExplicitIndexPredicate_OverridesModel_Sql =>
+        "INSERT INTO `TestEntityWithFilteredIndex` (`ID`, `Name`, `Status`, `Total`) " +
+        "VALUES (@p0, @p1, @p2, @p3) " +
+        "ON DUPLICATE KEY UPDATE `Status` = @p4";
 }

@@ -15,6 +15,11 @@ public class TestDbContext : DbContext
         modelBuilder.Entity<TestEntity>().Property(e => e.Num2).HasDefaultValue(27);
         modelBuilder.Entity<TestEntityFiltered>().HasIndex(b => b.Key).IsUnique();
         modelBuilder.Entity<TestEntityFiltered>().HasQueryFilter(b => !b.IsDeleted);
+        var partialIndex = modelBuilder.Entity<TestEntityPartialIndex>().HasIndex(b => b.Key).IsUnique();
+        if (Database.IsNpgsql() || Database.IsSqlite())
+        {
+            partialIndex.HasFilter($"{EscapeColumn(nameof(TestEntityPartialIndex.IsDeleted))} = FALSE");
+        }
         modelBuilder.Entity<ULongEntity>().HasIndex(b => b.Num1).IsUnique();
         modelBuilder.Entity<Book>().HasIndex(b => b.Name).IsUnique();
         modelBuilder.Entity<Book>().Property(b => b.Genres)
@@ -126,6 +131,7 @@ public class TestDbContext : DbContext
     public DbSet<StringKeyAutoGen> StringKeysAutoGen { get; set; }
     public DbSet<TestEntity> TestEntities { get; set; }
     public DbSet<TestEntityFiltered> TestEntitiesFiltered { get; set; }
+    public DbSet<TestEntityPartialIndex> TestEntitiesPartialIndex { get; set; }
     public DbSet<ULongEntity> ULongEntities { get; set; }
     public DbSet<GeneratedAlwaysAsIdentity> GeneratedAlwaysAsIdentity { get; set; }
     public DbSet<ComputedColumn> ComputedColumns { get; set; }
