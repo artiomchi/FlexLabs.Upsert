@@ -31,7 +31,8 @@ DataContext.DailyVisits
 
 In this case, the upsert command will ensure that a new `DailyVisit` will be added to the database. If a visit with the same `UserID` and `Date` already exists, it will be updated by incrementing it's `Visits` value by 1.
 
-### Partial (filtered) unique indexes
+Partial (filtered) unique indexes
+---------------------------------
 
 PostgreSQL and Sqlite will only match against a partial index if the command repeats the index's predicate, so
 matching on columns whose only unique index is partial used to fail with `42P10: there is no unique or exclusion
@@ -53,6 +54,9 @@ could not run before. For an index the model doesn't describe, pass the predicat
     .On(v => new { v.UserID, v.Date })
     .WithIndexPredicate("deleted_at IS NULL")
 ```
+
+The predicate is written into the command as it is given, so it must be a trusted, static predicate - never user
+input.
 
 Providers that match with an explicit condition rather than by inferring an index (SqlServer, Oracle, MySQL) ignore
 the predicate.

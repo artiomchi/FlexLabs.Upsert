@@ -42,6 +42,10 @@ public record UpsertCommandArgs<TEntity>
     /// The predicate of the partial unique index to match on, for indexes the model doesn't describe.
     /// When null, the predicate is taken from the matching filtered unique index in the model, if there is one
     /// </summary>
+    /// <remarks>
+    /// Written into the generated command as it is given, so it must be a trusted, static predicate - never
+    /// user input
+    /// </remarks>
     public string? IndexPredicate { get; init; }
 
     /// <summary>

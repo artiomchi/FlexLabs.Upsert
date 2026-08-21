@@ -60,7 +60,10 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     /// </summary>
     /// <param name="indexPredicate">The index predicate, in the database's own syntax, e.g. "deleted_at IS NULL"</param>
     /// <returns>The current instance of the UpsertCommandBuilder</returns>
-    /// <remarks>Ignored by database engines that can't express an index predicate</remarks>
+    /// <remarks>
+    /// Written into the generated command as it is given, so it must be a trusted, static predicate - never
+    /// user input. Ignored by database engines that can't express an index predicate
+    /// </remarks>
     public UpsertCommandBuilder<TEntity> WithIndexPredicate(string indexPredicate)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(indexPredicate);

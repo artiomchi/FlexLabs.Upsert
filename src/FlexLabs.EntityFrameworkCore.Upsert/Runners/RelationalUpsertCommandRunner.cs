@@ -42,7 +42,9 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     /// <param name="updateCondition">The expression that tests whether existing entities should be updated</param>
     /// <param name="indexPredicate">
     /// The predicate of the partial unique index to match against, or null when the match is backed by a
-    /// non-partial index. Runners for engines that cannot express an index predicate ignore this
+    /// non-partial index. Written into the generated command as it is given, so implementations receive a
+    /// trusted, static predicate - it is either the model's own index filter or one the calling code supplied,
+    /// never user input. Runners for engines that cannot express an index predicate ignore this
     /// </param>
     /// <param name="returnResult">If true, the generated command should return upserted entities</param>
     /// <returns>A fully formed database query</returns>
