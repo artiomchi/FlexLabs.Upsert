@@ -1,4 +1,4 @@
-﻿using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,0 +1,27 @@
+name: .editorconfig
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      auto_fix:
+        description: 'Automatically fix issues'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+jobs:
+  editorconfig:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - uses: artiomchi/editorconfig@v1
+        with:
+          token: ${{ vars.EDITORCONFIG_TOKEN }}
+          auto-fix: ${{ github.event.inputs.auto_fix }}

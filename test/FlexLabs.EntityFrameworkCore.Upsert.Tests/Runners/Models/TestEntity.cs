@@ -1,4 +1,4 @@
-﻿namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners.Models;
+namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners.Models;
 
 public class TestEntity
 {

@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -166,8 +166,8 @@ internal sealed class ExpressionParser<TEntity>(RelationalTableBase table, Upser
         return (value2, value3) switch
         {
             (null, null) => new KnownExpression(known.ExpressionType, value1),
-            ({}, null) => new KnownExpression(known.ExpressionType, value1, value2),
-            ({}, {}) => new KnownExpression(known.ExpressionType, value1, value2, value3),
+            ({ }, null) => new KnownExpression(known.ExpressionType, value1, value2),
+            ({ }, { }) => new KnownExpression(known.ExpressionType, value1, value2, value3),
             _ => throw new InvalidOperationException("Invalid KnownExpression value state"),
         };
     }

@@ -1,4 +1,4 @@
-﻿namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
+namespace FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
 /// <summary>
 /// Value of an expression
