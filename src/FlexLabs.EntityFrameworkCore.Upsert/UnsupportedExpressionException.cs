@@ -1,4 +1,4 @@
-﻿using System.Linq.Expressions;
+using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert;

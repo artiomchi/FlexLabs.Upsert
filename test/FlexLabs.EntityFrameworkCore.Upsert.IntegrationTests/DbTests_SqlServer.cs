@@ -23,9 +23,9 @@ public class DbTests_SqlServer(DbTests_SqlServer.DatabaseInitializer contexts) :
             public override DbProviderFactory DbProviderFactory
                 => SqlClientFactory.Instance;
 
-            // https://mcr.microsoft.com/en-us/artifact/mar/mssql/rhel/server/tags
+            // https://mcr.microsoft.com/en-us/artifact/mar/mssql/server/tags
             protected override MsSqlBuilder Configure()
-                => ConfigureContainer(new MsSqlBuilder("mcr.microsoft.com/mssql/rhel/server:2025-latest"));
+                => ConfigureContainer(new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest"));
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace FlexLabs.EntityFrameworkCore.Upsert;
+namespace FlexLabs.EntityFrameworkCore.Upsert;
 
 internal static class HelpLinks
 {

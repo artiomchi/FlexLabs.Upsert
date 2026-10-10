@@ -1,4 +1,4 @@
-﻿namespace FlexLabs.EntityFrameworkCore.Upsert;
+namespace FlexLabs.EntityFrameworkCore.Upsert;
 
 /// <summary>
 /// Thrown when using unsupported columns as the upsert match expression.
