@@ -1,3 +1,5 @@
+using System.Data;
+using System.Data.Common;
 using System.Linq.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
@@ -40,6 +42,18 @@ public class ReturnWithProjectionTests
     private sealed class TestEntityDbContext(DbContextOptions options) : DbContext(options)
     {
         public DbSet<TestEntity> TestEntities { get; set; } = null!;
+    }
+
+    private sealed class ReaderMapperRunner : SqlServerUpsertCommandRunner
+    {
+        public static Func<DbDataReader, TOutput> CreateMapper<TOutput>(
+            Expression<Func<TestEntity?, TestEntity?, TOutput>> expression)
+            => CreateReaderMapper<TestEntity, TOutput>(expression);
+    }
+
+    private sealed class FieldInitDto
+    {
+        public string Name = string.Empty;
     }
 
     // ── SQL Server GenerateCommand with returnColumns ──────────────────────────
@@ -314,6 +328,23 @@ public class ReturnWithProjectionTests
         // Each column should carry the IProperty from the entity type
         Assert.Equal("ID", list[0].Property.Name);
         Assert.Equal("Name", list[1].Property.Name);
+    }
+
+    [Fact]
+    public void CreateReaderMapper_FieldInit_Maps()
+    {
+        Expression<Func<TestEntity, TestEntity, FieldInitDto>> expression =
+            (deleted, inserted) => new FieldInitDto { Name = inserted.Name };
+        var mapper = ReaderMapperRunner.CreateMapper(expression);
+        var table = new DataTable();
+        table.Columns.Add("Name", typeof(string));
+        table.Rows.Add("new name");
+        using var reader = table.CreateDataReader();
+        reader.Read();
+
+        var result = mapper(reader);
+
+        Assert.Equal("new name", result.Name);
     }
 
     // ── SQL Server GenerateCommand with constructor-based returnColumns ────────

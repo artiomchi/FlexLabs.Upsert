@@ -846,8 +846,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
                 var bindings = memberInit.Bindings.Cast<MemberAssignment>()
                     .Select(b =>
                     {
-                        var propInfo = (PropertyInfo)b.Member;
-                        return Expression.Bind(propInfo, BuildReadColumn(ordinal++, propInfo.PropertyType));
+                        return Expression.Bind(b.Member, BuildReadColumn(ordinal++, GetMemberType(b.Member)));
                     })
                     .ToArray();
 
