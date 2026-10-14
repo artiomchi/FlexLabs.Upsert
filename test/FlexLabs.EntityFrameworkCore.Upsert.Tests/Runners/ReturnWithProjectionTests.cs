@@ -374,4 +374,30 @@ public class ReturnWithProjectionTests
         Assert.True(col.IsDeletedParam);
         Assert.Equal("Total", col.ColumnName);
     }
+
+    [Fact]
+    public void ValidateDeletedReturnProjection_RejectsNonNullableValueType()
+    {
+        var entityType = BuildEntityType();
+        Expression<Func<TestEntity, TestEntity, int>> expr =
+            (deleted, inserted) => deleted.Total;
+        var columns = RelationalUpsertCommandRunner.ParseReturnExpression(expr, entityType);
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            RelationalUpsertCommandRunner.ValidateDeletedReturnProjection(columns, "returnExpression"));
+
+        Assert.Contains("can be NULL", exception.Message);
+        Assert.Equal("returnExpression", exception.ParamName);
+    }
+
+    [Fact]
+    public void ValidateDeletedReturnProjection_AllowsNullableValueType()
+    {
+        var entityType = BuildEntityType();
+        Expression<Func<TestEntity, TestEntity, int?>> expr =
+            (deleted, inserted) => (int?)deleted.Total;
+        var columns = RelationalUpsertCommandRunner.ParseReturnExpression(expr, entityType);
+
+        RelationalUpsertCommandRunner.ValidateDeletedReturnProjection(columns, "returnExpression");
+    }
 }

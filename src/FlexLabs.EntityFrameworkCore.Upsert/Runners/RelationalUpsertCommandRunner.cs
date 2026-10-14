@@ -420,6 +420,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
 
         var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
         var returnColumns = ParseReturnExpression(returnExpression, entityType);
+        ValidateDeletedReturnProjection(returnColumns, nameof(returnExpression));
         var sqlReturnColumns = returnColumns.Select(c => (c.Alias, c.IsDeletedParam, c.ColumnName)).ToArray();
         var columnProperties = returnColumns.Select(c => c.Property).ToArray();
         var mapper = CreateReaderMapper(returnExpression, columnProperties, relationalTypeMappingSource);
@@ -467,6 +468,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
 
         var relationalTypeMappingSource = dbContext.GetService<IRelationalTypeMappingSource>();
         var returnColumns = ParseReturnExpression(returnExpression, entityType);
+        ValidateDeletedReturnProjection(returnColumns, nameof(returnExpression));
         var sqlReturnColumns = returnColumns.Select(c => (c.Alias, c.IsDeletedParam, c.ColumnName)).ToArray();
         var columnProperties = returnColumns.Select(c => c.Property).ToArray();
         var mapper = CreateReaderMapper(returnExpression, columnProperties, relationalTypeMappingSource);
@@ -645,7 +647,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     /// and <see cref="NewExpression"/> without Members (plain classes with parameterised constructors,
     /// where the constructor parameter name is used as the output alias).
     /// </summary>
-    internal static ICollection<(string Alias, bool IsDeletedParam, string ColumnName, IProperty Property)> ParseReturnExpression<TEntity, TOutput>(
+    internal static ICollection<(string Alias, bool IsDeletedParam, string ColumnName, IProperty Property, Type ResultType)> ParseReturnExpression<TEntity, TOutput>(
         Expression<Func<TEntity, TEntity, TOutput>> expression,
         IEntityType entityType)
     {
@@ -659,15 +661,15 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
                 ParseMemberInitColumns(memberInit, deletedParam, insertedParam, entityType),
             NewExpression { Members: not null } newExpr =>
                 newExpr.Members.Select((m, i) =>
-                        ParseReturnColumn(m.Name, newExpr.Arguments[i], deletedParam, insertedParam, entityType))
+                        ParseReturnColumn(m.Name, GetMemberType(m), newExpr.Arguments[i], deletedParam, insertedParam, entityType))
                     .ToArray(),
             NewExpression { Constructor: not null } newExpr =>
                 newExpr.Constructor.GetParameters()
                     .Select((p, i) =>
-                        ParseReturnColumn(p.Name!, newExpr.Arguments[i], deletedParam, insertedParam, entityType))
+                        ParseReturnColumn(p.Name!, p.ParameterType, newExpr.Arguments[i], deletedParam, insertedParam, entityType))
                     .ToArray(),
             // Scalar projection: (d, i) => i.Name  or  (d, i) => (int?)d.Visits
-            _ => [ParseReturnColumn(typeof(TOutput).Name, expression.Body, deletedParam, insertedParam, entityType)]
+            _ => [ParseReturnColumn(typeof(TOutput).Name, typeof(TOutput), expression.Body, deletedParam, insertedParam, entityType)]
         };
     }
 
@@ -676,7 +678,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     /// and property bindings: <c>new MyDto(deleted.Id) { Name = inserted.Name }</c>.
     /// Constructor arguments are emitted first, followed by property bindings.
     /// </summary>
-    private static (string Alias, bool IsDeletedParam, string ColumnName, IProperty Property)[] ParseMemberInitColumns(
+    private static (string Alias, bool IsDeletedParam, string ColumnName, IProperty Property, Type ResultType)[] ParseMemberInitColumns(
         MemberInitExpression memberInit,
         ParameterExpression deletedParam,
         ParameterExpression insertedParam,
@@ -685,16 +687,17 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
         var ctorArgs = memberInit.NewExpression.Constructor?.GetParameters() ?? [];
         var ctorColumns = ctorArgs
             .Select((p, i) =>
-                ParseReturnColumn(p.Name!, memberInit.NewExpression.Arguments[i], deletedParam, insertedParam, entityType));
+                ParseReturnColumn(p.Name!, p.ParameterType, memberInit.NewExpression.Arguments[i], deletedParam, insertedParam, entityType));
 
         var bindingColumns = memberInit.Bindings.Cast<MemberAssignment>()
-            .Select(b => ParseReturnColumn(b.Member.Name, b.Expression, deletedParam, insertedParam, entityType));
+            .Select(b => ParseReturnColumn(b.Member.Name, GetMemberType(b.Member), b.Expression, deletedParam, insertedParam, entityType));
 
         return ctorColumns.Concat(bindingColumns).ToArray();
     }
 
-    private static (string Alias, bool IsDeletedParam, string ColumnName, IProperty Property) ParseReturnColumn(
+    private static (string Alias, bool IsDeletedParam, string ColumnName, IProperty Property, Type ResultType) ParseReturnColumn(
         string alias,
+        Type resultType,
         Expression valueExpr,
         ParameterExpression deletedParam,
         ParameterExpression insertedParam,
@@ -714,11 +717,27 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
             var property = entityType.FindProperty(propInfo.Name)
                 ?? throw new ArgumentException(Resources.FormatUnknownProperty(propInfo.Name));
 
-            return (alias, isDeleted, property.GetColumnName(), property);
+            return (alias, isDeleted, property.GetColumnName(), property, resultType);
         }
 
         throw new ArgumentException(
             Resources.FormatReturnExpressionBindingMustAccessDeletedOrInserted(alias));
+    }
+
+    private static Type GetMemberType(MemberInfo member)
+        => member switch
+        {
+            PropertyInfo property => property.PropertyType,
+            FieldInfo field => field.FieldType,
+            _ => throw new ArgumentException($"Unsupported return expression member: {member.Name}", nameof(member)),
+        };
+
+    internal static void ValidateDeletedReturnProjection(
+        IEnumerable<(string Alias, bool IsDeletedParam, string ColumnName, IProperty Property, Type ResultType)> returnColumns,
+        string parameterName)
+    {
+        if (returnColumns.Any(c => c.IsDeletedParam && c.ResultType.IsValueType && Nullable.GetUnderlyingType(c.ResultType) == null))
+            throw new ArgumentException(Resources.DeletedProjectionMustBeNullable, parameterName);
     }
 
     /// <summary>

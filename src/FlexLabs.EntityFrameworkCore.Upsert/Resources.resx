@@ -207,6 +207,9 @@
   <data name="ReturnWithDeletedNotSupported" xml:space="preserve">
     <value>This database provider does not support returning custom projections with deleted values. Only SQL Server supports this feature.</value>
   </data>
+  <data name="DeletedProjectionMustBeNullable" xml:space="preserve">
+    <value>Values projected from 'deleted' can be NULL when an upsert inserts a row. Use nullable result types for deleted values.</value>
+  </data>
   <data name="ReturnExpressionMustBeAnInitialiserOfTOutputType" xml:space="preserve">
     <value>The return expression must be an initialiser of the {0} type</value>
   </data>
