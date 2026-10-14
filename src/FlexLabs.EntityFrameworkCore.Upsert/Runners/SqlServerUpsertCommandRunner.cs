@@ -19,6 +19,8 @@ public class SqlServerUpsertCommandRunner : RelationalUpsertCommandRunner
     protected override string? TargetPrefix => "[T].";
     /// <inheritdoc/>
     protected override int? MaxQueryParams => 2090;
+    /// <inheritdoc/>
+    protected override bool SupportsDeletedInReturn => true;
 
     /// <inheritdoc/>
     public override string GenerateCommand(
@@ -27,7 +29,7 @@ public class SqlServerUpsertCommandRunner : RelationalUpsertCommandRunner
         ICollection<(string ColumnName, bool IsNullable)> joinColumns,
         ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
         KnownExpression? updateCondition,
-        bool returnResult = false)
+        ICollection<(string Alias, bool IsDeletedParam, string ColumnName)>? returnColumns = null)
     {
         var result = new StringBuilder();
         result.Append(CultureInfo.InvariantCulture, $"MERGE INTO {tableName} WITH (HOLDLOCK) AS [T] USING ( VALUES (");
@@ -51,7 +53,13 @@ public class SqlServerUpsertCommandRunner : RelationalUpsertCommandRunner
             result.Append(" THEN UPDATE SET ");
             result.Append(string.Join(", ", updateExpressions.Select((e, i) => $"{EscapeName(e.ColumnName)} = {ExpandValue(e.Value)}")));
         }
-        if (returnResult)
+        if (returnColumns != null && returnColumns.Count > 0)
+        {
+            result.Append(" OUTPUT ");
+            result.Append(string.Join(", ", returnColumns.Select(c =>
+                $"{(c.IsDeletedParam ? "deleted" : "inserted")}.[{c.ColumnName}] AS [{c.Alias}]")));
+        }
+        else if (returnColumns != null)
         {
             result.Append(" OUTPUT inserted.*");
         }
