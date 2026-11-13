@@ -172,4 +172,16 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
 
         return result.ToArray();
     }
+
+    /// <inheritdoc/>
+    public override ICollection<TOutput> RunAndReturn<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression)
+        where TEntity : class =>
+        throw new NotSupportedException(Resources.ReturnWithDeletedNotSupported);
+
+    /// <inheritdoc/>
+    public override Task<ICollection<TOutput>> RunAndReturnAsync<TEntity, TOutput>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities,
+        UpsertCommandArgs<TEntity> commandArgs, Expression<Func<TEntity?, TEntity?, TOutput>> returnExpression, CancellationToken cancellationToken)
+        where TEntity : class =>
+        throw new NotSupportedException(Resources.ReturnWithDeletedNotSupported);
 }
