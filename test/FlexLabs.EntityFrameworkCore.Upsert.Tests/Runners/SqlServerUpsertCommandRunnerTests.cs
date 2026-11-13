@@ -109,4 +109,27 @@ public class SqlServerUpsertCommandRunnerTests : RelationalCommandRunnerTestsBas
         "ON [T].[ID] = [S].[ID] " +
         "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
         "WHEN MATCHED THEN UPDATE SET [Name] = ( CASE WHEN ( [S].[Name] IS NULL ) THEN @p4 ELSE [S].[Name] END );";
+
+    // SqlServer matches on an explicit MERGE condition rather than by inferring an index, so the
+    // predicate is dropped and the command is unchanged
+    protected override string Update_MatchOnFilteredUniqueIndex_Sql =>
+        "MERGE INTO [TestEntityWithFilteredIndex] WITH (HOLDLOCK) AS [T] " +
+        "USING ( VALUES (@p0, @p1, @p2, @p3) ) AS [S] ([ID], [Name], [Status], [Total]) " +
+        "ON (([S].[Name] IS NULL AND [T].[Name] IS NULL) OR ([S].[Name] IS NOT NULL AND [T].[Name] = [S].[Name])) " +
+        "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
+        "WHEN MATCHED THEN UPDATE SET [Status] = @p4;";
+
+    protected override string Update_ExplicitIndexPredicate_Sql =>
+        "MERGE INTO [TestEntity] WITH (HOLDLOCK) AS [T] " +
+        "USING ( VALUES (@p0, @p1, @p2, @p3) ) AS [S] ([ID], [Name], [Status], [Total]) " +
+        "ON (([S].[Name] IS NULL AND [T].[Name] IS NULL) OR ([S].[Name] IS NOT NULL AND [T].[Name] = [S].[Name])) " +
+        "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
+        "WHEN MATCHED THEN UPDATE SET [Status] = @p4;";
+
+    protected override string Update_ExplicitIndexPredicate_OverridesModel_Sql =>
+        "MERGE INTO [TestEntityWithFilteredIndex] WITH (HOLDLOCK) AS [T] " +
+        "USING ( VALUES (@p0, @p1, @p2, @p3) ) AS [S] ([ID], [Name], [Status], [Total]) " +
+        "ON (([S].[Name] IS NULL AND [T].[Name] IS NULL) OR ([S].[Name] IS NOT NULL AND [T].[Name] = [S].[Name])) " +
+        "WHEN NOT MATCHED BY TARGET THEN INSERT ([ID], [Name], [Status], [Total]) VALUES ([ID], [Name], [Status], [Total]) " +
+        "WHEN MATCHED THEN UPDATE SET [Status] = @p4;";
 }

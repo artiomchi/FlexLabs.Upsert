@@ -23,6 +23,7 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
         _model = new Model();
         AddEntity<TestEntity>(_model);
         AddEntity<TestEntityWithNullableKey>(_model);
+        AddFilteredUniqueIndex(AddEntity<TestEntityWithFilteredIndex>(_model), "Name", FilteredIndexPredicate);
         // ReSharper disable once VirtualMemberCallInConstructor
         InitializeModel(_model);
 
@@ -84,6 +85,22 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             ?? throw new InvalidOperationException("ID property missing on entity " + typeof(TEntity).Name);
         entityType.AddKey(idProperty, ConfigurationSource.Convention);
         return entityType;
+    }
+
+    /// <summary>The predicate declared on <see cref="TestEntityWithFilteredIndex"/>'s unique index</summary>
+    protected const string FilteredIndexPredicate = "\"Status\" IS NOT NULL";
+
+    /// <summary>A predicate passed to WithIndexPredicate(), for indexes the model doesn't describe</summary>
+    protected const string ExplicitIndexPredicate = "\"Total\" > 0";
+
+    protected static void AddFilteredUniqueIndex(EntityType entityType, string propertyName, string filter)
+    {
+        var property = entityType.FindProperty(propertyName)
+            ?? throw new InvalidOperationException($"{propertyName} property missing on entity {entityType.Name}");
+        var index = entityType.AddIndex(new[] { property }, ConfigurationSource.Explicit)
+            ?? throw new InvalidOperationException($"Could not add an index on {entityType.Name}.{propertyName}");
+        index.SetIsUnique(true, ConfigurationSource.Explicit);
+        index.SetFilter(filter);
     }
 
     protected abstract string NoUpdate_Sql { get; }
@@ -339,6 +356,66 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
 
         _rawSqlBuilder.Received().Build(
             Update_WatchWithNullCheck_Sql,
+            Arg.Any<IEnumerable<object>>(),
+            Arg.Any<IModel>());
+    }
+
+    protected abstract string Update_MatchOnFilteredUniqueIndex_Sql { get; }
+    [Fact]
+    public void SqlSyntaxRunner_Update_MatchOnFilteredUniqueIndex()
+    {
+        _dbContext.Upsert(new TestEntityWithFilteredIndex())
+            .On(e => e.Name)
+            .WhenMatched(e => new TestEntityWithFilteredIndex
+            {
+                Status = "value"
+            })
+            .Run();
+
+        _rawSqlBuilder.Received().Build(
+            Update_MatchOnFilteredUniqueIndex_Sql,
+            Arg.Any<IEnumerable<object>>(),
+            Arg.Any<IModel>());
+    }
+
+    protected abstract string Update_ExplicitIndexPredicate_Sql { get; }
+    [Fact]
+    public void SqlSyntaxRunner_Update_ExplicitIndexPredicate()
+    {
+        _dbContext.Upsert(new TestEntity())
+            .On(e => e.Name)
+            .WithIndexPredicate(ExplicitIndexPredicate)
+            .WhenMatched(e => new TestEntity
+            {
+                Status = "value"
+            })
+            .Run();
+
+        _rawSqlBuilder.Received().Build(
+            Update_ExplicitIndexPredicate_Sql,
+            Arg.Any<IEnumerable<object>>(),
+            Arg.Any<IModel>());
+    }
+
+    /// <summary>
+    /// The explicit predicate wins over the one on the model, so an index the model describes only
+    /// approximately can still be targeted.
+    /// </summary>
+    protected abstract string Update_ExplicitIndexPredicate_OverridesModel_Sql { get; }
+    [Fact]
+    public void SqlSyntaxRunner_Update_ExplicitIndexPredicate_OverridesModel()
+    {
+        _dbContext.Upsert(new TestEntityWithFilteredIndex())
+            .On(e => e.Name)
+            .WithIndexPredicate(ExplicitIndexPredicate)
+            .WhenMatched(e => new TestEntityWithFilteredIndex
+            {
+                Status = "value"
+            })
+            .Run();
+
+        _rawSqlBuilder.Received().Build(
+            Update_ExplicitIndexPredicate_OverridesModel_Sql,
             Arg.Any<IEnumerable<object>>(),
             Arg.Any<IModel>());
     }

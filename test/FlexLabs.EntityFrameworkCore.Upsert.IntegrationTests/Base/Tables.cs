@@ -151,6 +151,18 @@ public class TestEntityFiltered
     public bool IsDeleted { get; set; }
 }
 
+/// <summary>
+/// Soft deletes, where the unique index has to ignore the deleted rows so a key can be reused. Only
+/// databases that support partial indexes get one - see TestDbContext.
+/// </summary>
+public class TestEntityPartialIndex
+{
+    public int ID { get; set; }
+    public string Key { get; set; } = "default";
+    public int Counter { get; set; }
+    public bool IsDeleted { get; set; }
+}
+
 public class ULongEntity
 {
     public int ID { get; set; }

@@ -105,6 +105,7 @@ public abstract partial class DbTestsBase
         Reset(dbContext, e => e.StringKeysAutoGen);
         Reset(dbContext, e => e.TestEntities);
         Reset(dbContext, e => e.TestEntitiesFiltered);
+        Reset(dbContext, e => e.TestEntitiesPartialIndex);
         Reset(dbContext, e => e.ULongEntities);
         Reset(dbContext, e => e.GeneratedAlwaysAsIdentity);
         Reset(dbContext, e => e.ComputedColumns);

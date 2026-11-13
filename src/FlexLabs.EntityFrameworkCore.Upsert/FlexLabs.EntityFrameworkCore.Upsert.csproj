@@ -24,6 +24,9 @@ Also supports injecting sql command generators to add support for other provider
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <VersionPrefix>10.1.0</VersionPrefix>
     <PackageReleaseNotes>
+vNext
++ Support partial (filtered) unique indexes in PostgreSQL/Sqlite, taking the predicate from the model or from WithIndexPredicate()
+
 v10.1.0
 * Support more MySql database engines (Thanks to @0xced)
 

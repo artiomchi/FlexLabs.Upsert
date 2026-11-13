@@ -38,6 +38,17 @@ public class PostgreSqlUpsertCommandRunner : RelationalUpsertCommandRunner
         ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
         KnownExpression? updateCondition,
         bool returnResult = false)
+        => GenerateCommand(tableName, entities, joinColumns, updateExpressions, updateCondition, null, returnResult);
+
+    /// <inheritdoc/>
+    public override string GenerateCommand(
+        string tableName,
+        ICollection<ICollection<(string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts)>> entities,
+        ICollection<(string ColumnName, bool IsNullable)> joinColumns,
+        ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
+        KnownExpression? updateCondition,
+        string? indexPredicate,
+        bool returnResult)
     {
         var result = new StringBuilder();
         result.Append(CultureInfo.InvariantCulture, $"INSERT INTO {tableName} AS \"T\" (");
@@ -46,7 +57,10 @@ public class PostgreSqlUpsertCommandRunner : RelationalUpsertCommandRunner
         result.Append(string.Join("), (", entities.Select(ec => string.Join(", ", ec.Select(e => e.DefaultSql ?? Parameter(e.Value.ArgumentIndex))))));
         result.Append(") ON CONFLICT (");
         result.Append(string.Join(", ", joinColumns.Select(c => EscapeName(c.ColumnName))));
-        result.Append(") DO ");
+        result.Append(')');
+        if (!string.IsNullOrWhiteSpace(indexPredicate))
+            result.Append(CultureInfo.InvariantCulture, $" WHERE {indexPredicate}");
+        result.Append(" DO ");
         if (updateExpressions != null)
         {
             result.Append("UPDATE SET ");
