@@ -35,6 +35,6 @@
 
   <ItemGroup>
     <!-- Package bumps due to vulnerabilities -->
-    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.12" />
+    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.14" />
   </ItemGroup>
 </Project>

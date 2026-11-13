@@ -17,7 +17,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     private readonly DbContext _dbContext;
     private readonly IEntityType _entityType;
     private readonly ICollection<TEntity> _entities;
-    private Expression<Func<TEntity, object>>? _matchExpression;
+    private Expression<Func<TEntity, object?>>? _matchExpression;
     private List<Expression<Func<TEntity, object?>>>? _excludeExpressions;
     private Expression<Func<TEntity, TEntity, TEntity>>? _updateExpression;
     private Expression<Func<TEntity, TEntity, bool>>? _updateCondition;
@@ -43,7 +43,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     /// </summary>
     /// <param name="match">The expression that will identity one or several columns to be used in the match clause</param>
     /// <returns>The current instance of the UpsertCommandBuilder</returns>
-    public UpsertCommandBuilder<TEntity> On(Expression<Func<TEntity, object>> match)
+    public UpsertCommandBuilder<TEntity> On(Expression<Func<TEntity, object?>> match)
     {
         if (_matchExpression != null)
             throw new InvalidOperationException(Resources.FormatCantCallMethodTwice(nameof(On)));
@@ -252,7 +252,7 @@ public class UpsertCommandBuilder<TEntity> where TEntity : class
     private UpsertCommandArgs<TEntity> CreateCommandArgs()
     {
         var matchProperties = _matchExpression != null
-            ? ProcessPropertiesExpression(_entityType, _matchExpression!, true)
+            ? ProcessPropertiesExpression(_entityType, _matchExpression, true)
             : _entityType.GetProperties().Where(p => p.IsKey()).ToArray();
         if (!_allowIdentityMatch && matchProperties.Any(p => p.ValueGenerated != ValueGenerated.Never))
             throw new InvalidMatchColumnsException();

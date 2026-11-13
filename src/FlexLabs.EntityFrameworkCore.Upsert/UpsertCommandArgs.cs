@@ -26,7 +26,7 @@ public record UpsertCommandArgs<TEntity>
     /// <summary>
     /// Original expression to use for matching existing entities (used to generate the match properties)
     /// </summary>
-    public Expression<Func<TEntity, object>>? MatchExpressions { get; init; }
+    public Expression<Func<TEntity, object?>>? MatchExpressions { get; init; }
 
     /// <summary>
     /// Columns to use for matching existing entities
