@@ -28,13 +28,15 @@ internal sealed record RelationalColumn(
             : null;
 
         string? defaultSql = null;
-        var hasConfiguredDefault = Property.GetDefaultValue() != null || Property.GetDefaultValueSql() != null;
+        var hasDefaultValue = Property.TryGetDefaultValue(out var defaultValue) && defaultValue != null;
+        var defaultValueSql = Property.GetDefaultValueSql();
+        var hasConfiguredDefault = hasDefaultValue || defaultValueSql != null;
         if (rawValue == null || (hasConfiguredDefault && Equals(rawValue, Property.Sentinel)))
         {
-            if (Property.GetDefaultValue() != null)
-                rawValue = Property.GetDefaultValue();
+            if (hasDefaultValue)
+                rawValue = defaultValue;
             else
-                defaultSql = Property.GetDefaultValueSql();
+                defaultSql = defaultValueSql;
         }
 
         var value = new ConstantValue(rawValue, this);

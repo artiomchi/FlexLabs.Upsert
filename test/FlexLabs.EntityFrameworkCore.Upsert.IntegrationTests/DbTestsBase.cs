@@ -104,6 +104,7 @@ public abstract partial class DbTestsBase
         Reset(dbContext, e => e.StringKeys);
         Reset(dbContext, e => e.StringKeysAutoGen);
         Reset(dbContext, e => e.SentinelEntities);
+        Reset(dbContext, e => e.SqlDefaultEntities);
         Reset(dbContext, e => e.TestEntities);
         Reset(dbContext, e => e.TestEntitiesFiltered);
         Reset(dbContext, e => e.ULongEntities);
@@ -2433,6 +2434,59 @@ public abstract partial class DbTestsBase
 
         dbContext.SentinelEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
             test => test.Num2.Should().Be(27));
+    }
+
+    [Fact(DisplayName = "Insert with CLR default value (0) should use HasDefaultValueSql")]
+    public void Upsert_ValueType_DefaultValueSql_Insert()
+    {
+        Assert.SkipWhen(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support default sql values");
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var newItem = new SqlDefaultEntity
+        {
+            Num1 = 1,
+            Num2 = 0,
+            Created = default,
+        };
+
+        dbContext.SqlDefaultEntities.Upsert(newItem)
+            .On(j => j.Num1)
+            .Run();
+
+        dbContext.SqlDefaultEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+            test =>
+            {
+                test.Num2.Should().Be(33);
+                test.Created.Should().BeCloseTo(DateTime.Now, TimeSpan.FromDays(1));
+            });
+    }
+
+    [Fact(DisplayName = "Insert with explicit values should preserve them despite HasDefaultValueSql")]
+    public void Upsert_ValueType_DefaultValueSql_ExplicitValue_Insert()
+    {
+        Assert.SkipWhen(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support default sql values");
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var created = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        var newItem = new SqlDefaultEntity
+        {
+            Num1 = 1,
+            Num2 = 42,
+            Created = created,
+        };
+
+        dbContext.SqlDefaultEntities.Upsert(newItem)
+            .On(j => j.Num1)
+            .Run();
+
+        dbContext.SqlDefaultEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+            test =>
+            {
+                test.Num2.Should().Be(42);
+                test.Created.Should().Be(created);
+            });
     }
 
     [Fact]
