@@ -10,7 +10,7 @@ jobs:
     - uses: actions/setup-dotnet@v6
       with:
         dotnet-version: |
-          10.0.x
+          11.0.x
     - uses: actions/checkout@v7
     - name: Restore dependencies
       run: dotnet restore
@@ -31,7 +31,7 @@ jobs:
     steps:
     - uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: 10.0.x
+        dotnet-version: 11.0.x
     - uses: actions/checkout@v7
     - name: Enable Postgres
       run: sc config postgresql-x64-17 start= demand

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks>net11.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <NoWarn>EF1001</NoWarn>
     <IsPackable>false</IsPackable>
