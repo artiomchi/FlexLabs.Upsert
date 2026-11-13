@@ -95,7 +95,7 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
     );
 
     private static EntityMatch<TEntity>[] FindMatches<TEntity>(IEntityType entityType, IEnumerable<TEntity> entities, DbContext dbContext,
-        Expression<Func<TEntity, object>>? matchExpression)
+        Expression<Func<TEntity, object?>>? matchExpression)
         where TEntity : class
     {
         if (matchExpression != null)
