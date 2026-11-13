@@ -1,4 +1,4 @@
-﻿using FlexLabs.EntityFrameworkCore.Upsert.Runners;
+using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners;
 

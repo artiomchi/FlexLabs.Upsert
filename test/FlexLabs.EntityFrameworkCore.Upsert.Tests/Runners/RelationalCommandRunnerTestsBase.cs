@@ -43,6 +43,7 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
         serviceProvider.GetRequiredService<IModelRuntimeInitializer>().Initialize(_model);
 
         _dbContext = Substitute.For<DbContext, IInfrastructure<IServiceProvider>>();
+        _dbContext.Model.Returns(_model);
         ((IInfrastructure<IServiceProvider>)_dbContext).Instance.Returns(serviceProvider);
 
         var relationalConnection = Substitute.For<IRelationalConnection>();

@@ -99,10 +99,12 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
         where TEntity : class
     {
         if (matchExpression != null)
+        {
             return entities.AsQueryable()
                 .GroupJoin(dbContext.Set<TEntity>().IgnoreQueryFilters().ToList(), matchExpression, matchExpression, (newEntity, dbEntity) => new { dbEntity, newEntity })
                 .SelectMany(x => x.dbEntity.DefaultIfEmpty(), (x, dbEntity) => new EntityMatch<TEntity>(dbEntity, x.newEntity))
                 .ToArray();
+        }
 
         // If we're resorting to matching on PKs, we'll have to load them manually
         var primaryKeyProperties = entityType.FindPrimaryKey()?.Properties;

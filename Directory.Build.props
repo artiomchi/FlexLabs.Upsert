@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ReproducibleBuildsVersion>1.2.39</ReproducibleBuildsVersion>
+    <ReproducibleBuildsVersion>2.0.5</ReproducibleBuildsVersion>
   </PropertyGroup>
 
   <ItemGroup>

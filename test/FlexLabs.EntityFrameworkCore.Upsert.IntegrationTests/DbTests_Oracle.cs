@@ -27,7 +27,7 @@ public class DbTests_Oracle(DbTests_Oracle.DatabaseInitializer contexts) : DbTes
             // https://hub.docker.com/r/gvenzl/oracle-free
             protected override OracleBuilder Configure()
                 => ConfigureContainer(new OracleBuilder("gvenzl/oracle-free:23-slim-faststart"))
-                .WithWaitStrategy(Wait.ForUnixContainer().UntilCommandIsCompleted("/opt/oracle/healthcheck.sh"));
+                .WithWaitStrategy(Wait.ForUnixContainer().UntilDatabaseIsAvailable(DbProviderFactory));
         }
     }
 }

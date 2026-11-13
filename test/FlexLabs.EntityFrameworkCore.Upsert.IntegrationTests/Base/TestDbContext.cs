@@ -1,7 +1,5 @@
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Storage;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 
@@ -13,8 +11,6 @@ public class TestDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        var dbProvider = this.GetService<IDatabaseProvider>();
-
         modelBuilder.Entity<TestEntity>().HasIndex(b => b.Num1).IsUnique();
         modelBuilder.Entity<TestEntity>().Property(e => e.Num2).HasDefaultValue(27);
         modelBuilder.Entity<TestEntityFiltered>().HasIndex(b => b.Key).IsUnique();
@@ -29,8 +25,8 @@ public class TestDbContext : DbContext
         modelBuilder.Entity<JObjectData>()
             .Property(d => d.Data)
             .HasConversion(
-                v => JsonConvert.SerializeObject(v),
-                v => JsonConvert.DeserializeObject<JObject>(v));
+                v => v.ToJsonString(),
+                v => JsonNode.Parse(v)!.AsObject());
         modelBuilder.Entity<PageVisit>().HasIndex(pv => new { pv.UserID, pv.Date }).IsUnique();
         modelBuilder.Entity<SchemaTable>().HasIndex(t => t.Name).IsUnique();
         modelBuilder.Entity<KeyOnly>().HasKey(t => new { t.ID1, t.ID2 });
@@ -39,14 +35,14 @@ public class TestDbContext : DbContext
         modelBuilder.Entity<GeneratedAlwaysAsIdentity>().Property(e => e.Num2).UseIdentityAlwaysColumn();
         modelBuilder.Entity<ComputedColumn>().HasIndex(b => b.Num1).IsUnique();
         modelBuilder.Entity<ComputedColumn>().Property(e => e.Num3)
-            .HasComputedColumnSql($"{EscapeColumn(dbProvider, nameof(ComputedColumn.Num2))} + 1", stored: true);
+            .HasComputedColumnSql($"{EscapeColumn(nameof(ComputedColumn.Num2))} + 1", stored: true);
 
         modelBuilder.Entity<Parent>()
             .OwnsOne(
                 c => c.Child,
                 b => { b.OwnsOne(c => c.SubChild); });
 
-        if (dbProvider.Name == "Npgsql.EntityFrameworkCore.PostgreSQL")
+        if (Database.IsNpgsql())
         {
             modelBuilder.Entity<JsonData>().Property(j => j.Data).HasColumnType("jsonb");
             modelBuilder.Entity<JsonData>().Property(j => j.Child).HasColumnType("jsonb");
@@ -67,7 +63,7 @@ public class TestDbContext : DbContext
                     b.OwnsMany(c => c.Properties);
                 });
 
-        if (dbProvider.Name == "Microsoft.EntityFrameworkCore.InMemory")
+        if (Database.IsInMemory())
         {
             // in-memory provider does not support complex properties
             modelBuilder.Entity<ParentComplex>().Ignore(c => c.Child);
@@ -84,27 +80,33 @@ public class TestDbContext : DbContext
                 .ComplexProperty(j => j.Meta, b => b.ToJson());
         }
 
-        if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql") // Can't have a default value on TEXT columns in MySql
+        if (!Database.IsMySql()) // Can't have a default value on TEXT columns in MySql
         {
             modelBuilder.Entity<NullableRequired>().Property(e => e.Text).HasDefaultValue("B");
         }
 
-        if (dbProvider.Name != "Pomelo.EntityFrameworkCore.MySql" &&
-            dbProvider.Name != "Oracle.EntityFrameworkCore") // Can't have table schemas in MySql and Oracle
+        if (!Database.IsMySql() && !Database.IsOracle()) // Can't have table schemas in MySql and Oracle
         {
             modelBuilder.Entity<SchemaTable>().Metadata.SetSchema("testsch");
         }
     }
 
-    private string EscapeColumn(IDatabaseProvider dbProvider, string columnName)
-        => dbProvider.Name switch
+    private string EscapeColumn(string columnName)
+    {
+        if (Database.IsSqlServer())
         {
-            "Pomelo.EntityFrameworkCore.MySql" => $"`{columnName}`",
-            "Npgsql.EntityFrameworkCore.PostgreSQL" => $"\"{columnName}\"",
-            "Microsoft.EntityFrameworkCore.Sqlite" => $"\"{columnName}\"",
-            "Oracle.EntityFrameworkCore" => columnName.ToUpper(),
-            _ => $"[{columnName}]"
-        };
+            return $"[{columnName}]";
+        }
+        if (Database.IsMySql())
+        {
+            return $"`{columnName}`";
+        }
+        if (Database.IsOracle())
+        {
+            return columnName.ToUpper();
+        }
+        return $"\"{columnName}\"";
+    }
 
     public DbSet<Book> Books { get; set; }
     public DbSet<Country> Countries { get; set; }
