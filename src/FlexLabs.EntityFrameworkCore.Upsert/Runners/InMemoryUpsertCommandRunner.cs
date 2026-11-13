@@ -93,14 +93,16 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
     );
 
     private static EntityMatch<TEntity>[] FindMatches<TEntity>(IEntityType entityType, IEnumerable<TEntity> entities, DbContext dbContext,
-        Expression<Func<TEntity, object>>? matchExpression)
+        Expression<Func<TEntity, object?>>? matchExpression)
         where TEntity : class
     {
         if (matchExpression != null)
+        {
             return entities.AsQueryable()
                 .GroupJoin(dbContext.Set<TEntity>().IgnoreQueryFilters().ToList(), matchExpression, matchExpression, (newEntity, dbEntity) => new { dbEntity, newEntity })
                 .SelectMany(x => x.dbEntity.DefaultIfEmpty(), (x, dbEntity) => new EntityMatch<TEntity>(dbEntity, x.newEntity))
                 .ToArray();
+        }
 
         // If we're resorting to matching on PKs, we'll have to load them manually
         var primaryKeyProperties = entityType.FindPrimaryKey()?.Properties;

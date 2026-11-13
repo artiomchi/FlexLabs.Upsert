@@ -1,4 +1,4 @@
-﻿namespace FlexLabs.EntityFrameworkCore.Upsert.Runners;
+namespace FlexLabs.EntityFrameworkCore.Upsert.Runners;
 
 /// <summary>
 /// Provides the default list of command runners
