@@ -143,6 +143,22 @@ public class TestEntity
     public DateTime Updated { get; set; }
 }
 
+public class SentinelEntity
+{
+    public int ID { get; set; }
+    public int Num1 { get; set; }
+    public int Num2 { get; set; }
+}
+
+public class SqlDefaultEntity
+{
+    public int ID { get; set; }
+    public int Num1 { get; set; }
+    public int Num2 { get; set; }
+    public DateTime Created { get; set; }
+    public string? Text { get; set; }
+}
+
 public class TestEntityFiltered
 {
     public int ID { get; set; }

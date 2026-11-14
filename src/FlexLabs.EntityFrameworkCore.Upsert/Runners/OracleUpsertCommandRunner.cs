@@ -43,7 +43,7 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
         foreach (var item in entities.Select((e, ind) => new { e, ind }))
         {
             result.Append("SELECT ");
-            result.Append(string.Join(", ", item.e.Select(ec => string.Join(" AS ", ExpandValue(ec.Value), EscapeName(ec.ColumnName)))));
+            result.Append(string.Join(", ", item.e.Select(ec => string.Join(" AS ", ec.DefaultSql ?? ExpandValue(ec.Value), EscapeName(ec.ColumnName)))));
             result.Append(" FROM dual");
             if (entities.Count > 1 && item.ind != entities.Count - 1)
             {
