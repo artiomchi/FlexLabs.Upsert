@@ -156,6 +156,7 @@ public class SqlDefaultEntity
     public int Num1 { get; set; }
     public int Num2 { get; set; }
     public DateTime Created { get; set; }
+    public string? Text { get; set; }
 }
 
 public class TestEntityFiltered

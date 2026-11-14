@@ -2436,6 +2436,82 @@ public abstract partial class DbTestsBase
             test => test.Num2.Should().Be(27));
     }
 
+    [Fact(DisplayName = "Update with CLR default value (0) on existing row should update to HasDefaultValue(27)")]
+    public void Upsert_ValueType_DefaultValue_Update()
+    {
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        dbContext.TestEntities.Add(new TestEntity { Num1 = 1, Num2 = 50, Text1 = "Old", Text2 = "Old" });
+        dbContext.SaveChanges();
+
+        dbContext.TestEntities.Upsert(new TestEntity { Num1 = 1, Num2 = 0, Text1 = "New", Text2 = "New" })
+            .On(j => j.Num1)
+            .Run();
+
+        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        verifyContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+            test =>
+            {
+                test.Text1.Should().Be("New");
+                test.Num2.Should().Be(27);
+            });
+    }
+
+    [Fact(DisplayName = "Mixed batch: sentinel values use the default on both insert and update")]
+    public void Upsert_ValueType_DefaultValue_MixedBatch()
+    {
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        dbContext.TestEntities.AddRange(
+            new TestEntity { Num1 = 1, Num2 = 50, Text1 = "Old", Text2 = "Old" },
+            new TestEntity { Num1 = 2, Num2 = 60, Text1 = "Old", Text2 = "Old" },
+            new TestEntity { Num1 = 4, Num2 = 80, Text1 = "Old", Text2 = "Old" });
+        dbContext.SaveChanges();
+
+        dbContext.TestEntities.UpsertRange(
+                new TestEntity { Num1 = 1, Num2 = 0, Text1 = "New", Text2 = "New" },
+                new TestEntity { Num1 = 2, Num2 = 70, Text1 = "New", Text2 = "New" },
+                new TestEntity { Num1 = 3, Num2 = 0, Text1 = "New", Text2 = "New" },
+                new TestEntity { Num1 = 4, Num2 = 0, Text1 = "New", Text2 = "New" },
+                new TestEntity { Num1 = 5, Num2 = 90, Text1 = "New", Text2 = "New" })
+            .On(j => j.Num1)
+            .Run();
+
+        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        verifyContext.TestEntities.OrderBy(t => t.Num1).Should().SatisfyRespectively(
+            test => { test.Num1.Should().Be(1); test.Num2.Should().Be(27); test.Text1.Should().Be("New"); },
+            test => { test.Num1.Should().Be(2); test.Num2.Should().Be(70); test.Text1.Should().Be("New"); },
+            test => { test.Num1.Should().Be(3); test.Num2.Should().Be(27); test.Text1.Should().Be("New"); },
+            test => { test.Num1.Should().Be(4); test.Num2.Should().Be(27); test.Text1.Should().Be("New"); },
+            test => { test.Num1.Should().Be(5); test.Num2.Should().Be(90); test.Text1.Should().Be("New"); });
+    }
+
+    [Fact(DisplayName = "Update with CLR default value (0) on existing row should update to HasDefaultValueSql")]
+    public void Upsert_ValueType_DefaultValueSql_Update()
+    {
+        Assert.SkipWhen(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support default sql values");
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var created = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        dbContext.SqlDefaultEntities.Add(new SqlDefaultEntity { Num1 = 1, Num2 = 50, Created = created });
+        dbContext.SaveChanges();
+
+        dbContext.SqlDefaultEntities.Upsert(new SqlDefaultEntity { Num1 = 1, Num2 = 0, Created = created.AddDays(1) })
+            .On(j => j.Num1)
+            .Run();
+
+        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        verifyContext.SqlDefaultEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+            test =>
+            {
+                test.Num2.Should().Be(33);
+                test.Created.Should().Be(created.AddDays(1));
+            });
+    }
+
     [Fact(DisplayName = "Insert with CLR default value (0) should use HasDefaultValueSql")]
     public void Upsert_ValueType_DefaultValueSql_Insert()
     {
@@ -2448,6 +2524,7 @@ public abstract partial class DbTestsBase
             Num1 = 1,
             Num2 = 0,
             Created = default,
+            Text = "after-defaults",
         };
 
         dbContext.SqlDefaultEntities.Upsert(newItem)
@@ -2459,6 +2536,7 @@ public abstract partial class DbTestsBase
             {
                 test.Num2.Should().Be(33);
                 test.Created.Should().BeCloseTo(DateTime.Now, TimeSpan.FromDays(1));
+                test.Text.Should().Be("after-defaults");
             });
     }
 

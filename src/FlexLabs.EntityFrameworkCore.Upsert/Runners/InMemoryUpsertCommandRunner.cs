@@ -52,7 +52,7 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
                 foreach (var prop in properties)
                 {
                     var property = entityType.FindProperty(prop!.Name);
-                    prop.SetValue(dbEntity, prop.GetValue(newEntity) ?? property?.GetDefaultValue());
+                    prop.SetValue(dbEntity, ApplyDefault(property, prop.GetValue(newEntity)));
                 }
             };
         }
@@ -67,11 +67,9 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
                     var property = entityType.FindProperty(prop.Name);
                     if (property != null)
                     {
-                        var defaultValue = property.GetDefaultValue();
-                        if (defaultValue != null && (propValue == null || Equals(propValue, property.Sentinel)))
-                        {
-                            prop.SetValue(match.NewEntity, defaultValue);
-                        }
+                        var newValue = ApplyDefault(property, propValue);
+                        if (!Equals(newValue, propValue))
+                            prop.SetValue(match.NewEntity, newValue);
                     }
                 }
                 dbContext.Add(match.NewEntity);
@@ -86,6 +84,15 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
 
         return matches.Select(m => m.DbEntity ?? m.NewEntity);
     }
+
+    // A value that is null, or equal to the property sentinel, is replaced by the configured default value (if there is one)
+    private static object? ApplyDefault(IProperty? property, object? value)
+        => property != null &&
+            (value == null || Equals(value, property.Sentinel)) &&
+            property.TryGetDefaultValue(out var defaultValue) &&
+            defaultValue != null
+            ? defaultValue
+            : value;
 
     private record struct EntityMatch<TEntity>(
         TEntity? DbEntity,
