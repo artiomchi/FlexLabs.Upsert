@@ -16,6 +16,11 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
     private static IEnumerable<TEntity> RunCore<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs)
         where TEntity : class
     {
+        // The relational providers resolve default values in the source row, before matching and updating,
+        // so the same needs to happen here to make sure that all of the logic below sees the same values
+        foreach (var entity in entities)
+            NormaliseDefaults(entityType, entity);
+
         // Find matching entities in the dbContext
         var matches = FindMatches(entityType, entities, dbContext, commandArgs.MatchExpressions);
 
@@ -62,14 +67,9 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
         {
             if (match.DbEntity == null)
             {
-                NormaliseDefaults(entityType, match.NewEntity);
                 dbContext.Add(match.NewEntity);
                 continue;
             }
-
-            // The relational providers read the resolved default values from the source row, so the condition
-            // and the update expression need to see the same values here
-            NormaliseDefaults(entityType, match.NewEntity);
 
             if (updateTest?.Invoke(match.DbEntity, match.NewEntity) == false)
                 continue;
@@ -89,17 +89,20 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
             : value;
 
     private static void NormaliseDefaults<TEntity>(IEntityType entityType, TEntity entity)
+        where TEntity : class
     {
-        foreach (var prop in typeof(TEntity).GetProperties())
+        // Properties without a setter (mapped to a backing field) are supported by writing to the field
+        foreach (var property in entityType.GetProperties().Where(p => !p.IsShadowProperty()))
         {
-            var property = entityType.FindProperty(prop.Name);
-            if (property == null)
+            var value = property.GetGetter().GetClrValue(entity);
+            var newValue = ApplyDefault(property, value);
+            if (Equals(newValue, value))
                 continue;
 
-            var value = prop.GetValue(entity);
-            var newValue = ApplyDefault(property, value);
-            if (!Equals(newValue, value))
-                prop.SetValue(entity, newValue);
+            if (property.PropertyInfo is { SetMethod: not null } propertyInfo)
+                propertyInfo.SetValue(entity, newValue);
+            else
+                property.FieldInfo?.SetValue(entity, newValue);
         }
     }
 

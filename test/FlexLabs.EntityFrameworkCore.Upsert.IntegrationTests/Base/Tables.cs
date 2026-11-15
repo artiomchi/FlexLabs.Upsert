@@ -166,6 +166,21 @@ public class UnspecifiedDefaultEntity
     public int Num2 { get; set; }
 }
 
+/// <summary>
+/// Only used with the in-memory provider
+/// </summary>
+public class InMemoryDefaultsEntity
+{
+    private int _readOnly;
+
+    public int ID { get; set; }
+    public int Num1 { get; set; }
+    public int ReadOnly => _readOnly;
+    public string? Text { get; set; }
+
+    public void SetReadOnly(int value) => _readOnly = value;
+}
+
 public class TestEntityFiltered
 {
     public int ID { get; set; }

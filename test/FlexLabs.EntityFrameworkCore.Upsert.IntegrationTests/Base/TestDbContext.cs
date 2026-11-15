@@ -33,6 +33,16 @@ public class TestDbContext : DbContext
         {
             modelBuilder.Ignore<UnspecifiedDefaultEntity>();
         }
+
+        if (Database.IsInMemory())
+        {
+            modelBuilder.Entity<InMemoryDefaultsEntity>().Property(e => e.Num1).HasDefaultValue(27).ValueGeneratedNever();
+            modelBuilder.Entity<InMemoryDefaultsEntity>().Property(e => e.ReadOnly).HasField("_readOnly").HasDefaultValue(27);
+        }
+        else
+        {
+            modelBuilder.Ignore<InMemoryDefaultsEntity>();
+        }
         modelBuilder.Entity<TestEntityFiltered>().HasIndex(b => b.Key).IsUnique();
         modelBuilder.Entity<TestEntityFiltered>().HasQueryFilter(b => !b.IsDeleted);
         modelBuilder.Entity<ULongEntity>().HasIndex(b => b.Num1).IsUnique();
@@ -147,6 +157,7 @@ public class TestDbContext : DbContext
     public DbSet<SentinelEntity> SentinelEntities { get; set; }
     public DbSet<SqlDefaultEntity> SqlDefaultEntities { get; set; }
     public DbSet<UnspecifiedDefaultEntity> UnspecifiedDefaultEntities { get; set; }
+    public DbSet<InMemoryDefaultsEntity> InMemoryDefaultsEntities { get; set; }
     public DbSet<TestEntity> TestEntities { get; set; }
     public DbSet<TestEntityFiltered> TestEntitiesFiltered { get; set; }
     public DbSet<ULongEntity> ULongEntities { get; set; }

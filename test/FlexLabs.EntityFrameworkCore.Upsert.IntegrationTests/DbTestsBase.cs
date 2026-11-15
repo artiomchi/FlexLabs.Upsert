@@ -2531,6 +2531,66 @@ public abstract partial class DbTestsBase
             test => test.Num2.Should().Be(5 + 27));
     }
 
+    [Fact(DisplayName = "Match column with a default value should match using the resolved default")]
+    public void Upsert_ValueType_DefaultValue_MatchColumn()
+    {
+        Assert.SkipWhen(_fixture.DbDriver != DbDriver.InMemory, "Match columns with default values need a custom schema, so it's only tested with the in-memory provider");
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        dbContext.InMemoryDefaultsEntities.RemoveRange(dbContext.InMemoryDefaultsEntities);
+        dbContext.InMemoryDefaultsEntities.Add(new InMemoryDefaultsEntity { Num1 = 27, Text = "Old" });
+        dbContext.SaveChanges();
+
+        dbContext.InMemoryDefaultsEntities.Upsert(new InMemoryDefaultsEntity { Num1 = 0, Text = "New" })
+            .On(j => j.Num1)
+            .WhenMatched(e => new InMemoryDefaultsEntity { Text = "New" })
+            .Run();
+
+        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        verifyContext.InMemoryDefaultsEntities.Should().SatisfyRespectively(
+            test =>
+            {
+                test.Num1.Should().Be(27);
+                test.Text.Should().Be("New");
+            });
+    }
+
+    [Fact(DisplayName = "Default values should be applied to properties without a setter")]
+    public void Upsert_ValueType_DefaultValue_PropertyWithoutSetter()
+    {
+        Assert.SkipWhen(_fixture.DbDriver != DbDriver.InMemory, "Properties without a setter need a custom schema, so it's only tested with the in-memory provider");
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        dbContext.InMemoryDefaultsEntities.RemoveRange(dbContext.InMemoryDefaultsEntities);
+        dbContext.InMemoryDefaultsEntities.Add(new InMemoryDefaultsEntity { Num1 = 1, Text = "Old" });
+        dbContext.SaveChanges();
+
+        // Update a different property, for an entity that has a defaulted property without a setter
+        dbContext.InMemoryDefaultsEntities.Upsert(new InMemoryDefaultsEntity { Num1 = 1, Text = "New" })
+            .On(j => j.Num1)
+            .WhenMatched(e => new InMemoryDefaultsEntity { Text = "New" })
+            .Run();
+
+        // Insert
+        dbContext.InMemoryDefaultsEntities.Upsert(new InMemoryDefaultsEntity { Num1 = 2, Text = "Insert" })
+            .On(j => j.Num1)
+            .Run();
+
+        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        verifyContext.InMemoryDefaultsEntities.OrderBy(t => t.Num1).Should().SatisfyRespectively(
+            test =>
+            {
+                test.Num1.Should().Be(1);
+                test.Text.Should().Be("New");
+            },
+            test =>
+            {
+                test.Num1.Should().Be(2);
+                test.Text.Should().Be("Insert");
+                test.ReadOnly.Should().Be(27);
+            });
+    }
+
     [Fact(DisplayName = "Insert with CLR default value (0) should be kept when HasDefaultValue() has no value specified")]
     public void Upsert_ValueType_UnspecifiedDefaultValue_Insert()
     {
