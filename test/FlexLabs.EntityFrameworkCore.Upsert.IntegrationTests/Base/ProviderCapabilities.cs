@@ -37,29 +37,31 @@ public enum Capability
 /// </summary>
 public static class ProviderCapabilities
 {
-    private const DbDriver P = DbDriver.Postgres;
-    private const DbDriver S = DbDriver.MSSQL;
-    private const DbDriver M = DbDriver.MySQL;
-    private const DbDriver O = DbDriver.Oracle;
-    private const DbDriver L = DbDriver.Sqlite;
-    private const DbDriver I = DbDriver.InMemory;
+    private const DbDriver Post = DbDriver.Postgres;
+    private const DbDriver MSSQ = DbDriver.MSSQL;
+    private const DbDriver MySQ = DbDriver.MySQL;
+    private const DbDriver Orac = DbDriver.Oracle;
+    private const DbDriver Sqli = DbDriver.Sqlite;
+    private const DbDriver InMe = DbDriver.InMemory;
 
+#pragma warning disable format
     private static readonly Dictionary<Capability, (DbDriver[] Drivers, string SkipReason)> Matrix = new()
     {
-        //                                         Supported on            Skip reason (shown in the test report)
-        [Capability.ReturningRecords]                  = ([P, S, L, I],    "Returning records is not implemented in MySQL and Oracle"),
-        [Capability.OwnedEntities]                     = ([P, S, M, O, L], "db doesn't support sql owned entities"),
-        [Capability.ComplexProperties]                 = ([P, S, M, O, L], "db doesn't support sql complex properties"),
-        [Capability.OwnedJson]                         = ([P],             "Owned json is only supported for postgres"),
-        [Capability.JsonChildObjectDefaults]           = ([P],             "Default values on text columns are only supported in Postgres"),
-        [Capability.NullableKeys]                      = ([S, I],          "Nullable keys are not supported in this database"),
-        [Capability.SqlDefaults]                       = ([P, S, M, O, L], "In memory db doesn't support default sql values"),
-        [Capability.TextColumnDefaults]                = ([P, S, O, L, I], "Default values on text columns not supported in MySQL"),
-        [Capability.ComputedColumns]                   = ([P, S, M, O, L], "In memory db doesn't support sql computed columns"),
-        [Capability.CustomSchemaUnspecifiedDefault]    = ([I],             "Relational providers can't create a schema for a column with an unspecified default value"),
-        [Capability.CustomSchemaPropertyWithoutSetter] = ([I],             "Properties without a setter need a custom schema, so it's only tested with the in-memory provider"),
-        [Capability.CustomSchemaDefaultMatchColumn]    = ([I],             "Match columns with default values need a custom schema, so it's only tested with the in-memory provider"),
+        //                                             Supported on                         Skip reason (shown in the test report)
+        [Capability.ReturningRecords]                  = ([Post, MSSQ, Sqli, InMe],         "Returning records is not implemented in MySQL and Oracle"),
+        [Capability.OwnedEntities]                     = ([Post, MSSQ, MySQ, Orac, Sqli],   "db doesn't support sql owned entities"),
+        [Capability.ComplexProperties]                 = ([Post, MSSQ, MySQ, Orac, Sqli],   "db doesn't support sql complex properties"),
+        [Capability.OwnedJson]                         = ([Post],                           "Owned json is only supported for postgres"),
+        [Capability.JsonChildObjectDefaults]           = ([Post],                           "Default values on text columns are only supported in Postgres"),
+        [Capability.NullableKeys]                      = ([MSSQ, InMe],                     "Nullable keys are not supported in this database"),
+        [Capability.SqlDefaults]                       = ([Post, MSSQ, MySQ, Orac, Sqli],   "In memory db doesn't support default sql values"),
+        [Capability.TextColumnDefaults]                = ([Post, MSSQ, Orac, Sqli, InMe],   "Default values on text columns not supported in MySQL"),
+        [Capability.ComputedColumns]                   = ([Post, MSSQ, MySQ, Orac, Sqli],   "In memory db doesn't support sql computed columns"),
+        [Capability.CustomSchemaUnspecifiedDefault]    = ([InMe],                           "Relational providers can't create a schema for a column with an unspecified default value"),
+        [Capability.CustomSchemaPropertyWithoutSetter] = ([InMe],                           "Properties without a setter need a custom schema, so it's only tested with the in-memory provider"),
+        [Capability.CustomSchemaDefaultMatchColumn]    = ([InMe],                           "Match columns with default values need a custom schema, so it's only tested with the in-memory provider"),
     };
+#pragma warning restore format
 
     public static bool Supports(DbDriver driver, Capability capability)
         => Matrix[capability].Drivers.Contains(driver);
