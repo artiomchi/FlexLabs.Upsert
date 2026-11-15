@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners;
@@ -15,6 +16,11 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
     private static IEnumerable<TEntity> RunCore<TEntity>(DbContext dbContext, IEntityType entityType, ICollection<TEntity> entities, UpsertCommandArgs<TEntity> commandArgs)
         where TEntity : class
     {
+        // The relational providers resolve default values in the source row, before matching and updating,
+        // so the same needs to happen here to make sure that all of the logic below sees the same values
+        foreach (var entity in entities)
+            NormaliseDefaults(entityType, entity);
+
         // Find matching entities in the dbContext
         var matches = FindMatches(entityType, entities, dbContext, commandArgs.MatchExpressions);
 
@@ -52,7 +58,7 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
                 foreach (var prop in properties)
                 {
                     var property = entityType.FindProperty(prop!.Name);
-                    prop.SetValue(dbEntity, prop.GetValue(newEntity) ?? property?.GetDefaultValue());
+                    prop.SetValue(dbEntity, ApplyDefault(property, prop.GetValue(newEntity)));
                 }
             };
         }
@@ -61,21 +67,6 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
         {
             if (match.DbEntity == null)
             {
-                foreach (var prop in typeof(TEntity).GetProperties())
-                {
-                    if (prop.GetValue(match.NewEntity) == null)
-                    {
-                        var property = entityType.FindProperty(prop.Name);
-                        if (property != null)
-                        {
-                            var defaultValue = property.GetDefaultValue();
-                            if (defaultValue != null)
-                            {
-                                prop.SetValue(match.NewEntity, defaultValue);
-                            }
-                        }
-                    }
-                }
                 dbContext.Add(match.NewEntity);
                 continue;
             }
@@ -87,6 +78,32 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
         }
 
         return matches.Select(m => m.DbEntity ?? m.NewEntity);
+    }
+
+    // A value that is null, or equal to the property sentinel, is replaced by the configured default value (if there is one)
+    private static object? ApplyDefault(IProperty? property, object? value)
+        => property != null &&
+            (value == null || property.IsSentinel(value)) &&
+            property.TryGetUsableDefaultValue(out var defaultValue)
+            ? defaultValue
+            : value;
+
+    private static void NormaliseDefaults<TEntity>(IEntityType entityType, TEntity entity)
+        where TEntity : class
+    {
+        // Properties without a setter (mapped to a backing field) are supported by writing to the field
+        foreach (var property in entityType.GetProperties().Where(p => !p.IsShadowProperty()))
+        {
+            var value = property.GetGetter().GetClrValue(entity);
+            var newValue = ApplyDefault(property, value);
+            if (Equals(newValue, value))
+                continue;
+
+            if (property.PropertyInfo is { SetMethod: not null } propertyInfo)
+                propertyInfo.SetValue(entity, newValue);
+            else
+                property.FieldInfo?.SetValue(entity, newValue);
+        }
     }
 
     private record struct EntityMatch<TEntity>(

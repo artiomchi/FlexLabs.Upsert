@@ -13,6 +13,36 @@ public class TestDbContext : DbContext
     {
         modelBuilder.Entity<TestEntity>().HasIndex(b => b.Num1).IsUnique();
         modelBuilder.Entity<TestEntity>().Property(e => e.Num2).HasDefaultValue(27);
+        modelBuilder.Entity<SentinelEntity>().HasIndex(b => b.Num1).IsUnique();
+        modelBuilder.Entity<SentinelEntity>().Property(e => e.Num2).HasDefaultValue(27).HasSentinel(-1);
+        modelBuilder.Entity<SqlDefaultEntity>().HasIndex(b => b.Num1).IsUnique();
+        modelBuilder.Entity<SqlDefaultEntity>().Property(e => e.Num2).HasDefaultValueSql("33");
+        modelBuilder.Entity<SqlDefaultEntity>().Property(e => e.Created).HasDefaultValueSql(
+            Database.IsSqlServer() ? "getdate()"
+            : Database.IsNpgsql() ? "now()"
+            : Database.IsMySql() ? "CURRENT_TIMESTAMP(6)"
+            : Database.IsOracle() ? "SYSTIMESTAMP"
+            : "CURRENT_TIMESTAMP");
+        if (Database.IsInMemory())
+        {
+            // Parameterless HasDefaultValue(): the database has a default, but its value isn't known to the model (stored as DBNull.Value)
+            // Relational providers refuse to create the schema for such a column, so this is only tested with the in-memory provider
+            modelBuilder.Entity<UnspecifiedDefaultEntity>().Property(e => e.Num2).HasDefaultValue();
+        }
+        else
+        {
+            modelBuilder.Ignore<UnspecifiedDefaultEntity>();
+        }
+
+        if (Database.IsInMemory())
+        {
+            modelBuilder.Entity<InMemoryDefaultsEntity>().Property(e => e.Num1).HasDefaultValue(27).ValueGeneratedNever();
+            modelBuilder.Entity<InMemoryDefaultsEntity>().Property(e => e.ReadOnly).HasField("_readOnly").HasDefaultValue(27);
+        }
+        else
+        {
+            modelBuilder.Ignore<InMemoryDefaultsEntity>();
+        }
         modelBuilder.Entity<TestEntityFiltered>().HasIndex(b => b.Key).IsUnique();
         modelBuilder.Entity<TestEntityFiltered>().HasQueryFilter(b => !b.IsDeleted);
         modelBuilder.Entity<ULongEntity>().HasIndex(b => b.Num1).IsUnique();
@@ -124,6 +154,10 @@ public class TestDbContext : DbContext
     public DbSet<Status> Statuses { get; set; }
     public DbSet<StringKey> StringKeys { get; set; }
     public DbSet<StringKeyAutoGen> StringKeysAutoGen { get; set; }
+    public DbSet<SentinelEntity> SentinelEntities { get; set; }
+    public DbSet<SqlDefaultEntity> SqlDefaultEntities { get; set; }
+    public DbSet<UnspecifiedDefaultEntity> UnspecifiedDefaultEntities { get; set; }
+    public DbSet<InMemoryDefaultsEntity> InMemoryDefaultsEntities { get; set; }
     public DbSet<TestEntity> TestEntities { get; set; }
     public DbSet<TestEntityFiltered> TestEntitiesFiltered { get; set; }
     public DbSet<ULongEntity> ULongEntities { get; set; }
