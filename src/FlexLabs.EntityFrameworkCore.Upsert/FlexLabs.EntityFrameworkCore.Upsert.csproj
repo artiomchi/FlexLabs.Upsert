@@ -26,6 +26,10 @@ Also supports injecting sql command generators to add support for other provider
     <PackageReleaseNotes>
 v11.0.0
 + Adding support for EF Core 11
++ Allow nullable properties in the On() and Exclude() expressions (Thanks to @Dreamescaper)
+! Use configured default values (HasDefaultValue / HasDefaultValueSql) when an entity property holds its sentinel value, not just null (Thanks to @negrime)
+! Known limitation: sequence based HasDefaultValueSql() defaults aren't supported in Oracle when upserting multiple entities
+! BREAKING: Properties that equal their sentinel value (e.g. 0 for an int with a different default value configured in EF/DB) are now replaced by the configured default, which can change the values upserted
 
 v10.1.0
 * Support more MySql database engines (Thanks to @0xced)
