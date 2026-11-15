@@ -22,9 +22,10 @@ public class PostgreSqlUpsertCommandRunner : RelationalUpsertCommandRunner
     protected override int? MaxQueryParams => 32767;
 
     /// <inheritdoc/>
-    protected override bool ShouldMapColumn(IProperty property)
+    protected override bool ShouldMapColumn(IProperty column)
     {
-        return property
+        ArgumentNullException.ThrowIfNull(column);
+        return column
             .GetAnnotations()
             .FirstOrDefault(a => a.Name == "Npgsql:ValueGenerationStrategy")
             ?.Value?.ToString() != "IdentityAlwaysColumn";

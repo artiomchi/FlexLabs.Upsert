@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
-using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using AwesomeAssertions.Execution;
 using AwesomeAssertions.Primitives;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Internal;
 

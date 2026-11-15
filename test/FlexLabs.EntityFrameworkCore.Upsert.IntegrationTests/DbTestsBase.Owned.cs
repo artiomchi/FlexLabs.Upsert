@@ -115,11 +115,11 @@ public abstract partial class DbTestsBase
 
         dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
             parent => parent.Should().BeEquivalentTo(new Parent
-                {
-                    ID = newParent.ID,
-                    Counter = 1,
-                    Child = newParent.Child, // everything under Child comes from the incoming row
-                }));
+            {
+                ID = newParent.ID,
+                Counter = 1,
+                Child = newParent.Child, // everything under Child comes from the incoming row
+            }));
     }
 
     [Fact]
@@ -158,16 +158,16 @@ public abstract partial class DbTestsBase
 
         dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
             parent => parent.Should().BeEquivalentTo(new Parent
+            {
+                ID = newParent.ID,
+                Counter = 1,
+                Child = new Child
                 {
-                    ID = newParent.ID,
-                    Counter = 1,
-                    Child = new Child
-                    {
-                        ChildName = _dbParent.Child.ChildName, // not updated
-                        Age = _dbParent.Child.Age, // not updated
-                        SubChild = newParent.Child.SubChild, // updated
-                    },
-                }));
+                    ChildName = _dbParent.Child.ChildName, // not updated
+                    Age = _dbParent.Child.Age, // not updated
+                    SubChild = newParent.Child.SubChild, // updated
+                },
+            }));
     }
 
     [Fact]
@@ -210,20 +210,20 @@ public abstract partial class DbTestsBase
 
         dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
             parent => parent.Should().BeEquivalentTo(new Parent
+            {
+                ID = newParent.ID,
+                Counter = 1,
+                Child = new Child
                 {
-                    ID = newParent.ID,
-                    Counter = 1,
-                    Child = new Child
+                    ChildName = newParent.Child.ChildName, // updated
+                    Age = _dbParent.Child.Age, // not updated
+                    SubChild = new SubChild
                     {
-                        ChildName = newParent.Child.ChildName, // updated
-                        Age = _dbParent.Child.Age, // not updated
-                        SubChild = new SubChild
-                        {
-                            SubChildName = _dbParent.Child.SubChild.SubChildName, // not updated
-                            Age = newParent.Child.SubChild.Age, // updated
-                        },
+                        SubChildName = _dbParent.Child.SubChild.SubChildName, // not updated
+                        Age = newParent.Child.SubChild.Age, // updated
                     },
-                }));
+                },
+            }));
     }
 
     [Fact]
@@ -512,11 +512,11 @@ public abstract partial class DbTestsBase
 
         dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
             parent => parent.Should().BeEquivalentTo(new ParentComplex
-                {
-                    ID = newParent.ID,
-                    Counter = 1,
-                    Child = newParent.Child, // everything under Child comes from the incoming row
-                }));
+            {
+                ID = newParent.ID,
+                Counter = 1,
+                Child = newParent.Child, // everything under Child comes from the incoming row
+            }));
     }
 
     [Fact]
@@ -555,16 +555,16 @@ public abstract partial class DbTestsBase
 
         dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
             parent => parent.Should().BeEquivalentTo(new ParentComplex
+            {
+                ID = newParent.ID,
+                Counter = 1,
+                Child = new Child
                 {
-                    ID = newParent.ID,
-                    Counter = 1,
-                    Child = new Child
-                    {
-                        ChildName = _dbParent.Child.ChildName, // not updated
-                        Age = _dbParent.Child.Age, // not updated
-                        SubChild = newParent.Child.SubChild, // updated
-                    },
-                }));
+                    ChildName = _dbParent.Child.ChildName, // not updated
+                    Age = _dbParent.Child.Age, // not updated
+                    SubChild = newParent.Child.SubChild, // updated
+                },
+            }));
     }
 
     [Fact]
@@ -607,20 +607,20 @@ public abstract partial class DbTestsBase
 
         dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
             parent => parent.Should().BeEquivalentTo(new ParentComplex
+            {
+                ID = newParent.ID,
+                Counter = 1,
+                Child = new Child
                 {
-                    ID = newParent.ID,
-                    Counter = 1,
-                    Child = new Child
+                    ChildName = newParent.Child.ChildName, // updated
+                    Age = _dbParent.Child.Age, // not updated
+                    SubChild = new SubChild
                     {
-                        ChildName = newParent.Child.ChildName, // updated
-                        Age = _dbParent.Child.Age, // not updated
-                        SubChild = new SubChild
-                        {
-                            SubChildName = _dbParent.Child.SubChild.SubChildName, // not updated
-                            Age = newParent.Child.SubChild.Age, // updated
-                        },
+                        SubChildName = _dbParent.Child.SubChild.SubChildName, // not updated
+                        Age = newParent.Child.SubChild.Age, // updated
                     },
-                }));
+                },
+            }));
     }
 
     [Fact]

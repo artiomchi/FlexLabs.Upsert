@@ -37,7 +37,7 @@ public class RelationalColumnTests
         }
     }
 
-    private static (string ColumnName, FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions.ConstantValue Value, string? DefaultSql, bool AllowInserts) GetValue(string propertyName, int value)
+    private static (string ColumnName, FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions.ConstantValue Value, string DefaultSql, bool AllowInserts) GetValue(string propertyName, int value)
     {
         using var context = new DefaultsContext();
         var property = context.Model.FindEntityType(typeof(DefaultsEntity))!.FindProperty(propertyName)!;
