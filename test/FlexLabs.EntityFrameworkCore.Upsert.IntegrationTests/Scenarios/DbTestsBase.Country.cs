@@ -9,13 +9,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newCountry = new Country
-        {
-            Name = "Australia",
-            ISO = "AU",
-            Created = _now,
-            Updated = _now,
-        };
+        var newCountry = NewCountry("Australia", "AU");
 
         dbContext.Countries.Upsert(newCountry)
             .On(c => c.ISO)
@@ -30,13 +24,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newCountry = new Country
-        {
-            Name = "Australia",
-            ISO = "AU",
-            Created = _now,
-            Updated = _now,
-        };
+        var newCountry = NewCountry("Australia", "AU");
 
         dbContext.Countries.Upsert(newCountry)
             .On(c => c.ISO)
@@ -52,13 +40,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newCountry = new Country
-        {
-            Name = "Australia",
-            ISO = "AU",
-            Created = _now,
-            Updated = _now,
-        };
+        var newCountry = NewCountry("Australia", "AU");
 
         dbContext.Countries.Upsert(newCountry)
             .On(c => c.ISO)
@@ -79,13 +61,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newCountry = new Country
-        {
-            Name = "Australia",
-            ISO = "AU",
-            Created = _now,
-            Updated = _now,
-        };
+        var newCountry = NewCountry("Australia", "AU");
 
         dbContext.Countries.Upsert(newCountry)
             .On(c => c.ISO)

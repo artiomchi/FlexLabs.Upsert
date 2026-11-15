@@ -36,14 +36,7 @@ public abstract partial class DbTestsBase
         var (update, expectedVisits) = VisitUpdates[updateCase];
         using var dbContext = Arrange();
 
-        var newVisit = new PageVisit
-        {
-            UserID = 1,
-            Date = _today,
-            Visits = 1,
-            FirstVisit = _now,
-            LastVisit = _now,
-        };
+        var newVisit = NewVisit();
 
         dbContext.PageVisits.Upsert(newVisit)
             .On(pv => new { pv.UserID, pv.Date })
@@ -60,14 +53,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newVisit = new PageVisit
-        {
-            UserID = 1,
-            Date = _today,
-            Visits = 1,
-            FirstVisit = _now,
-            LastVisit = _now,
-        };
+        var newVisit = NewVisit();
 
         dbContext.PageVisits.Upsert(newVisit)
             .On(PageVisit.MatchKey)
@@ -83,14 +69,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newVisit = new PageVisit
-        {
-            UserID = 1,
-            Date = _today,
-            Visits = 1,
-            FirstVisit = _now,
-            LastVisit = _now,
-        };
+        var newVisit = NewVisit();
 
         dbContext.PageVisits.Upsert(newVisit)
             .On(pv => new { pv.UserID, pv.Date })
@@ -106,14 +85,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newVisit = new PageVisit
-        {
-            UserID = 1,
-            Date = _today,
-            Visits = 1,
-            FirstVisit = _now,
-            LastVisit = _now,
-        };
+        var newVisit = NewVisit();
 
         dbContext.PageVisits.Upsert(newVisit)
             .On(pv => new { pv.UserID, pv.Date })
@@ -134,14 +106,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newVisit = new PageVisit
-        {
-            UserID = 1,
-            Date = _today,
-            Visits = 1,
-            FirstVisit = _now,
-            LastVisit = _now,
-        };
+        var newVisit = NewVisit();
 
         dbContext.PageVisits.Upsert(newVisit)
             .On(pv => new { pv.UserID, pv.Date })

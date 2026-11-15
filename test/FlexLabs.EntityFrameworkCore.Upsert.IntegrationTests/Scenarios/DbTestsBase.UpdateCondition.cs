@@ -7,23 +7,11 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_UpdateCondition_Constant()
     {
-        var dbItem = new TestEntity
-        {
-            Num1 = 1,
-            Num2 = 7,
-            Text1 = "hello",
-            Text2 = "world",
-        };
+        var dbItem = HelloWorldEntity();
 
         using var dbContext = Arrange(dbItem);
 
-        var newItem = new TestEntity
-        {
-            Num1 = 1,
-            Num2 = 2,
-            Text1 = "who",
-            Text2 = "where",
-        };
+        var newItem = WhoWhereEntity();
 
         dbContext.TestEntities.Upsert(newItem)
             .On(j => j.Num1)
@@ -43,13 +31,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newItem = new TestEntity
-        {
-            Num1 = 1,
-            Num2 = 7,
-            Text1 = "hello",
-            Text2 = "world",
-        };
+        var newItem = HelloWorldEntity();
 
         dbContext.TestEntities.Upsert(newItem)
             .On(j => j.Num1)
@@ -69,13 +51,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newItem = new TestEntity
-        {
-            Num1 = 1,
-            Num2 = 7,
-            Text1 = "hello",
-            Text2 = "world",
-        };
+        var newItem = HelloWorldEntity();
 
         dbContext.TestEntities.Upsert(newItem)
             .On(j => j.Num1)
@@ -89,23 +65,11 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_UpdateCondition_Update()
     {
-        var dbItem = new TestEntity
-        {
-            Num1 = 1,
-            Num2 = 7,
-            Text1 = "hello",
-            Text2 = "world",
-        };
+        var dbItem = HelloWorldEntity();
 
         using var dbContext = Arrange(dbItem);
 
-        var newItem = new TestEntity
-        {
-            Num1 = 1,
-            Num2 = 2,
-            Text1 = "who",
-            Text2 = "where",
-        };
+        var newItem = WhoWhereEntity();
 
         dbContext.TestEntities.Upsert(newItem)
             .On(j => j.Num1)
@@ -123,23 +87,11 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_UpdateCondition_AutoUpdate()
     {
-        var dbItem = new TestEntity
-        {
-            Num1 = 1,
-            Num2 = 7,
-            Text1 = "hello",
-            Text2 = "world",
-        };
+        var dbItem = HelloWorldEntity();
 
         using var dbContext = Arrange(dbItem);
 
-        var newItem = new TestEntity
-        {
-            Num1 = 1,
-            Num2 = 2,
-            Text1 = "who",
-            Text2 = "where",
-        };
+        var newItem = WhoWhereEntity();
 
         dbContext.TestEntities.Upsert(newItem)
             .On(j => j.Num1)
@@ -153,13 +105,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_UpdateCondition_NoUpdate()
     {
-        var dbItem = new TestEntity
-        {
-            Num1 = 1,
-            Num2 = 7,
-            Text1 = "hello",
-            Text2 = "world",
-        };
+        var dbItem = HelloWorldEntity();
 
         using var dbContext = Arrange(dbItem);
 

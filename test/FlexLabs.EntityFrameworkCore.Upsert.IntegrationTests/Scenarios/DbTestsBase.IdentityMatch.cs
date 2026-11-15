@@ -9,13 +9,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newCountry = new Country
-        {
-            Name = "Germany",
-            ISO = "DE",
-            Created = _now,
-            Updated = _now,
-        };
+        var newCountry = NewCountry("Germany", "DE");
 
         Action action = () => dbContext.Countries.Upsert(newCountry).Run();
         action.Should().Throw<InvalidMatchColumnsException>();
@@ -26,13 +20,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newCountry = new Country
-        {
-            Name = "Germany",
-            ISO = "DE",
-            Created = _now,
-            Updated = _now,
-        };
+        var newCountry = NewCountry("Germany", "DE");
 
         Action action = () => dbContext.Countries.Upsert(newCountry)
             .On(c => c.ID)
@@ -45,13 +33,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newCountry = new Country
-        {
-            Name = "Germany",
-            ISO = "DE",
-            Created = _now,
-            Updated = _now,
-        };
+        var newCountry = NewCountry("Germany", "DE");
 
         dbContext.Countries.Upsert(newCountry)
             .AllowIdentityMatch()
@@ -65,13 +47,7 @@ public abstract partial class DbTestsBase
     {
         using var dbContext = Arrange();
 
-        var newCountry = new Country
-        {
-            Name = "Germany",
-            ISO = "DE",
-            Created = _now,
-            Updated = _now,
-        };
+        var newCountry = NewCountry("Germany", "DE");
 
         dbContext.Countries.Upsert(newCountry)
             .On(c => c.ID)
