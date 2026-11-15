@@ -21,11 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- SQL snapshots are read from the assembly so tests work regardless of where the sources are (see SqlSnapshot) -->
-    <EmbeddedResource Include="Runners/Snapshots/*.sql" LogicalName="Snapshots/%(Filename)%(Extension)" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\src\FlexLabs.EntityFrameworkCore.Upsert\FlexLabs.EntityFrameworkCore.Upsert.csproj" />
   </ItemGroup>
 

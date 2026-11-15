@@ -34,6 +34,8 @@ The `Runners/*UpsertCommandRunnerTests` check the SQL each provider generates. T
 `<Engine>.<Scenario>.sql` (for example `SqlServer.Update_Condition_AndCondition.sql`). Snapshots are stored one
 clause per line (`MERGE INTO`, `USING`, `ON`, `WHEN MATCHED`, ...) so changes read as a normal diff. The statement
 itself is still a single line when it runs; `SqlSnapshot` only splits it for comparison.
+Snapshots are plain files read from the source tree: `SqlSnapshot` finds the project by walking up from the test
+output folder to the `.csproj`, so tests must run from the build output of a checkout (as they do locally and in CI).
 
 After an intentional change to the generated SQL, run
 
