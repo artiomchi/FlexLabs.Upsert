@@ -27,6 +27,23 @@ Don't run two test processes against the same reused container at once: they res
 
 `dotnet build /p:POSTGRES_ONLY=true` compiles out the SQL Server, MySQL and Oracle providers.
 
+## Unit test SQL snapshots
+
+The `Runners/*UpsertCommandRunnerTests` check the SQL each provider generates. The scenarios live once in
+`RelationalCommandRunnerTestsBase`; the expected SQL for each provider is a file in `Runners/Snapshots/`, named
+`<Engine>.<Scenario>.sql` (for example `SqlServer.Update_Condition_AndCondition.sql`). Snapshots are stored one
+clause per line (`MERGE INTO`, `USING`, `ON`, `WHEN MATCHED`, ...) so changes read as a normal diff. The statement
+itself is still a single line when it runs; `SqlSnapshot` only splits it for comparison.
+
+After an intentional change to the generated SQL, run
+
+```sh
+UPDATE_SNAPSHOTS=1 dotnet test --project test/FlexLabs.EntityFrameworkCore.Upsert.Tests
+```
+
+and review `git diff test/FlexLabs.EntityFrameworkCore.Upsert.Tests/Runners/Snapshots`. When `CI=true` (GitHub Actions)
+the switch is ignored, so CI fails on a missing or different snapshot instead of creating one.
+
 ## Integration test layout
 
 ```
