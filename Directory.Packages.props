@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <PackageVersion Include="DotNet.ReproducibleBuilds" Version="1.2.39" />
-    <PackageVersion Include="EFCore.NamingConventions" Version="10.0.*-*" />
+    <PackageVersion Include="EFCore.NamingConventions" Version="11.0.*-*" />
     <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.ResxSourceGenerator" Version="5.0.0-1.25277.114" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
@@ -22,17 +22,14 @@
 
   <ItemGroup>
     <!-- Database engines used in integration tests -->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.*" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.*" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.*" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.*" />
-    <PackageVersion Include="Microting.EntityFrameworkCore.MySql" Version="10.0.*" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.*" />
-    <PackageVersion Include="Oracle.EntityFrameworkCore" Version="10.*" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="11.0.*" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="11.0.*" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="11.0.*" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="11.0.*" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.*" />
+    <PackageVersion Include="Microting.EntityFrameworkCore.MySql" Version="11.0.*-*" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="11.0.*-*" />
+    <PackageVersion Include="Oracle.EntityFrameworkCore" Version="11.*" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- Package bumps due to vulnerabilities -->
-    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.14" />
-  </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net10.0</TargetFrameworks>
+    <TargetFrameworks>net11.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <NoWarn>EF1001</NoWarn>
     <IsPackable>false</IsPackable>
@@ -13,38 +13,66 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <!-- Disabling Oracle tests until Oracle.EntityFrameworkCore supports EF Core 11 -->
+    <DisableOracle>true</DisableOracle>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(POSTGRES_ONLY)'!=''">
-    <DefineConstants>$(DefineConstants);NOMSSQL;NOMYSQL;NOORACLE;POSTGRES_ONLY</DefineConstants>
+    <DisableMsSql>true</DisableMsSql>
+    <DisableMySql>true</DisableMySql>
+    <DisableOracle>true</DisableOracle>
+  </PropertyGroup>
+
+  <!-- A disabled engine drops its provider package and defines NOxxx; see Base/DisabledProviderExtensions.cs -->
+  <PropertyGroup Condition="'$(DisableMsSql)'=='true'">
+    <DefineConstants>$(DefineConstants);NOMSSQL</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(DisableMySql)'=='true'">
+    <DefineConstants>$(DefineConstants);NOMYSQL</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(DisableOracle)'=='true'">
+    <DefineConstants>$(DefineConstants);NOORACLE</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(DisablePostgres)'=='true'">
+    <DefineConstants>$(DefineConstants);NOPOSTGRES</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EFCore.NamingConventions" />
     <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
-    <PackageReference Include="Oracle.EntityFrameworkCore" />
-    <PackageReference Include="Microting.EntityFrameworkCore.MySql" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="NSubstitute.Analyzers.CSharp" PrivateAssets="all" />
-    <PackageReference Include="Testcontainers.MsSql" />
-    <PackageReference Include="Testcontainers.MySql" />
-    <PackageReference Include="Testcontainers.PostgreSql" />
-    <PackageReference Include="Testcontainers.Oracle" />
     <PackageReference Include="Testcontainers.XunitV3" />
     <PackageReference Include="xunit.v3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\FlexLabs.EntityFrameworkCore.Upsert\FlexLabs.EntityFrameworkCore.Upsert.csproj" />
+  <ItemGroup Condition="'$(DisableMsSql)'!='true'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Testcontainers.MsSql" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(DisableMySql)'!='true'">
+    <PackageReference Include="Microting.EntityFrameworkCore.MySql" />
+    <PackageReference Include="Testcontainers.MySql" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(DisableOracle)'!='true'">
+    <PackageReference Include="Oracle.EntityFrameworkCore" />
+    <PackageReference Include="EFCore.NamingConventions" />
+    <PackageReference Include="Testcontainers.Oracle" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(DisablePostgres)'!='true'">
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="xunit.runner.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <ProjectReference Include="..\..\src\FlexLabs.EntityFrameworkCore.Upsert\FlexLabs.EntityFrameworkCore.Upsert.csproj" />
   </ItemGroup>
 
 </Project>
