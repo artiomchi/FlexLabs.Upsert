@@ -12,6 +12,9 @@ public abstract partial class DbTestsBase
         _fixture = fixture;
     }
 
+    /// <summary>Visit count of the seeded <c>_dbVisit</c> row; WhenMatched expectations are written relative to it.</summary>
+    private const int ExistingVisits = 12;
+
     readonly Country _dbCountry = new()
     {
         Name = "...loading...",
@@ -32,7 +35,7 @@ public abstract partial class DbTestsBase
     {
         UserID = 1,
         Date = _today,
-        Visits = 12,
+        Visits = ExistingVisits,
         FirstVisit = NewDateTime(1970, 1, 1),
         LastVisit = NewDateTime(1970, 1, 1),
     };
