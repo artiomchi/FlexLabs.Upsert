@@ -1,0 +1,5 @@
+MERGE INTO "TestEntity" t
+USING (SELECT :p0 AS "ID", :p1 AS "Name", :p2 AS "Status", :p3 AS "Total" FROM dual UNION ALL SELECT :p4 AS "ID", :p5 AS "Name", :p6 AS "Status", :p7 AS "Total" FROM dual) s
+ON (t."ID" = s."ID")
+WHEN NOT MATCHED THEN INSERT ("ID", "Name", "Status", "Total")
+VALUES (s."ID", s."Name", s."Status", s."Total")

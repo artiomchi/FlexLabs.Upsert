@@ -1,5 +1,5 @@
-using FluentAssertions.Execution;
-using FluentAssertions.Primitives;
+using AwesomeAssertions.Execution;
+using AwesomeAssertions.Primitives;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
 

@@ -156,7 +156,7 @@ public class SqlDefaultEntity
     public int Num1 { get; set; }
     public int Num2 { get; set; }
     public DateTime Created { get; set; }
-    public string? Text { get; set; }
+    public string Text { get; set; }
 }
 
 public class UnspecifiedDefaultEntity
@@ -176,7 +176,7 @@ public class InMemoryDefaultsEntity
     public int ID { get; set; }
     public int Num1 { get; set; }
     public int ReadOnly => _readOnly;
-    public string? Text { get; set; }
+    public string Text { get; set; }
 
     public void SetReadOnly(int value) => _readOnly = value;
 }

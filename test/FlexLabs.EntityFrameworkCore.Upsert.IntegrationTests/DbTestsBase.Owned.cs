@@ -35,15 +35,30 @@ public abstract partial class DbTestsBase
         },
     };
 
+    /// <summary>A fully populated JSON document (required, renamed, nested and list members) used as the "incoming" value.</summary>
+    private static CompanyMeta SampleCompanyMeta() => new()
+    {
+        Required = "required-value",
+        JsonOverride = "col with [JsonPropertyName]",
+        Nested = new CompanyNestedMeta
+        {
+            Title = "I'm a nested json",
+        },
+        Properties =
+        [
+            new CompanyMetaValue { Key = "foo", Value = "bar" },
+            new CompanyMetaValue { Key = "cat", Value = "dog" },
+        ],
+    };
+
     #region Owned Entities
 
     [Fact]
     public virtual void Upsert_Owned_Entity()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new Parent
         {
@@ -64,23 +79,15 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
-                parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
-                parent.Counter.Should().Be(newParent.Counter);
-                parent.Counter.Should().Be(3);
-            });
+            parent => parent.Should().BeEquivalentTo(newParent));
     }
 
     [Fact]
     public virtual void Upsert_Owned_Entity_WhenMatched_Owned_Direct_Mapping()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new Parent
         {
@@ -107,29 +114,20 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
+            parent => parent.Should().BeEquivalentTo(new Parent
             {
-                parent.ID.Should().Be(newParent.ID);
-                // child props are updated:
-                parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
-                parent.Child?.Age.Should().Be(newParent.Child.Age);
-                // nested child props are updated:
-                parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
-                // nested child props now differ form default:
-                parent.Child?.SubChild?.SubChildName.Should().NotBe(_dbParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
-                parent.Counter.Should().Be(1);
-            });
+                ID = newParent.ID,
+                Counter = 1,
+                Child = newParent.Child, // everything under Child comes from the incoming row
+            }));
     }
 
     [Fact]
     public virtual void Upsert_Owned_Entity_WhenMatched_Nested_Owned_Direct_Mapping()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new Parent
         {
@@ -159,29 +157,25 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
+            parent => parent.Should().BeEquivalentTo(new Parent
             {
-                parent.ID.Should().Be(newParent.ID);
-                // child props are NOT updated:
-                parent.Child?.ChildName.Should().Be(_dbParent.Child.ChildName);
-                parent.Child?.Age.Should().Be(_dbParent.Child.Age);
-                // nested child props are updated:
-                parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
-                // nested child props now differ form default:
-                parent.Child?.SubChild?.SubChildName.Should().NotBe(_dbParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
-                parent.Counter.Should().Be(1);
-            });
+                ID = newParent.ID,
+                Counter = 1,
+                Child = new Child
+                {
+                    ChildName = _dbParent.Child.ChildName, // not updated
+                    Age = _dbParent.Child.Age, // not updated
+                    SubChild = newParent.Child.SubChild, // updated
+                },
+            }));
     }
 
     [Fact]
     public virtual void Upsert_Owned_Entity_WhenMatched_Owned_Partial_Mapping()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new Parent
         {
@@ -215,28 +209,29 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
+            parent => parent.Should().BeEquivalentTo(new Parent
             {
-                parent.ID.Should().Be(newParent.ID);
-                // child props: only name is updated:
-                parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
-                parent.Child?.Age.Should().Be(_dbParent.Child.Age);
-                // nested child props: only age is updated:
-                parent.Child?.SubChild?.SubChildName.Should().Be(_dbParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
-                // nested child age now differ form default:
-                parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
-                parent.Counter.Should().Be(1);
-            });
+                ID = newParent.ID,
+                Counter = 1,
+                Child = new Child
+                {
+                    ChildName = newParent.Child.ChildName, // updated
+                    Age = _dbParent.Child.Age, // not updated
+                    SubChild = new SubChild
+                    {
+                        SubChildName = _dbParent.Child.SubChild.SubChildName, // not updated
+                        Age = newParent.Child.SubChild.Age, // updated
+                    },
+                },
+            }));
     }
 
     [Fact]
     public virtual void Upsert_Owned_Entity_NoUpdate()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new Parent
         {
@@ -258,14 +253,7 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                parent.Child?.ChildName.Should().NotBe(newParent.Child.ChildName);
-                parent.Child?.SubChild?.SubChildName.Should().NotBe(newParent.Child.SubChild.SubChildName);
-                parent.Counter.Should().NotBe(newParent.Counter);
-                parent.Counter.Should().Be(0);
-            });
+            parent => parent.Should().BeEquivalentTo(_dbParent));
     }
 
     #endregion
@@ -275,33 +263,14 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_OwnedJson_Entity()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var company = new CompanyOwnedJson
         {
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         dbContext.CompanyOwnedJson.Upsert(company)
@@ -320,7 +289,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_OwnedJson_Entity_WhenMatched()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         var company1 = new CompanyOwnedJson
         {
@@ -332,33 +301,13 @@ public abstract partial class DbTestsBase
             }
         };
 
-        ResetDb(company1);
-
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(company1);
 
         var company = new CompanyOwnedJson
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         dbContext.CompanyOwnedJson.Upsert(company)
@@ -382,7 +331,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_OwnedJson_Entity_WhenMatched_Json_Member_Access_Error()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         var company1 = new CompanyOwnedJson
         {
@@ -394,33 +343,13 @@ public abstract partial class DbTestsBase
             }
         };
 
-        ResetDb(company1);
-
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(company1);
 
         var company = new CompanyOwnedJson
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         var action = void () => dbContext.CompanyOwnedJson.Upsert(company)
@@ -447,7 +376,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_OwnedJson_Entity_WhenMatched_Json_Member_Bind_Error()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         var company1 = new CompanyOwnedJson
         {
@@ -459,33 +388,13 @@ public abstract partial class DbTestsBase
             }
         };
 
-        ResetDb(company1);
-
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(company1);
 
         var company = new CompanyOwnedJson
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         var action = void () => dbContext.CompanyOwnedJson.Upsert(company)
@@ -512,34 +421,15 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_OwnedJson_Entity_NoUpdate()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var company = new CompanyOwnedJson
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         dbContext.CompanyOwnedJson.Upsert(company)
@@ -563,10 +453,9 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_Complex_Property()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
+        Require(Capability.ComplexProperties);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new ParentComplex
         {
@@ -587,23 +476,15 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
-                parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
-                parent.Counter.Should().Be(newParent.Counter);
-                parent.Counter.Should().Be(3);
-            });
+            parent => parent.Should().BeEquivalentTo(newParent));
     }
 
     [Fact]
     public virtual void Upsert_Complex_Property_WhenMatched_Complex_Direct_Mapping()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
+        Require(Capability.ComplexProperties);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new ParentComplex
         {
@@ -630,29 +511,20 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
+            parent => parent.Should().BeEquivalentTo(new ParentComplex
             {
-                parent.ID.Should().Be(newParent.ID);
-                // child props are updated:
-                parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
-                parent.Child?.Age.Should().Be(newParent.Child.Age);
-                // nested child props are updated:
-                parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
-                // nested child props now differ form default:
-                parent.Child?.SubChild?.SubChildName.Should().NotBe(_dbParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
-                parent.Counter.Should().Be(1);
-            });
+                ID = newParent.ID,
+                Counter = 1,
+                Child = newParent.Child, // everything under Child comes from the incoming row
+            }));
     }
 
     [Fact]
     public virtual void Upsert_Complex_Property_WhenMatched_Nested_Complex_Direct_Mapping()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
+        Require(Capability.ComplexProperties);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new ParentComplex
         {
@@ -682,29 +554,25 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
+            parent => parent.Should().BeEquivalentTo(new ParentComplex
             {
-                parent.ID.Should().Be(newParent.ID);
-                // child props are NOT updated:
-                parent.Child?.ChildName.Should().Be(_dbParent.Child.ChildName);
-                parent.Child?.Age.Should().Be(_dbParent.Child.Age);
-                // nested child props are updated:
-                parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
-                // nested child props now differ form default:
-                parent.Child?.SubChild?.SubChildName.Should().NotBe(_dbParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
-                parent.Counter.Should().Be(1);
-            });
+                ID = newParent.ID,
+                Counter = 1,
+                Child = new Child
+                {
+                    ChildName = _dbParent.Child.ChildName, // not updated
+                    Age = _dbParent.Child.Age, // not updated
+                    SubChild = newParent.Child.SubChild, // updated
+                },
+            }));
     }
 
     [Fact]
     public virtual void Upsert_Complex_Property_WhenMatched_Complex_Partial_Mapping()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
+        Require(Capability.ComplexProperties);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new ParentComplex
         {
@@ -738,28 +606,29 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
+            parent => parent.Should().BeEquivalentTo(new ParentComplex
             {
-                parent.ID.Should().Be(newParent.ID);
-                // child props: only name is updated:
-                parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
-                parent.Child?.Age.Should().Be(_dbParent.Child.Age);
-                // nested child props: only age is updated:
-                parent.Child?.SubChild?.SubChildName.Should().Be(_dbParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
-                // nested child age now differ form default:
-                parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
-                parent.Counter.Should().Be(1);
-            });
+                ID = newParent.ID,
+                Counter = 1,
+                Child = new Child
+                {
+                    ChildName = newParent.Child.ChildName, // updated
+                    Age = _dbParent.Child.Age, // not updated
+                    SubChild = new SubChild
+                    {
+                        SubChildName = _dbParent.Child.SubChild.SubChildName, // not updated
+                        Age = newParent.Child.SubChild.Age, // updated
+                    },
+                },
+            }));
     }
 
     [Fact]
     public virtual void Upsert_Complex_Property_NoUpdate()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
+        Require(Capability.ComplexProperties);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new ParentComplex
         {
@@ -781,14 +650,7 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                parent.Child?.ChildName.Should().NotBe(newParent.Child.ChildName);
-                parent.Child?.SubChild?.SubChildName.Should().NotBe(newParent.Child.SubChild.SubChildName);
-                parent.Counter.Should().NotBe(newParent.Counter);
-                parent.Counter.Should().Be(0);
-            });
+            parent => parent.Should().BeEquivalentTo(_dbParentComplex));
     }
 
     #endregion
@@ -798,33 +660,14 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_ComplexJson_Entity()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var company = new CompanyComplexJson
         {
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         dbContext.CompanyComplexJson.Upsert(company)
@@ -843,7 +686,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_ComplexJson_Entity_WhenMatched()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         var company1 = new CompanyComplexJson
         {
@@ -855,33 +698,13 @@ public abstract partial class DbTestsBase
             }
         };
 
-        ResetDb(company1);
-
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(company1);
 
         var company = new CompanyComplexJson
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         dbContext.CompanyComplexJson.Upsert(company)
@@ -905,7 +728,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_ComplexJson_Entity_WhenMatched_Json_Member_Access_Error()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         var company1 = new CompanyComplexJson
         {
@@ -917,33 +740,13 @@ public abstract partial class DbTestsBase
             }
         };
 
-        ResetDb(company1);
-
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(company1);
 
         var company = new CompanyComplexJson
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         var action = void () => dbContext.CompanyComplexJson.Upsert(company)
@@ -970,7 +773,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_ComplexJson_Entity_WhenMatched_Json_Member_Bind_Error()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         var company1 = new CompanyComplexJson
         {
@@ -982,33 +785,13 @@ public abstract partial class DbTestsBase
             }
         };
 
-        ResetDb(company1);
-
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(company1);
 
         var company = new CompanyComplexJson
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         var action = void () => dbContext.CompanyComplexJson.Upsert(company)
@@ -1035,34 +818,15 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_ComplexJson_Entity_NoUpdate()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var company = new CompanyComplexJson
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         dbContext.CompanyComplexJson.Upsert(company)

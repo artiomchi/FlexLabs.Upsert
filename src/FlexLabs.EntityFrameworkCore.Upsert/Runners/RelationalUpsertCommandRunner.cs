@@ -97,7 +97,7 @@ public abstract class RelationalUpsertCommandRunner : UpsertCommandRunnerBase
     /// <summary>
     /// Checks if a column should be mapped or ignored based on provider-specific rules.
     /// </summary>
-    protected virtual bool ShouldMapColumn(IProperty property) => true;
+    protected virtual bool ShouldMapColumn(IProperty column) => true;
 
     private IEnumerable<(string SqlCommand, IEnumerable<ConstantValue> Arguments)> PrepareCommand<TEntity>(IEntityType entityType, ICollection<TEntity> entities,
         UpsertCommandArgs<TEntity> commandArgs, bool returnResult = false)

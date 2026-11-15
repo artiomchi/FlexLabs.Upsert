@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Runtime.CompilerServices;
 using FlexLabs.EntityFrameworkCore.Upsert.Runners;
 using FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners.Models;
 using Microsoft.EntityFrameworkCore;
@@ -68,6 +69,32 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
         _dbContext.Database.Returns(dbFacade);
     }
 
+    /// <summary>
+    /// Checks the SQL handed to the raw SQL builder against <c>Snapshots/&lt;Engine&gt;.&lt;Scenario&gt;.sql</c>.
+    /// The scenario is the test method name without its "...SyntaxRunner_" prefix.
+    /// </summary>
+    protected void AssertSql([CallerMemberName] string testName = "")
+    {
+        var sql = _rawSqlBuilder.ReceivedCalls()
+            .Where(call => call.GetMethodInfo().Name == nameof(IRawSqlCommandBuilder.Build))
+            .Select(call => (string)call.GetArguments()[0])
+            .Single();
+
+        const string TestMarker = "SyntaxRunner_";
+        var markerIndex = testName.IndexOf(TestMarker, StringComparison.Ordinal);
+        if (markerIndex < 0)
+            throw new InvalidOperationException($"Test method '{testName}' must contain '{TestMarker}' so AssertSql can name its snapshot.");
+        var scenario = testName[(markerIndex + TestMarker.Length)..];
+
+        const string ClassSuffix = "UpsertCommandRunnerTests";
+        var className = GetType().Name;
+        if (!className.EndsWith(ClassSuffix, StringComparison.Ordinal) || className.Length == ClassSuffix.Length)
+            throw new InvalidOperationException($"Test class '{className}' must be named '<Engine>{ClassSuffix}' so AssertSql can name its snapshots.");
+        var engine = className[..^ClassSuffix.Length];
+
+        SqlSnapshot.Match(sql, $"{engine}.{scenario}");
+    }
+
     protected virtual void InitializeModel(Model model)
     {
     }
@@ -86,7 +113,6 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
         return entityType;
     }
 
-    protected abstract string NoUpdate_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_NoUpdate()
     {
@@ -94,13 +120,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             .NoUpdate()
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            NoUpdate_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string NoUpdate_Multiple_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_NoUpdate_Multiple()
     {
@@ -108,13 +130,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             .NoUpdate()
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            NoUpdate_Multiple_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string NoUpdate_WithNullable_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_NoUpdate_WithNullable()
     {
@@ -123,13 +141,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             .NoUpdate()
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            NoUpdate_WithNullable_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string Update_Constant_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_Update_Constant()
     {
@@ -140,13 +154,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             })
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            Update_Constant_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string Update_Constant_Multiple_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_Update_Constant_Multiple()
     {
@@ -157,13 +167,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             })
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            Update_Constant_Multiple_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string Update_Source_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_Update_Source()
     {
@@ -174,13 +180,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             })
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            Update_Source_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string Update_BinaryAdd_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_Update_BinaryAdd()
     {
@@ -191,13 +193,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             })
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            Update_BinaryAdd_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string Update_Coalesce_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_Update_Coalesce()
     {
@@ -208,13 +206,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             })
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            Update_Coalesce_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string Update_BinaryAddMultiply_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_Update_BinaryAddMultiply()
     {
@@ -225,13 +219,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             })
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            Update_BinaryAddMultiply_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string Update_BinaryAddMultiplyGroup_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_Update_BinaryAddMultiplyGroup()
     {
@@ -242,13 +232,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             })
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            Update_BinaryAddMultiplyGroup_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string Update_Condition_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_Update_Condition()
     {
@@ -260,13 +246,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             .UpdateIf(e => e.Total > 5)
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            Update_Condition_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string Update_Condition_UpdateConditionColumn_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_Update_Condition_UpdateConditionColumn()
     {
@@ -279,13 +261,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             .UpdateIf(e => e.Total > 5)
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            Update_Condition_UpdateConditionColumn_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string Update_Condition_AndCondition_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_Update_Condition_AndCondition()
     {
@@ -297,13 +275,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             .UpdateIf((ed, en) => ed.Total > 5 && ed.Status != en.Status)
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            Update_Condition_AndCondition_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string Update_Condition_NullCheck_AlsoNullValue_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_Update_Condition_NullCheck_AlsoNullValue()
     {
@@ -320,13 +294,9 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             .UpdateIf(e => e.Status != null)
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            Update_Condition_NullCheck_AlsoNullValue_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 
-    protected abstract string Update_WatchWithNullCheck_Sql { get; }
     [Fact]
     public void SqlSyntaxRunner_Update_WatchWithNullCheck()
     {
@@ -337,9 +307,6 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             })
             .Run();
 
-        _rawSqlBuilder.Received().Build(
-            Update_WatchWithNullCheck_Sql,
-            Arg.Any<IEnumerable<object>>(),
-            Arg.Any<IModel>());
+        AssertSql();
     }
 }

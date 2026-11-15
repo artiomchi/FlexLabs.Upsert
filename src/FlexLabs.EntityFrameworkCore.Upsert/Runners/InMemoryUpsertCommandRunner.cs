@@ -30,7 +30,7 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
         {
             // If update expression is specified, create an update delegate based on that
             if (commandArgs.UpdateExpression.Body is not MemberInitExpression entityUpdater)
-                throw new ArgumentException(Resources.FormatArgumentMustBeAnInitialiserOfTheTEntityType("updater"), nameof(commandArgs.UpdateExpression));
+                throw new ArgumentException(Resources.FormatArgumentMustBeAnInitialiserOfTheTEntityType("updater"), nameof(commandArgs));
 
             var properties = entityUpdater.Bindings.Select(b => b.Member).OfType<PropertyInfo>();
             var updateFunc = commandArgs.UpdateExpression.Compile();
@@ -144,6 +144,7 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(entities);
         ArgumentNullException.ThrowIfNull(commandArgs);
 
         RunCore(dbContext, entityType, entities, commandArgs);
@@ -156,6 +157,7 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(entities);
         ArgumentNullException.ThrowIfNull(commandArgs);
 
         var result = RunCore(dbContext, entityType, entities, commandArgs);
@@ -170,6 +172,7 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(entities);
         ArgumentNullException.ThrowIfNull(commandArgs);
 
         RunCore(dbContext, entityType, entities, commandArgs);
@@ -182,6 +185,7 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
     {
         ArgumentNullException.ThrowIfNull(dbContext);
         ArgumentNullException.ThrowIfNull(entityType);
+        ArgumentNullException.ThrowIfNull(entities);
         ArgumentNullException.ThrowIfNull(commandArgs);
 
         var result = RunCore(dbContext, entityType, entities, commandArgs);
