@@ -1,0 +1,126 @@
+using FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests.Base;
+
+namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.EF;
+
+public abstract partial class DbTestsBase
+{
+    [Fact]
+    public void Upsert_Status_Update_AutoMatched_New()
+    {
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var newStatus = new Status
+        {
+            ID = 2,
+            Name = "Updated",
+            LastChecked = _now,
+        };
+
+        dbContext.Statuses.Upsert(newStatus).Run();
+
+        dbContext.Statuses.OrderBy(c => c.ID).Should().SatisfyRespectively(
+            status => status.Should().MatchModel(_dbStatus),
+            status => status.Should().MatchModel(newStatus));
+    }
+
+    [Fact]
+    public void Upsert_Status_Update_AutoMatched_Existing()
+    {
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var newStatus = new Status
+        {
+            ID = _dbStatus.ID,
+            Name = "Updated",
+            LastChecked = _now,
+        };
+
+        dbContext.Statuses.Upsert(newStatus).Run();
+
+        dbContext.Statuses.OrderBy(c => c.ID).Should().SatisfyRespectively(
+            status => status.Should().MatchModel(newStatus));
+    }
+
+    [Fact]
+    public void Upsert_DashedTable()
+    {
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var newRecord = new DashTable
+        {
+            DataSet = "test",
+            Updated = _now,
+        };
+
+        dbContext.DashTable.Upsert(newRecord)
+            .On(x => x.DataSet)
+            .Run();
+
+        dbContext.DashTable.OrderBy(c => c.ID).Should().SatisfyRespectively(
+            r => r.DataSet.Should().Be(newRecord.DataSet));
+    }
+
+    [Fact]
+    public void Upsert_SchemaTable()
+    {
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var newRecord = new SchemaTable
+        {
+            Name = 1,
+            Updated = _now,
+        };
+
+        dbContext.SchemaTable.Upsert(newRecord)
+            .On(x => x.Name)
+            .Run();
+
+        dbContext.SchemaTable.OrderBy(c => c.ID).Should().SatisfyRespectively(
+            r => r.Name.Should().Be(newRecord.Name));
+    }
+
+    [Fact]
+    public void Upsert_Book_On_Update()
+    {
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var newBook = new Book
+        {
+            Name = _dbBook.Name,
+            Genres = new[] { "Fantasy", "Adventure" },
+        };
+
+        dbContext.Books.Upsert(newBook)
+            .On(b => b.Name)
+            .Run();
+
+        dbContext.Books.OrderBy(c => c.ID).Should().SatisfyRespectively(
+            book => book.Should().MatchModel(newBook));
+    }
+
+    [Fact]
+    public void Upsert_Book_On_Insert()
+    {
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        var newBook = new Book
+        {
+            Name = "The Two Towers",
+            Genres = new[] { "Fantasy", "Adventure" },
+        };
+
+        dbContext.Books.Upsert(newBook)
+            .On(p => p.Name)
+            .Run();
+
+        dbContext.Books.OrderBy(c => c.ID).Should().SatisfyRespectively(
+            book => book.Should().MatchModel(_dbBook),
+            book => book.Should().MatchModel(newBook));
+    }
+}
