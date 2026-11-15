@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Using Include="FluentAssertions" />
+    <Using Include="AwesomeAssertions" />
     <Using Include="Microsoft.EntityFrameworkCore" />
     <Using Include="Xunit" />
   </ItemGroup>
@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <PackageReference Include="EFCore.NamingConventions" />
-    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
