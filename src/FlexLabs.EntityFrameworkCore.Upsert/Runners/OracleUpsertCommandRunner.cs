@@ -31,11 +31,11 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
         ICollection<(string ColumnName, bool IsNullable)> joinColumns,
         ICollection<(string ColumnName, IKnownValue Value)>? updateExpressions,
         KnownExpression? updateCondition,
-        bool returnResult = false)
+        ICollection<(string Alias, bool IsDeletedParam, string ColumnName)>? returnColumns = null)
     {
         ArgumentNullException.ThrowIfNull(entities);
 
-        if (returnResult)
+        if (returnColumns != null)
             throw new NotImplementedException("Oracle runner does not support returning the result of the upsert operation yet");
 
         var result = new StringBuilder();
