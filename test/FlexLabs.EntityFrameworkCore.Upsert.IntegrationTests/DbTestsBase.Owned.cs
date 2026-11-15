@@ -40,7 +40,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_Owned_Entity()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         using var dbContext = Arrange();
 
@@ -76,7 +76,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_Owned_Entity_WhenMatched_Owned_Direct_Mapping()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         using var dbContext = Arrange();
 
@@ -124,7 +124,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_Owned_Entity_WhenMatched_Nested_Owned_Direct_Mapping()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         using var dbContext = Arrange();
 
@@ -175,7 +175,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_Owned_Entity_WhenMatched_Owned_Partial_Mapping()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         using var dbContext = Arrange();
 
@@ -229,7 +229,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_Owned_Entity_NoUpdate()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         using var dbContext = Arrange();
 
@@ -270,7 +270,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_OwnedJson_Entity()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         using var dbContext = Arrange();
 
@@ -314,7 +314,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_OwnedJson_Entity_WhenMatched()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         var company1 = new CompanyOwnedJson
         {
@@ -374,7 +374,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_OwnedJson_Entity_WhenMatched_Json_Member_Access_Error()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         var company1 = new CompanyOwnedJson
         {
@@ -437,7 +437,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_OwnedJson_Entity_WhenMatched_Json_Member_Bind_Error()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         var company1 = new CompanyOwnedJson
         {
@@ -500,7 +500,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_OwnedJson_Entity_NoUpdate()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         using var dbContext = Arrange();
 
@@ -550,7 +550,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_Complex_Property()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
+        Require(Capability.ComplexProperties);
 
         using var dbContext = Arrange();
 
@@ -586,7 +586,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_Complex_Property_WhenMatched_Complex_Direct_Mapping()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
+        Require(Capability.ComplexProperties);
 
         using var dbContext = Arrange();
 
@@ -634,7 +634,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_Complex_Property_WhenMatched_Nested_Complex_Direct_Mapping()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
+        Require(Capability.ComplexProperties);
 
         using var dbContext = Arrange();
 
@@ -685,7 +685,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_Complex_Property_WhenMatched_Complex_Partial_Mapping()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
+        Require(Capability.ComplexProperties);
 
         using var dbContext = Arrange();
 
@@ -739,7 +739,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_Complex_Property_NoUpdate()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
+        Require(Capability.ComplexProperties);
 
         using var dbContext = Arrange();
 
@@ -780,7 +780,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_ComplexJson_Entity()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         using var dbContext = Arrange();
 
@@ -824,7 +824,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_ComplexJson_Entity_WhenMatched()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         var company1 = new CompanyComplexJson
         {
@@ -884,7 +884,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_ComplexJson_Entity_WhenMatched_Json_Member_Access_Error()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         var company1 = new CompanyComplexJson
         {
@@ -947,7 +947,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_ComplexJson_Entity_WhenMatched_Json_Member_Bind_Error()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         var company1 = new CompanyComplexJson
         {
@@ -1010,7 +1010,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public virtual void Upsert_ComplexJson_Entity_NoUpdate()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
+        Require(Capability.OwnedEntities);
 
         using var dbContext = Arrange();
 

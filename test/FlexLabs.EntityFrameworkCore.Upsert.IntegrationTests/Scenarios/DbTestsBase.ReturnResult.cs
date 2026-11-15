@@ -7,7 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_ReturnResult_Single()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+        Require(Capability.ReturningRecords);
 
         using var dbContext = Arrange();
 
@@ -32,7 +32,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_ReturnResult_Multiple()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+        Require(Capability.ReturningRecords);
 
         using var dbContext = Arrange(new DashTable { DataSet = "Test1" });
 
@@ -62,7 +62,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_ReturnResult_TracksChanges()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+        Require(Capability.ReturningRecords);
 
         using var dbContext = Arrange(new DashTable { DataSet = "Test" });
 
@@ -86,7 +86,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public async Task Upsert_WithUpdate_RunAndReturnAsync_ReturnsUpdatedValuesNotTrackedValues()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+        Require(Capability.ReturningRecords);
 
         // Arrange - Insert initial record with Visits = 10
         await using var dbContext = Arrange();
@@ -136,7 +136,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_WithUpdate_RunAndReturn_ReturnsUpdatedValuesNotTrackedValues()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+        Require(Capability.ReturningRecords);
 
         // Arrange - Insert initial record with Visits = 10
         using var dbContext = Arrange();

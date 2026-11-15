@@ -107,9 +107,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_NullableKeys()
     {
-        Assert.SkipWhen(
-            _fixture.DbDriver is DbDriver.MySQL or DbDriver.Postgres or DbDriver.Sqlite or DbDriver.Oracle,
-            "Nullable keys are not supported in this database");
+        Require(Capability.NullableKeys);
 
         using var dbContext = Arrange();
 

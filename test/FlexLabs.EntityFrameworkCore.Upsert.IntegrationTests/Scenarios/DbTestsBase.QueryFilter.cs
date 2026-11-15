@@ -7,7 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public async Task Upsert_WithQueryFilter_RunAndReturn_Inserts()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+        Require(Capability.ReturningRecords);
 
         await using var dbContext = Arrange();
 
@@ -36,7 +36,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public async Task Upsert_WithQueryFilter_RunAndReturn_Updates()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+        Require(Capability.ReturningRecords);
 
         var dbItem1 = new TestEntityFiltered
         {

@@ -7,7 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void ComputedColumn_Updates()
     {
-        Assert.SkipWhen(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support sql computed columns");
+        Require(Capability.ComputedColumns);
 
         using var dbContext = Arrange();
 

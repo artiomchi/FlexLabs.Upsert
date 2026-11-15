@@ -144,6 +144,10 @@ public abstract partial class DbTestsBase
         }
     }
 
+    /// <summary>Skips the current test unless the database under test supports <paramref name="capability"/>.</summary>
+    protected void Require(Capability capability)
+        => Assert.SkipUnless(ProviderCapabilities.Supports(_fixture.DbDriver, capability), ProviderCapabilities.SkipReason(capability));
+
     protected TestDbContext NewContext()
         => new(_fixture.DataContextOptions);
 

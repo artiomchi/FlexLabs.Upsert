@@ -99,7 +99,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_JsonData_Update_ComplexObject()
     {
-        Assert.SkipWhen(_fixture.DbDriver is not DbDriver.Postgres, "Default values on text columns are only supported in Postgres");
+        Require(Capability.JsonChildObjectDefaults);
 
         var existingJson = new JsonData
         {
@@ -130,7 +130,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_JsonDocumentData()
     {
-        Assert.SkipWhen(_fixture.DbDriver is not DbDriver.Postgres, "Owned json is only supported for postgres");
+        Require(Capability.OwnedJson);
 
         using var dbContext = Arrange();
 
@@ -149,7 +149,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_JsonDocumentData_Update()
     {
-        Assert.SkipWhen(_fixture.DbDriver is not DbDriver.Postgres, "Owned json is only supported for postgres");
+        Require(Capability.OwnedJson);
 
         var existingJson = new JsonDocumentData
         {
@@ -179,7 +179,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_JsonDocumentData_Update_ComplexObject()
     {
-        Assert.SkipWhen(_fixture.DbDriver is not DbDriver.Postgres, "Owned json is only supported for postgres");
+        Require(Capability.OwnedJson);
 
         var existingJson = new JsonDocumentData
         {

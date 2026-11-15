@@ -7,7 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_WhenMatched_ULongCounter_Increment()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+        Require(Capability.ReturningRecords);
 
         var dbItem = new ULongEntity
         {
@@ -49,7 +49,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_WhenMatched_ULongCounter_SetConstant_RunAndReturn()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+        Require(Capability.ReturningRecords);
 
         var dbItem = new ULongEntity
         {
@@ -91,7 +91,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_WhenMatched_ULongCounter_ConditionalConstants_RunAndReturn()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+        Require(Capability.ReturningRecords);
 
         var dbItem = new ULongEntity
         {
@@ -133,7 +133,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void UpsertRange_WhenMatched_ULongCounter_Increment_MixedInsertUpdate()
     {
-        Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
+        Require(Capability.ReturningRecords);
 
         var existing = new ULongEntity
         {

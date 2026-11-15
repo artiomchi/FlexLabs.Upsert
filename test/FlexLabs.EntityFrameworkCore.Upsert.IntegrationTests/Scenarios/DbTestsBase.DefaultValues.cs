@@ -7,7 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_NullableRequired_Insert()
     {
-        Assert.SkipWhen(_fixture.DbDriver == DbDriver.MySQL, "Default values on text columns not supported in MySQL");
+        Require(Capability.TextColumnDefaults);
 
         using var dbContext = Arrange();
 
@@ -157,7 +157,7 @@ public abstract partial class DbTestsBase
     [Fact(DisplayName = "Update with CLR default value (0) on existing row should update to HasDefaultValueSql")]
     public void Upsert_ValueType_DefaultValueSql_Update()
     {
-        Assert.SkipWhen(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support default sql values");
+        Require(Capability.SqlDefaults);
         using var dbContext = Arrange();
 
         var created = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
@@ -198,7 +198,7 @@ public abstract partial class DbTestsBase
     [Fact(DisplayName = "Match column with a default value should match using the resolved default")]
     public void Upsert_ValueType_DefaultValue_MatchColumn()
     {
-        Assert.SkipWhen(_fixture.DbDriver != DbDriver.InMemory, "Match columns with default values need a custom schema, so it's only tested with the in-memory provider");
+        Require(Capability.CustomSchemaDefaultMatchColumn);
         using var dbContext = Arrange();
         dbContext.InMemoryDefaultsEntities.RemoveRange(dbContext.InMemoryDefaultsEntities);
         dbContext.InMemoryDefaultsEntities.Add(new InMemoryDefaultsEntity { Num1 = 27, Text = "Old" });
@@ -221,7 +221,7 @@ public abstract partial class DbTestsBase
     [Fact(DisplayName = "Default values should be applied to properties without a setter")]
     public void Upsert_ValueType_DefaultValue_PropertyWithoutSetter()
     {
-        Assert.SkipWhen(_fixture.DbDriver != DbDriver.InMemory, "Properties without a setter need a custom schema, so it's only tested with the in-memory provider");
+        Require(Capability.CustomSchemaPropertyWithoutSetter);
         using var dbContext = Arrange();
         dbContext.InMemoryDefaultsEntities.RemoveRange(dbContext.InMemoryDefaultsEntities);
         dbContext.InMemoryDefaultsEntities.Add(new InMemoryDefaultsEntity { Num1 = 1, Text = "Old" });
@@ -256,7 +256,7 @@ public abstract partial class DbTestsBase
     [Fact(DisplayName = "Insert with CLR default value (0) should be kept when HasDefaultValue() has no value specified")]
     public void Upsert_ValueType_UnspecifiedDefaultValue_Insert()
     {
-        Assert.SkipWhen(_fixture.DbDriver != DbDriver.InMemory, "Relational providers can't create a schema for a column with an unspecified default value");
+        Require(Capability.CustomSchemaUnspecifiedDefault);
         using var dbContext = Arrange();
         dbContext.UnspecifiedDefaultEntities.RemoveRange(dbContext.UnspecifiedDefaultEntities);
         dbContext.SaveChanges();
@@ -276,7 +276,7 @@ public abstract partial class DbTestsBase
     [Fact(DisplayName = "Insert with CLR default value (0) should use HasDefaultValueSql")]
     public void Upsert_ValueType_DefaultValueSql_Insert()
     {
-        Assert.SkipWhen(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support default sql values");
+        Require(Capability.SqlDefaults);
         using var dbContext = Arrange();
 
         var newItem = new SqlDefaultEntity
@@ -303,7 +303,7 @@ public abstract partial class DbTestsBase
     [Fact(DisplayName = "Insert with explicit values should preserve them despite HasDefaultValueSql")]
     public void Upsert_ValueType_DefaultValueSql_ExplicitValue_Insert()
     {
-        Assert.SkipWhen(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support default sql values");
+        Require(Capability.SqlDefaults);
         using var dbContext = Arrange();
 
         var created = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
