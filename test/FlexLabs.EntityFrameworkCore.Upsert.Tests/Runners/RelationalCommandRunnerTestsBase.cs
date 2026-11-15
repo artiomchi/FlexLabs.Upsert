@@ -80,9 +80,18 @@ public abstract class RelationalCommandRunnerTestsBase<TRunner>
             .Select(call => (string)call.GetArguments()[0])
             .Single();
 
-        const string Marker = "SyntaxRunner_";
-        var scenario = testName[(testName.IndexOf(Marker, StringComparison.Ordinal) + Marker.Length)..];
-        var engine = GetType().Name.Replace("UpsertCommandRunnerTests", "", StringComparison.Ordinal);
+        const string TestMarker = "SyntaxRunner_";
+        var markerIndex = testName.IndexOf(TestMarker, StringComparison.Ordinal);
+        if (markerIndex < 0)
+            throw new InvalidOperationException($"Test method '{testName}' must contain '{TestMarker}' so AssertSql can name its snapshot.");
+        var scenario = testName[(markerIndex + TestMarker.Length)..];
+
+        const string ClassSuffix = "UpsertCommandRunnerTests";
+        var className = GetType().Name;
+        if (!className.EndsWith(ClassSuffix, StringComparison.Ordinal) || className.Length == ClassSuffix.Length)
+            throw new InvalidOperationException($"Test class '{className}' must be named '<Engine>{ClassSuffix}' so AssertSql can name its snapshots.");
+        var engine = className[..^ClassSuffix.Length];
+
         SqlSnapshot.Match(sql, $"{engine}.{scenario}");
     }
 

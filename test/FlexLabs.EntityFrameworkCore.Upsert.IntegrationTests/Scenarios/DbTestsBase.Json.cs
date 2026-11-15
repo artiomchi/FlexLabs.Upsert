@@ -99,7 +99,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_JsonData_Update_ComplexObject()
     {
-        Require(Capability.JsonChildObjectDefaults);
+        Require(Capability.JsonbChildObject);
 
         var existingJson = new JsonData
         {

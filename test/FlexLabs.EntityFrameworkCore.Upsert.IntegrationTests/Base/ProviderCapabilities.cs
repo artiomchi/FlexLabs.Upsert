@@ -14,8 +14,8 @@ public enum Capability
     ComplexProperties,
     /// <summary>Owned entities / complex properties mapped to a JSON column.</summary>
     OwnedJson,
-    /// <summary>JSON column with a child object and default value handling.</summary>
-    JsonChildObjectDefaults,
+    /// <summary>A child object stored in a jsonb column (<c>JsonData.Child</c>).</summary>
+    JsonbChildObject,
     /// <summary>Composite keys containing a nullable column.</summary>
     NullableKeys,
     /// <summary><c>HasDefaultValueSql</c>.</summary>
@@ -52,7 +52,7 @@ public static class ProviderCapabilities
         [Capability.OwnedEntities]                     = ([Post, MSSQ, MySQ, Orac, Sqli],   "db doesn't support sql owned entities"),
         [Capability.ComplexProperties]                 = ([Post, MSSQ, MySQ, Orac, Sqli],   "db doesn't support sql complex properties"),
         [Capability.OwnedJson]                         = ([Post],                           "Owned json is only supported for postgres"),
-        [Capability.JsonChildObjectDefaults]           = ([Post],                           "Default values on text columns are only supported in Postgres"),
+        [Capability.JsonbChildObject]                  = ([Post],                           "JsonData.Child is only mapped (as a jsonb column) for Postgres"),
         [Capability.NullableKeys]                      = ([MSSQ, InMe],                     "Nullable keys are not supported in this database"),
         [Capability.SqlDefaults]                       = ([Post, MSSQ, MySQ, Orac, Sqli],   "In memory db doesn't support default sql values"),
         [Capability.TextColumnDefaults]                = ([Post, MSSQ, Orac, Sqli, InMe],   "Default values on text columns not supported in MySQL"),

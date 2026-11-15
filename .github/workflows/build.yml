@@ -44,7 +44,7 @@ jobs:
     - name: Test
       env:
         FLEXLABS_UPSERT_TESTS_POSTGRESQL_CONNECTION_STRING: 'Server=localhost;Port=5432;Database=testuser;Username=postgres;Password=root'
-      run: dotnet test ./test/FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests --no-build --report-xunit-trx
+      run: dotnet test --project ./test/FlexLabs.EntityFrameworkCore.Upsert.IntegrationTests --no-build --report-xunit-trx
     - name: Test Report
       uses: actions/upload-artifact@v7
       if: ${{ !cancelled() }}
