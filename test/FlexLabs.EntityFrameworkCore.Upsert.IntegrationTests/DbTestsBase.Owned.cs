@@ -35,6 +35,22 @@ public abstract partial class DbTestsBase
         },
     };
 
+    /// <summary>A fully populated JSON document (required, renamed, nested and list members) used as the "incoming" value.</summary>
+    private static CompanyMeta SampleCompanyMeta() => new()
+    {
+        Required = "required-value",
+        JsonOverride = "col with [JsonPropertyName]",
+        Nested = new CompanyNestedMeta
+        {
+            Title = "I'm a nested json",
+        },
+        Properties =
+        [
+            new CompanyMetaValue { Key = "foo", Value = "bar" },
+            new CompanyMetaValue { Key = "cat", Value = "dog" },
+        ],
+    };
+
     #region Owned Entities
 
     [Fact]
@@ -63,14 +79,7 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
-                parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
-                parent.Counter.Should().Be(newParent.Counter);
-                parent.Counter.Should().Be(3);
-            });
+            parent => parent.Should().BeEquivalentTo(newParent));
     }
 
     [Fact]
@@ -105,20 +114,12 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                // child props are updated:
-                parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
-                parent.Child?.Age.Should().Be(newParent.Child.Age);
-                // nested child props are updated:
-                parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
-                // nested child props now differ form default:
-                parent.Child?.SubChild?.SubChildName.Should().NotBe(_dbParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
-                parent.Counter.Should().Be(1);
-            });
+            parent => parent.Should().BeEquivalentTo(new Parent
+                {
+                    ID = newParent.ID,
+                    Counter = 1,
+                    Child = newParent.Child, // everything under Child comes from the incoming row
+                }));
     }
 
     [Fact]
@@ -156,20 +157,17 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                // child props are NOT updated:
-                parent.Child?.ChildName.Should().Be(_dbParent.Child.ChildName);
-                parent.Child?.Age.Should().Be(_dbParent.Child.Age);
-                // nested child props are updated:
-                parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
-                // nested child props now differ form default:
-                parent.Child?.SubChild?.SubChildName.Should().NotBe(_dbParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
-                parent.Counter.Should().Be(1);
-            });
+            parent => parent.Should().BeEquivalentTo(new Parent
+                {
+                    ID = newParent.ID,
+                    Counter = 1,
+                    Child = new Child
+                    {
+                        ChildName = _dbParent.Child.ChildName, // not updated
+                        Age = _dbParent.Child.Age, // not updated
+                        SubChild = newParent.Child.SubChild, // updated
+                    },
+                }));
     }
 
     [Fact]
@@ -211,19 +209,21 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                // child props: only name is updated:
-                parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
-                parent.Child?.Age.Should().Be(_dbParent.Child.Age);
-                // nested child props: only age is updated:
-                parent.Child?.SubChild?.SubChildName.Should().Be(_dbParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
-                // nested child age now differ form default:
-                parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
-                parent.Counter.Should().Be(1);
-            });
+            parent => parent.Should().BeEquivalentTo(new Parent
+                {
+                    ID = newParent.ID,
+                    Counter = 1,
+                    Child = new Child
+                    {
+                        ChildName = newParent.Child.ChildName, // updated
+                        Age = _dbParent.Child.Age, // not updated
+                        SubChild = new SubChild
+                        {
+                            SubChildName = _dbParent.Child.SubChild.SubChildName, // not updated
+                            Age = newParent.Child.SubChild.Age, // updated
+                        },
+                    },
+                }));
     }
 
     [Fact]
@@ -253,14 +253,7 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.Parents.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                parent.Child?.ChildName.Should().NotBe(newParent.Child.ChildName);
-                parent.Child?.SubChild?.SubChildName.Should().NotBe(newParent.Child.SubChild.SubChildName);
-                parent.Counter.Should().NotBe(newParent.Counter);
-                parent.Counter.Should().Be(0);
-            });
+            parent => parent.Should().BeEquivalentTo(_dbParent));
     }
 
     #endregion
@@ -277,25 +270,7 @@ public abstract partial class DbTestsBase
         var company = new CompanyOwnedJson
         {
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         dbContext.CompanyOwnedJson.Upsert(company)
@@ -332,25 +307,7 @@ public abstract partial class DbTestsBase
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         dbContext.CompanyOwnedJson.Upsert(company)
@@ -392,25 +349,7 @@ public abstract partial class DbTestsBase
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         var action = void () => dbContext.CompanyOwnedJson.Upsert(company)
@@ -455,25 +394,7 @@ public abstract partial class DbTestsBase
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         var action = void () => dbContext.CompanyOwnedJson.Upsert(company)
@@ -508,25 +429,7 @@ public abstract partial class DbTestsBase
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         dbContext.CompanyOwnedJson.Upsert(company)
@@ -573,14 +476,7 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
-                parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
-                parent.Counter.Should().Be(newParent.Counter);
-                parent.Counter.Should().Be(3);
-            });
+            parent => parent.Should().BeEquivalentTo(newParent));
     }
 
     [Fact]
@@ -615,20 +511,12 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                // child props are updated:
-                parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
-                parent.Child?.Age.Should().Be(newParent.Child.Age);
-                // nested child props are updated:
-                parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
-                // nested child props now differ form default:
-                parent.Child?.SubChild?.SubChildName.Should().NotBe(_dbParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
-                parent.Counter.Should().Be(1);
-            });
+            parent => parent.Should().BeEquivalentTo(new ParentComplex
+                {
+                    ID = newParent.ID,
+                    Counter = 1,
+                    Child = newParent.Child, // everything under Child comes from the incoming row
+                }));
     }
 
     [Fact]
@@ -666,20 +554,17 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                // child props are NOT updated:
-                parent.Child?.ChildName.Should().Be(_dbParent.Child.ChildName);
-                parent.Child?.Age.Should().Be(_dbParent.Child.Age);
-                // nested child props are updated:
-                parent.Child?.SubChild?.SubChildName.Should().Be(newParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
-                // nested child props now differ form default:
-                parent.Child?.SubChild?.SubChildName.Should().NotBe(_dbParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
-                parent.Counter.Should().Be(1);
-            });
+            parent => parent.Should().BeEquivalentTo(new ParentComplex
+                {
+                    ID = newParent.ID,
+                    Counter = 1,
+                    Child = new Child
+                    {
+                        ChildName = _dbParent.Child.ChildName, // not updated
+                        Age = _dbParent.Child.Age, // not updated
+                        SubChild = newParent.Child.SubChild, // updated
+                    },
+                }));
     }
 
     [Fact]
@@ -721,19 +606,21 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                // child props: only name is updated:
-                parent.Child?.ChildName.Should().Be(newParent.Child.ChildName);
-                parent.Child?.Age.Should().Be(_dbParent.Child.Age);
-                // nested child props: only age is updated:
-                parent.Child?.SubChild?.SubChildName.Should().Be(_dbParent.Child.SubChild.SubChildName);
-                parent.Child?.SubChild?.Age.Should().Be(newParent.Child.SubChild.Age);
-                // nested child age now differ form default:
-                parent.Child?.SubChild?.Age.Should().NotBe(_dbParent.Child.SubChild.Age);
-                parent.Counter.Should().Be(1);
-            });
+            parent => parent.Should().BeEquivalentTo(new ParentComplex
+                {
+                    ID = newParent.ID,
+                    Counter = 1,
+                    Child = new Child
+                    {
+                        ChildName = newParent.Child.ChildName, // updated
+                        Age = _dbParent.Child.Age, // not updated
+                        SubChild = new SubChild
+                        {
+                            SubChildName = _dbParent.Child.SubChild.SubChildName, // not updated
+                            Age = newParent.Child.SubChild.Age, // updated
+                        },
+                    },
+                }));
     }
 
     [Fact]
@@ -763,14 +650,7 @@ public abstract partial class DbTestsBase
             .Run();
 
         dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
-            parent =>
-            {
-                parent.ID.Should().Be(newParent.ID);
-                parent.Child?.ChildName.Should().NotBe(newParent.Child.ChildName);
-                parent.Child?.SubChild?.SubChildName.Should().NotBe(newParent.Child.SubChild.SubChildName);
-                parent.Counter.Should().NotBe(newParent.Counter);
-                parent.Counter.Should().Be(0);
-            });
+            parent => parent.Should().BeEquivalentTo(_dbParentComplex));
     }
 
     #endregion
@@ -787,25 +667,7 @@ public abstract partial class DbTestsBase
         var company = new CompanyComplexJson
         {
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         dbContext.CompanyComplexJson.Upsert(company)
@@ -842,25 +704,7 @@ public abstract partial class DbTestsBase
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         dbContext.CompanyComplexJson.Upsert(company)
@@ -902,25 +746,7 @@ public abstract partial class DbTestsBase
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         var action = void () => dbContext.CompanyComplexJson.Upsert(company)
@@ -965,25 +791,7 @@ public abstract partial class DbTestsBase
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         var action = void () => dbContext.CompanyComplexJson.Upsert(company)
@@ -1018,25 +826,7 @@ public abstract partial class DbTestsBase
         {
             Id = 1,
             Name = "Company 1",
-            Meta = new CompanyMeta
-            {
-                Required = "required-value",
-                JsonOverride = "col with [JsonPropertyName]",
-                Nested = new CompanyNestedMeta
-                {
-                    Title = "I'm a nested json",
-                },
-                Properties = [
-                    new CompanyMetaValue {
-                        Key = "foo",
-                        Value = "bar",
-                    },
-                    new CompanyMetaValue {
-                        Key = "cat",
-                        Value = "dog",
-                    }
-                ],
-            }
+            Meta = SampleCompanyMeta(),
         };
 
         dbContext.CompanyComplexJson.Upsert(company)
