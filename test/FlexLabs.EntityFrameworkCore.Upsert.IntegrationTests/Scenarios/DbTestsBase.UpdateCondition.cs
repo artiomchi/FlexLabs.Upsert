@@ -15,8 +15,7 @@ public abstract partial class DbTestsBase
             Text2 = "world",
         };
 
-        ResetDb(dbItem);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem);
 
         var newItem = new TestEntity
         {
@@ -42,8 +41,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_UpdateCondition_New()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new TestEntity
         {
@@ -69,8 +67,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_UpdateCondition_New_AutoUpdate()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new TestEntity
         {
@@ -100,8 +97,7 @@ public abstract partial class DbTestsBase
             Text2 = "world",
         };
 
-        ResetDb(dbItem);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem);
 
         var newItem = new TestEntity
         {
@@ -135,8 +131,7 @@ public abstract partial class DbTestsBase
             Text2 = "world",
         };
 
-        ResetDb(dbItem);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem);
 
         var newItem = new TestEntity
         {
@@ -166,8 +161,7 @@ public abstract partial class DbTestsBase
             Text2 = "world",
         };
 
-        ResetDb(dbItem);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem);
 
         var newItem = new TestEntity
         {
@@ -202,8 +196,7 @@ public abstract partial class DbTestsBase
             Text1 = null
         };
 
-        ResetDb(dbItem1, dbItem2);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem1, dbItem2);
 
         dbContext.TestEntities.UpsertRange(dbItem1, dbItem2)
             .On(j => j.Num1)
@@ -235,8 +228,7 @@ public abstract partial class DbTestsBase
             Text1 = null
         };
 
-        ResetDb(dbItem1, dbItem2);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem1, dbItem2);
 
         dbContext.TestEntities.UpsertRange(dbItem1, dbItem2)
             .On(j => j.Num1)
@@ -268,8 +260,7 @@ public abstract partial class DbTestsBase
             Text1 = null
         };
 
-        ResetDb(dbItem1, dbItem2);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem1, dbItem2);
 
         dbContext.TestEntities.UpsertRange(dbItem1, dbItem2)
             .On(j => j.Num1)

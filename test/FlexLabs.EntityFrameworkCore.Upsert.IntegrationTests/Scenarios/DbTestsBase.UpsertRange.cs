@@ -7,8 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void UpsertRange_PageVisit_Update_On_WhenMatched()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newVisit1 = new PageVisit
         {
@@ -45,8 +44,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void UpsertRange_PageVisit_Update_On_WhenMatched_MultipleInsert()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newVisit1 = new PageVisit
         {
@@ -84,8 +82,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void UpsertRange_PageVisit_Update_On_WhenMatched_MultipleUpdate()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newVisit1 = new PageVisit
         {
@@ -121,8 +118,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void UpsertRange_PageVisit_Update_On_WhenMatched_MultipleUpdate_FromSource()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newVisit1 = new PageVisit
         {

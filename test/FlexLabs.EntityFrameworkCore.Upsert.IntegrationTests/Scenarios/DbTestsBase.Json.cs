@@ -9,8 +9,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_JObjectData()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newJson = new JObjectData
         {
@@ -32,14 +31,13 @@ public abstract partial class DbTestsBase
             Data = new JsonObject { ["hello"] = "world" },
         };
 
-        ResetDb(existingJson);
-        using (var testContext = new TestDbContext(_fixture.DataContextOptions))
+        using (var testContext = Arrange(existingJson))
         {
             testContext.JObjectDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
                 j => JsonNode.DeepEquals(existingJson.Data, j.Data).Should().BeTrue());
         }
 
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = NewContext();
 
         var updatedJson = new JObjectData
         {
@@ -56,8 +54,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_JsonData()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newJson = new JsonData
         {
@@ -79,14 +76,13 @@ public abstract partial class DbTestsBase
             Data = JsonSerializer.Serialize(new { hello = "world" }),
         };
 
-        ResetDb(existingJson);
-        using (var testContext = new TestDbContext(_fixture.DataContextOptions))
+        using (var testContext = Arrange(existingJson))
         {
             testContext.JsonDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
                 j => JsonNode.DeepEquals(JsonNode.Parse(existingJson.Data), JsonNode.Parse(j.Data)).Should().BeTrue());
         }
 
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = NewContext();
 
         var updatedJson = new JsonData
         {
@@ -110,14 +106,13 @@ public abstract partial class DbTestsBase
             Data = JsonSerializer.Serialize(new { hello = "world" }),
         };
 
-        ResetDb(existingJson);
-        using (var testContext = new TestDbContext(_fixture.DataContextOptions))
+        using (var testContext = Arrange(existingJson))
         {
             testContext.JsonDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
                 j => JsonNode.DeepEquals(JsonNode.Parse(existingJson.Data), JsonNode.Parse(j.Data)).Should().BeTrue());
         }
 
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = NewContext();
 
         var timestamp = new DateTime(2021, 2, 3, 4, 5, 6, DateTimeKind.Utc);
         var updatedJson = new JsonData
@@ -137,8 +132,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is not DbDriver.Postgres, "Owned json is only supported for postgres");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newJson = new JsonDocumentData
         {
@@ -162,14 +156,13 @@ public abstract partial class DbTestsBase
             Data = System.Text.Json.JsonSerializer.SerializeToDocument(new { hello = "world" }),
         };
 
-        ResetDb(existingJson);
-        using (var testContext = new TestDbContext(_fixture.DataContextOptions))
+        using (var testContext = Arrange(existingJson))
         {
             testContext.JsonDocumentDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
                 j => System.Text.Json.JsonSerializer.Serialize(existingJson.Data).Should().Be(System.Text.Json.JsonSerializer.Serialize(j.Data)));
         }
 
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = NewContext();
 
         var updatedJson = new JsonDocumentData
         {
@@ -193,14 +186,13 @@ public abstract partial class DbTestsBase
             Data = System.Text.Json.JsonSerializer.SerializeToDocument(new { hello = "world" }),
         };
 
-        ResetDb(existingJson);
-        using (var testContext = new TestDbContext(_fixture.DataContextOptions))
+        using (var testContext = Arrange(existingJson))
         {
             testContext.JsonDocumentDatas.OrderBy(c => c.ID).Should().SatisfyRespectively(
                 j => System.Text.Json.JsonSerializer.Serialize(existingJson.Data).Should().Be(System.Text.Json.JsonSerializer.Serialize(j.Data)));
         }
 
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = NewContext();
 
         var updatedJson = new JsonDocumentData
         {

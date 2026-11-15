@@ -7,8 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_EFCore_KeyAutoGen()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         dbContext.GuidKeysAutoGen.Add(new GuidKeyAutoGen { Name = "test" });
         dbContext.StringKeysAutoGen.Add(new StringKeyAutoGen { Name = "test" });
@@ -22,8 +21,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_GuidKey_AutoGenThrows()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new GuidKeyAutoGen
         {
@@ -39,8 +37,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_StringKey_AutoGenThrows()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new StringKeyAutoGen
         {
@@ -56,8 +53,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_GuidKey()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new GuidKey
         {
@@ -75,8 +71,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_StringKey()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new StringKey
         {
@@ -94,8 +89,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_KeyOnly()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new KeyOnly
         {
@@ -117,8 +111,7 @@ public abstract partial class DbTestsBase
             _fixture.DbDriver is DbDriver.MySQL or DbDriver.Postgres or DbDriver.Sqlite or DbDriver.Oracle,
             "Nullable keys are not supported in this database");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem1 = new NullableCompositeKey
         {

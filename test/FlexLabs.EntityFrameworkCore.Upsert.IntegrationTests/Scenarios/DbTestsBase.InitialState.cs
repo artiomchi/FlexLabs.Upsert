@@ -7,8 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_InitialDbState()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         dbContext.SchemaTable.Should().BeEmpty();
         dbContext.DashTable.Should().BeEmpty();

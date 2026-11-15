@@ -9,9 +9,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
 
-        ResetDb();
-
-        await using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        await using var dbContext = Arrange();
 
         var dbItem1 = new TestEntityFiltered
         {
@@ -47,8 +45,7 @@ public abstract partial class DbTestsBase
             Counter = 1,
         };
 
-        ResetDb(dbItem1);
-        await using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        await using var dbContext = Arrange(dbItem1);
 
         var dbItem1Updated = new TestEntityFiltered
         {

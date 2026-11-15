@@ -42,8 +42,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new Parent
         {
@@ -79,8 +78,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new Parent
         {
@@ -128,8 +126,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new Parent
         {
@@ -180,8 +177,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new Parent
         {
@@ -235,8 +231,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new Parent
         {
@@ -277,8 +272,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var company = new CompanyOwnedJson
         {
@@ -332,9 +326,7 @@ public abstract partial class DbTestsBase
             }
         };
 
-        ResetDb(company1);
-
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(company1);
 
         var company = new CompanyOwnedJson
         {
@@ -394,9 +386,7 @@ public abstract partial class DbTestsBase
             }
         };
 
-        ResetDb(company1);
-
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(company1);
 
         var company = new CompanyOwnedJson
         {
@@ -459,9 +449,7 @@ public abstract partial class DbTestsBase
             }
         };
 
-        ResetDb(company1);
-
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(company1);
 
         var company = new CompanyOwnedJson
         {
@@ -514,8 +502,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var company = new CompanyOwnedJson
         {
@@ -565,8 +552,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new ParentComplex
         {
@@ -602,8 +588,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new ParentComplex
         {
@@ -651,8 +636,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new ParentComplex
         {
@@ -703,8 +687,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new ParentComplex
         {
@@ -758,8 +741,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql complex properties");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newParent = new ParentComplex
         {
@@ -800,8 +782,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var company = new CompanyComplexJson
         {
@@ -855,9 +836,7 @@ public abstract partial class DbTestsBase
             }
         };
 
-        ResetDb(company1);
-
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(company1);
 
         var company = new CompanyComplexJson
         {
@@ -917,9 +896,7 @@ public abstract partial class DbTestsBase
             }
         };
 
-        ResetDb(company1);
-
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(company1);
 
         var company = new CompanyComplexJson
         {
@@ -982,9 +959,7 @@ public abstract partial class DbTestsBase
             }
         };
 
-        ResetDb(company1);
-
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(company1);
 
         var company = new CompanyComplexJson
         {
@@ -1037,8 +1012,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.InMemory, "db doesn't support sql owned entities");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var company = new CompanyComplexJson
         {

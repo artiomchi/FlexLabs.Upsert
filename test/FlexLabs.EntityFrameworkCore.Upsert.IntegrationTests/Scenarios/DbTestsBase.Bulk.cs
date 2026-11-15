@@ -7,8 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_100k_Insert_MultiQuery()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newEntities = Enumerable.Range(1, 100_000)
             .Select(i => new NullableRequired

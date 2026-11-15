@@ -7,8 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_Status_Update_AutoMatched_New()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newStatus = new Status
         {
@@ -27,8 +26,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_Status_Update_AutoMatched_Existing()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newStatus = new Status
         {
@@ -46,8 +44,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_DashedTable()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newRecord = new DashTable
         {
@@ -66,8 +63,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_SchemaTable()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newRecord = new SchemaTable
         {
@@ -86,8 +82,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_Book_On_Update()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newBook = new Book
         {
@@ -106,8 +101,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_Book_On_Insert()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newBook = new Book
         {

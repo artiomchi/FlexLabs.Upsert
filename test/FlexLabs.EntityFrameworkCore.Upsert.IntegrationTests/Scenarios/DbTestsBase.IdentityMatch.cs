@@ -7,8 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_IdentityKey_NoOn_InvalidMatchColumn()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newCountry = new Country
         {
@@ -25,8 +24,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_IdentityKey_ExplicitOn_InvalidMatchColumn()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newCountry = new Country
         {
@@ -45,8 +43,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_IdentityKey_NoOn_AllowWithOverride()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newCountry = new Country
         {
@@ -66,8 +63,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_IdentityKey_ExplicitOn_AllowWithOverride()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newCountry = new Country
         {

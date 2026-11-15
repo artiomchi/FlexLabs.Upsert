@@ -7,8 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_Country_Update_On()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newCountry = new Country
         {
@@ -29,8 +28,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_Country_Update_On_NoUpdate()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newCountry = new Country
         {
@@ -52,8 +50,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_Country_Update_On_WhenMatched_Values()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newCountry = new Country
         {
@@ -80,8 +77,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_Country_Update_On_WhenMatched_Constants()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newCountry = new Country
         {
@@ -108,8 +104,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_Country_Insert_On_WhenMatched()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newCountry = new Country
         {

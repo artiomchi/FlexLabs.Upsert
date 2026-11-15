@@ -7,8 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_WithNullValues()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem2 = new TestEntity();
         var newItem = new TestEntity
@@ -35,8 +34,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_CompositeExpression_New()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new TestEntity
         {
@@ -69,8 +67,7 @@ public abstract partial class DbTestsBase
             Text2 = "world",
         };
 
-        ResetDb(dbItem);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem);
 
         var newItem = new TestEntity
         {
@@ -95,8 +92,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_ConditionalExpression_New()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new TestEntity
         {
@@ -129,8 +125,7 @@ public abstract partial class DbTestsBase
             Text2 = "world",
         };
 
-        ResetDb(dbItem);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem);
 
         var newItem = new TestEntity
         {
@@ -163,8 +158,7 @@ public abstract partial class DbTestsBase
             Text2 = "world",
         };
 
-        ResetDb(dbItem);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem);
 
         var newItem = new TestEntity
         {
@@ -189,8 +183,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_ConditionalExpression_CoalesceCheck()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new TestEntity
         {
@@ -215,8 +208,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_ConditionalExpression_NullValueCheck()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new TestEntity
         {
@@ -241,13 +233,12 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_HandleImplicitConversions()
     {
-        ResetDb(new TestEntity
+        using var dbContext = Arrange(new TestEntity
         {
             Num1 = 1,
             Num2 = 2,
             Short1 = 3,
         });
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
 
         var newEntity = new TestEntity
         {

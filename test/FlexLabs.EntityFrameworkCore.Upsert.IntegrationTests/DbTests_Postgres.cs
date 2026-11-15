@@ -36,8 +36,7 @@ public class DbTests_Postgres(DbTests_Postgres.DatabaseInitializer contexts) : D
     [Fact]
     public void GeneratedAlwaysAsIdentity_NoUpdate_New()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new GeneratedAlwaysAsIdentity
         {

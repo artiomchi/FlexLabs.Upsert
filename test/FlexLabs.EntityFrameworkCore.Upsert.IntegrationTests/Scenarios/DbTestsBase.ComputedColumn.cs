@@ -9,8 +9,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support sql computed columns");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var item = new ComputedColumn
         {

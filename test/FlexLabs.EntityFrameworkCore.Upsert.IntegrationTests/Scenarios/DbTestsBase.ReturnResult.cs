@@ -9,8 +9,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var dashTable = new DashTable
         {
@@ -35,8 +34,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
 
-        ResetDb(new DashTable { DataSet = "Test1" });
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(new DashTable { DataSet = "Test1" });
 
         var dashTables = new[]
         {
@@ -66,8 +64,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
 
-        ResetDb(new DashTable { DataSet = "Test" });
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(new DashTable { DataSet = "Test" });
 
         var dashTable = new DashTable
         {
@@ -92,8 +89,7 @@ public abstract partial class DbTestsBase
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
 
         // Arrange - Insert initial record with Visits = 10
-        ResetDb();
-        await using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        await using var dbContext = Arrange();
 
         var initialVisit = new PageVisit
         {
@@ -143,8 +139,7 @@ public abstract partial class DbTestsBase
         Assert.SkipWhen(_fixture.DbDriver is DbDriver.MySQL or DbDriver.Oracle, "Returning records is not implemented in MySQL and Oracle");
 
         // Arrange - Insert initial record with Visits = 10
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var initialVisit = new PageVisit
         {

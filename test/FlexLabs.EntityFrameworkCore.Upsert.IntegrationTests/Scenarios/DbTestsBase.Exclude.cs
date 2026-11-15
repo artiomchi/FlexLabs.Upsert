@@ -7,8 +7,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_ExcludeExpression_New()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
         var newItem = new TestEntity
         {
             Num1 = 1,
@@ -34,8 +33,7 @@ public abstract partial class DbTestsBase
             Text1 = "hello",
             Text2 = "world",
         };
-        ResetDb(dbItem);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem);
         var newItem = new TestEntity
         {
             Num1 = 1,
@@ -61,8 +59,7 @@ public abstract partial class DbTestsBase
             Text1 = "hello",
             Text2 = "world",
         };
-        ResetDb(dbItem);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem);
         var newItem = new TestEntity
         {
             Num1 = 1,
@@ -91,8 +88,7 @@ public abstract partial class DbTestsBase
             Text1 = "hello",
             Text2 = "world",
         };
-        ResetDb(dbItem);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem);
         var newItem = new TestEntity
         {
             Num1 = 1,
@@ -112,8 +108,7 @@ public abstract partial class DbTestsBase
     [Fact]
     public void Upsert_ExcludeSamePropertyTwice_Throws()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
         var action = () => dbContext.TestEntities.Upsert(new())
             .On(j => j.Num1)
             .Exclude(e => e.Text1)

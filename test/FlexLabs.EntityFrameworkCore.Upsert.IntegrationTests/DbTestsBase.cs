@@ -81,9 +81,9 @@ public abstract partial class DbTestsBase
 
     protected int GeneratedAlwaysAsIdentity_NextId { get; private set; }
 
-    protected void ResetDb()
+    private void ResetDb()
     {
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = NewContext();
 
         Reset(dbContext, e => e.Books);
         Reset(dbContext, e => e.Countries);
@@ -144,12 +144,23 @@ public abstract partial class DbTestsBase
         }
     }
 
-    private void ResetDb<TEntity>(params TEntity[] seedValue)
+    protected TestDbContext NewContext()
+        => new(_fixture.DataContextOptions);
+
+    /// <summary>
+    /// Resets the database to the standard seed data, adds any extra <paramref name="seed"/> entities,
+    /// and returns a fresh context to run the test against.
+    /// </summary>
+    protected TestDbContext Arrange(params object[] seed)
     {
         ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        if (seed.Length > 0)
+        {
+            using var seedContext = NewContext();
+            seedContext.AddRange(seed);
+            seedContext.SaveChanges();
+        }
 
-        dbContext.AddRange(seedValue.Cast<object>());
-        dbContext.SaveChanges();
+        return NewContext();
     }
 }

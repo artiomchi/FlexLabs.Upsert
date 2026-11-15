@@ -15,8 +15,7 @@ public abstract partial class DbTestsBase
             Counter = 41UL,
         };
 
-        ResetDb(dbItem);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem);
 
         var newItem = new ULongEntity
         {
@@ -58,8 +57,7 @@ public abstract partial class DbTestsBase
             Counter = 123UL,
         };
 
-        ResetDb(dbItem);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem);
 
         var newItem = new ULongEntity
         {
@@ -101,8 +99,7 @@ public abstract partial class DbTestsBase
             Counter = 1UL,
         };
 
-        ResetDb(dbItem);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(dbItem);
 
         var newItem = new ULongEntity
         {
@@ -144,8 +141,7 @@ public abstract partial class DbTestsBase
             Counter = 1UL,
         };
 
-        ResetDb(existing);
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange(existing);
 
         var upserts = new[]
         {

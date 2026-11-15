@@ -9,8 +9,7 @@ public abstract partial class DbTestsBase
     {
         Assert.SkipWhen(_fixture.DbDriver == DbDriver.MySQL, "Default values on text columns not supported in MySQL");
 
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newEntity = new NullableRequired
         {
@@ -28,8 +27,7 @@ public abstract partial class DbTestsBase
     [Fact(DisplayName = "Insert with CLR default value (0) should use HasDefaultValue(27)")]
     public void Upsert_ValueType_DefaultValue_Insert()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new TestEntity
         {
@@ -50,8 +48,7 @@ public abstract partial class DbTestsBase
     [Fact(DisplayName = "Insert with explicit non-default value (42) should preserve it despite HasDefaultValue(27)")]
     public void Upsert_ValueType_ExplicitValue_Insert()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new TestEntity
         {
@@ -72,8 +69,7 @@ public abstract partial class DbTestsBase
     [Fact(DisplayName = "With HasSentinel(-1), inserting Num2=0 should preserve 0 (not sentinel)")]
     public void Upsert_ValueType_CustomSentinel_Insert()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new SentinelEntity
         {
@@ -92,8 +88,7 @@ public abstract partial class DbTestsBase
     [Fact(DisplayName = "With HasSentinel(-1), inserting Num2=-1 should use HasDefaultValue(27)")]
     public void Upsert_ValueType_CustomSentinel_UsesDefault()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new SentinelEntity
         {
@@ -112,8 +107,7 @@ public abstract partial class DbTestsBase
     [Fact(DisplayName = "Update with CLR default value (0) on existing row should update to HasDefaultValue(27)")]
     public void Upsert_ValueType_DefaultValue_Update()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         dbContext.TestEntities.Add(new TestEntity { Num1 = 1, Num2 = 50, Text1 = "Old", Text2 = "Old" });
         dbContext.SaveChanges();
@@ -122,7 +116,7 @@ public abstract partial class DbTestsBase
             .On(j => j.Num1)
             .Run();
 
-        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        using var verifyContext = NewContext();
         verifyContext.TestEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
             test =>
             {
@@ -134,8 +128,7 @@ public abstract partial class DbTestsBase
     [Fact(DisplayName = "Mixed batch: sentinel values use the default on both insert and update")]
     public void Upsert_ValueType_DefaultValue_MixedBatch()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         dbContext.TestEntities.AddRange(
             new TestEntity { Num1 = 1, Num2 = 50, Text1 = "Old", Text2 = "Old" },
@@ -152,7 +145,7 @@ public abstract partial class DbTestsBase
             .On(j => j.Num1)
             .Run();
 
-        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        using var verifyContext = NewContext();
         verifyContext.TestEntities.OrderBy(t => t.Num1).Should().SatisfyRespectively(
             test => { test.Num1.Should().Be(1); test.Num2.Should().Be(27); test.Text1.Should().Be("New"); },
             test => { test.Num1.Should().Be(2); test.Num2.Should().Be(70); test.Text1.Should().Be("New"); },
@@ -165,8 +158,7 @@ public abstract partial class DbTestsBase
     public void Upsert_ValueType_DefaultValueSql_Update()
     {
         Assert.SkipWhen(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support default sql values");
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var created = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
         dbContext.SqlDefaultEntities.Add(new SqlDefaultEntity { Num1 = 1, Num2 = 50, Created = created });
@@ -176,7 +168,7 @@ public abstract partial class DbTestsBase
             .On(j => j.Num1)
             .Run();
 
-        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        using var verifyContext = NewContext();
         verifyContext.SqlDefaultEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
             test =>
             {
@@ -188,8 +180,7 @@ public abstract partial class DbTestsBase
     [Fact(DisplayName = "WhenMatched expression should see the default value in place of a sentinel value")]
     public void Upsert_ValueType_DefaultValue_WhenMatched_UsesDefault()
     {
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         dbContext.SentinelEntities.Add(new SentinelEntity { Num1 = 1, Num2 = 5 });
         dbContext.SaveChanges();
@@ -199,7 +190,7 @@ public abstract partial class DbTestsBase
             .WhenMatched((existing, incoming) => new SentinelEntity { Num2 = existing.Num2 + incoming.Num2 })
             .Run();
 
-        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        using var verifyContext = NewContext();
         verifyContext.SentinelEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
             test => test.Num2.Should().Be(5 + 27));
     }
@@ -208,8 +199,7 @@ public abstract partial class DbTestsBase
     public void Upsert_ValueType_DefaultValue_MatchColumn()
     {
         Assert.SkipWhen(_fixture.DbDriver != DbDriver.InMemory, "Match columns with default values need a custom schema, so it's only tested with the in-memory provider");
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
         dbContext.InMemoryDefaultsEntities.RemoveRange(dbContext.InMemoryDefaultsEntities);
         dbContext.InMemoryDefaultsEntities.Add(new InMemoryDefaultsEntity { Num1 = 27, Text = "Old" });
         dbContext.SaveChanges();
@@ -219,7 +209,7 @@ public abstract partial class DbTestsBase
             .WhenMatched(e => new InMemoryDefaultsEntity { Text = "New" })
             .Run();
 
-        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        using var verifyContext = NewContext();
         verifyContext.InMemoryDefaultsEntities.Should().SatisfyRespectively(
             test =>
             {
@@ -232,8 +222,7 @@ public abstract partial class DbTestsBase
     public void Upsert_ValueType_DefaultValue_PropertyWithoutSetter()
     {
         Assert.SkipWhen(_fixture.DbDriver != DbDriver.InMemory, "Properties without a setter need a custom schema, so it's only tested with the in-memory provider");
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
         dbContext.InMemoryDefaultsEntities.RemoveRange(dbContext.InMemoryDefaultsEntities);
         dbContext.InMemoryDefaultsEntities.Add(new InMemoryDefaultsEntity { Num1 = 1, Text = "Old" });
         dbContext.SaveChanges();
@@ -249,7 +238,7 @@ public abstract partial class DbTestsBase
             .On(j => j.Num1)
             .Run();
 
-        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        using var verifyContext = NewContext();
         verifyContext.InMemoryDefaultsEntities.OrderBy(t => t.Num1).Should().SatisfyRespectively(
             test =>
             {
@@ -268,8 +257,7 @@ public abstract partial class DbTestsBase
     public void Upsert_ValueType_UnspecifiedDefaultValue_Insert()
     {
         Assert.SkipWhen(_fixture.DbDriver != DbDriver.InMemory, "Relational providers can't create a schema for a column with an unspecified default value");
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
         dbContext.UnspecifiedDefaultEntities.RemoveRange(dbContext.UnspecifiedDefaultEntities);
         dbContext.SaveChanges();
 
@@ -279,7 +267,7 @@ public abstract partial class DbTestsBase
             .On(j => j.Num1)
             .Run();
 
-        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        using var verifyContext = NewContext();
         verifyContext.UnspecifiedDefaultEntities.OrderBy(t => t.Num1).Should().SatisfyRespectively(
             test => { test.Num1.Should().Be(1); test.Num2.Should().Be(0); },
             test => { test.Num1.Should().Be(2); test.Num2.Should().Be(5); });
@@ -289,8 +277,7 @@ public abstract partial class DbTestsBase
     public void Upsert_ValueType_DefaultValueSql_Insert()
     {
         Assert.SkipWhen(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support default sql values");
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var newItem = new SqlDefaultEntity
         {
@@ -317,8 +304,7 @@ public abstract partial class DbTestsBase
     public void Upsert_ValueType_DefaultValueSql_ExplicitValue_Insert()
     {
         Assert.SkipWhen(_fixture.DbDriver == DbDriver.InMemory, "In memory db doesn't support default sql values");
-        ResetDb();
-        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        using var dbContext = Arrange();
 
         var created = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
         var newItem = new SqlDefaultEntity
