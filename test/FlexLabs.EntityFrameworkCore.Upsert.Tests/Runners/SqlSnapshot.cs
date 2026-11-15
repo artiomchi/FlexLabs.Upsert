@@ -4,11 +4,14 @@ using System.Text;
 namespace FlexLabs.EntityFrameworkCore.Upsert.Tests.Runners;
 
 /// <summary>
-/// Compares generated SQL with a checked-in snapshot file (<c>Snapshots/&lt;Engine&gt;.&lt;Scenario&gt;.sql</c>, next to
-/// the calling source file). Snapshots store the statement split into one clause per line, so a change to the
-/// generated SQL shows up as a readable diff.
+/// Compares generated SQL with a checked-in snapshot file (<c>Runners/Snapshots/&lt;Engine&gt;.&lt;Scenario&gt;.sql</c>).
+/// Snapshots store the statement split into one clause per line, so a change to the generated SQL shows up as a
+/// readable diff.
 /// </summary>
 /// <remarks>
+/// Snapshots are embedded in the test assembly and read from there, so tests don't depend on where the sources are
+/// (CI builds rewrite <c>[CallerFilePath]</c> to <c>/_/...</c> for reproducible builds). The source path is only used
+/// to write files when updating.
 /// After an intentional SQL change, run <c>UPDATE_SNAPSHOTS=1 dotnet test</c> locally and review <c>git diff</c>.
 /// The update switch is ignored when <c>CI=true</c> (set by GitHub Actions), so CI never creates or rewrites
 /// snapshots: a missing or different snapshot fails the test.
@@ -29,24 +32,39 @@ internal static class SqlSnapshot
 
     public static void Match(string sql, string name, [CallerFilePath] string callerPath = "")
     {
-        var path = Path.Combine(Path.GetDirectoryName(callerPath)!, "Snapshots", name + ".sql");
         var actual = Normalise(Format(sql));
 
         if (UpdateSnapshots)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllText(path, actual + "\n", new UTF8Encoding(false));
+            var sourceDirectory = Path.GetDirectoryName(callerPath);
+            if (!Directory.Exists(sourceDirectory))
+                Assert.Fail($"Can't update snapshots: the test sources aren't at '{callerPath}'. Run UPDATE_SNAPSHOTS=1 from a normal (non-CI) build of a source checkout.");
+
+            var snapshotDirectory = Path.Combine(sourceDirectory, "Snapshots");
+            Directory.CreateDirectory(snapshotDirectory);
+            File.WriteAllText(Path.Combine(snapshotDirectory, name + ".sql"), actual + "\n", new UTF8Encoding(false));
             return;
         }
 
-        if (!File.Exists(path))
+        var snapshot = ReadEmbeddedSnapshot(name);
+        if (snapshot is null)
         {
-            Assert.Fail($"Missing SQL snapshot {path}. To create it run `UPDATE_SNAPSHOTS=1 dotnet test` locally." +
+            Assert.Fail($"Missing SQL snapshot Runners/Snapshots/{name}.sql. To create it run `UPDATE_SNAPSHOTS=1 dotnet test` locally." +
                 $"{Environment.NewLine}Actual SQL:{Environment.NewLine}{actual}");
         }
 
-        var expected = Normalise(File.ReadAllText(path));
-        actual.Should().Be(expected, $"the SQL must match {name}.sql (run with UPDATE_SNAPSHOTS=1 to accept an intentional change)");
+        actual.Should().Be(Normalise(snapshot), $"the SQL must match {name}.sql (run with UPDATE_SNAPSHOTS=1 to accept an intentional change)");
+    }
+
+    // The csproj embeds Runners/Snapshots/*.sql with the logical name "Snapshots/<file>.sql".
+    private static string ReadEmbeddedSnapshot(string name)
+    {
+        using var stream = typeof(SqlSnapshot).Assembly.GetManifestResourceStream($"Snapshots/{name}.sql");
+        if (stream is null)
+            return null;
+
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        return reader.ReadToEnd();
     }
 
     /// <summary>Splits a single-line statement into one clause per line. Joining the lines with spaces restores the original.</summary>
