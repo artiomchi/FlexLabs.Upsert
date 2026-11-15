@@ -1,21 +1,34 @@
-FlexLabs.Upsert
-==========
+# FlexLabs.Upsert
 
-[![Build status](https://img.shields.io/github/actions/workflow/status/artiomchi/FlexLabs.Upsert/build.yml?branch=main
-)](https://github.com/artiomchi/FlexLabs.Upsert/actions/workflows/build.yml?query=branch%3Amain)
-[![FlexLabs.EntityFrameworkCore.Upsert on NuGet](https://img.shields.io/nuget/v/FlexLabs.EntityFrameworkCore.Upsert.svg)](https://www.nuget.org/packages/FlexLabs.EntityFrameworkCore.Upsert)  
-<!-- CI build: [![FlexLabs.EntityFrameworkCore.Upsert on MyGet](https://img.shields.io/myget/artiomchi/vpre/FlexLabs.EntityFrameworkCore.Upsert.svg)](https://github.com/artiomchi/FlexLabs.Upsert/wiki/CI-Builds) -->
+[![Build status](https://img.shields.io/github/actions/workflow/status/artiomchi/FlexLabs.Upsert/build.yml?branch=main)](https://github.com/artiomchi/FlexLabs.Upsert/actions/workflows/build.yml?query=branch%3Amain)
+[![FlexLabs.EntityFrameworkCore.Upsert on NuGet](https://img.shields.io/nuget/v/FlexLabs.EntityFrameworkCore.Upsert.svg)](https://www.nuget.org/packages/FlexLabs.EntityFrameworkCore.Upsert)
 
-This library adds basic support for "Upsert" operations to EF Core.
+Upsert support for EF Core: insert a row, or update it if it already exists, in a single database command.
 
-Uses `INSERT … ON CONFLICT DO UPDATE` in PostgreSQL/Sqlite, `MERGE` in SqlServer & Oracle and `INSERT INTO … ON DUPLICATE KEY UPDATE` in MySQL.
+EF Core has no built-in way to do this. The usual workaround is to query first and then insert or update, which costs
+an extra round trip and breaks down when two requests race each other. This library generates the native upsert
+statement for your database instead, so the check and the write happen atomically.
 
-Also supports injecting sql command runners to add support for other providers
+| Database | Generated statement |
+|---|---|
+| PostgreSQL, SQLite | `INSERT … ON CONFLICT DO UPDATE` |
+| SQL Server, Oracle | `MERGE` |
+| MySQL, MariaDB | `INSERT … ON DUPLICATE KEY UPDATE` |
+| In-memory | Emulated, for tests |
 
-A typical upsert command could look something like this:
+## Getting started
+
+```sh
+dotnet add package FlexLabs.EntityFrameworkCore.Upsert
+```
+
+The package's major version follows EF Core's: 11.x is built for EF Core 11, 10.x for EF Core 10, and so on.
+The provider is picked up from your `DbContext` configuration, so there is nothing to register.
+
+Then, with `using Microsoft.EntityFrameworkCore;` in scope:
 
 ```csharp
-DataContext.DailyVisits
+await db.DailyVisits
     .Upsert(new DailyVisit
     {
         UserID = userID,
@@ -30,25 +43,57 @@ DataContext.DailyVisits
     .RunAsync();
 ```
 
-In this case, the upsert command will ensure that a new `DailyVisit` will be added to the database. If a visit with the same `UserID` and `Date` already exists, it will be updated by incrementing it's `Visits` value by 1.
+If there is no visit for that user and date, a new row is inserted. If there is one, its `Visits` column is
+incremented, in SQL, without reading the current value first.
 
-Please read our [Usage](https://github.com/artiomchi/FlexLabs.Upsert/wiki/Usage) page for more examples
-
-## Default values
-
-If a property has a default configured (`HasDefaultValue()` or `HasDefaultValueSql()`), the default is used whenever the entity's value is `null` or equal to the property's sentinel. By default the sentinel is the CLR default of the type (`0` for `int`, `false` for `bool`, `default(DateTime)`, etc.), which matches how EF Core itself decides that a value is "not set". This applies both when a row is inserted and when an existing row is updated.
-
-If `HasDefaultValue()` is called without a value (meaning that the database has a default, but the model doesn't know what it is), there is nothing to substitute, so the entity's value is always used as it is.
-
-This means that explicitly upserting `0` into an `int` column with `HasDefaultValue(27)` will store `27`. If you need to store the CLR default, change the sentinel so that it's a value you won't use:
+## What you can do
 
 ```csharp
-modelBuilder.Entity<MyEntity>()
-    .Property(e => e.MyProperty)
-    .HasDefaultValue(27)
-    .HasSentinel(-1); // only -1 now means "not set", so 0 is stored as 0
+// Match on a unique key, then update everything else with the new values
+db.Countries.Upsert(country).On(c => c.ISO).Run();
+
+// Upsert many rows at once
+db.Countries.UpsertRange(countries).On(c => c.ISO).Run();
+
+// Keep some columns untouched when the row already exists
+db.Countries.Upsert(country).On(c => c.ISO).Exclude(c => c.Created).Run();
+
+// Insert only, leave existing rows alone
+db.Countries.Upsert(country).On(c => c.ISO).NoUpdate().Run();
+
+// Only update when a condition holds
+db.Products.Upsert(product).On(p => p.Sku)
+    .UpdateIf((existing, incoming) => incoming.Version > existing.Version)
+    .Run();
+
+// Get the resulting entities back (PostgreSQL, SQL Server, SQLite)
+var saved = await db.Countries.Upsert(country).On(c => c.ISO).RunAndReturnAsync();
 ```
 
-**In-memory limitation:** the in-memory provider doesn't evaluate `HasDefaultValueSql()` expressions, so a sentinel value is not replaced by the result of the SQL expression there. `HasDefaultValue()` defaults are applied.
+Things to know before you start:
 
-**Oracle limitation:** `HasDefaultValueSql()` expressions are placed in the `SELECT ... FROM dual` queries that make up the `MERGE` source, and these are joined with `UNION ALL` when more than one entity is upserted. Oracle doesn't allow sequence pseudocolumns (`NEXTVAL`, `CURRVAL`) in queries combined this way, so a sequence-based default (e.g. `HasDefaultValueSql("my_seq.NEXTVAL")`) is not supported when upserting multiple entities at once. Constants and ordinary functions (e.g. `SYSTIMESTAMP`) are not affected.
+* The `On()` columns must be a primary key or have a unique index, and can't be database-generated.
+  If you leave `On()` out, the primary key is used.
+* Upserts run immediately, straight against the database. `SaveChanges()` isn't involved, and nothing is added to
+  the change tracker unless you use `RunAndReturn()`.
+* Databases limit how many parameters a command can take, so a large `UpsertRange` is split into several commands.
+  That keeps it working, but it is still one parameter per column per row, so it isn't a replacement for a bulk
+  loader.
+
+## Documentation
+
+* [Usage guide](https://github.com/artiomchi/FlexLabs.Upsert/blob/main/docs/usage.md): every method, with examples
+* [Matching rows](https://github.com/artiomchi/FlexLabs.Upsert/blob/main/docs/matching.md): choosing the `On()` columns
+* [Update expressions](https://github.com/artiomchi/FlexLabs.Upsert/blob/main/docs/update-expressions.md): what you can write in `WhenMatched()` and `UpdateIf()`
+* [Default values](https://github.com/artiomchi/FlexLabs.Upsert/blob/main/docs/default-values.md): how `HasDefaultValue()` and sentinels are handled
+* [Owned types and JSON](https://github.com/artiomchi/FlexLabs.Upsert/blob/main/docs/owned-and-json.md)
+* [Database providers](https://github.com/artiomchi/FlexLabs.Upsert/blob/main/docs/providers.md): per-database differences and limitations, custom runners
+
+## Contributing
+
+Issues and pull requests are welcome. See [test/README.md](https://github.com/artiomchi/FlexLabs.Upsert/blob/main/test/README.md)
+for how to run the tests.
+
+## License
+
+[MIT](https://github.com/artiomchi/FlexLabs.Upsert/blob/main/LICENSE)
