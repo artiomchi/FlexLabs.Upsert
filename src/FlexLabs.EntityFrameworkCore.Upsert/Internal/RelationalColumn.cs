@@ -28,10 +28,10 @@ internal sealed record RelationalColumn(
             : null;
 
         string? defaultSql = null;
-        var hasDefaultValue = Property.TryGetDefaultValue(out var defaultValue) && defaultValue != null;
+        var hasDefaultValue = Property.TryGetUsableDefaultValue(out var defaultValue);
         var defaultValueSql = Property.GetDefaultValueSql();
         var hasConfiguredDefault = hasDefaultValue || defaultValueSql != null;
-        if (rawValue == null || (hasConfiguredDefault && Equals(rawValue, Property.Sentinel)))
+        if (rawValue == null || (hasConfiguredDefault && Property.IsSentinel(rawValue)))
         {
             if (hasDefaultValue)
                 rawValue = defaultValue;

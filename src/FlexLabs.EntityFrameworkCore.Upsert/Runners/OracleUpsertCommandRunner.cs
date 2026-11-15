@@ -40,6 +40,9 @@ public class OracleUpsertCommandRunner : RelationalUpsertCommandRunner
 
         var result = new StringBuilder();
         result.Append(CultureInfo.InvariantCulture, $"MERGE INTO {tableName} t USING (");
+        // Known limitation: DefaultSql is inlined into these SELECTs, which are combined with UNION ALL for multiple entities.
+        // Oracle doesn't allow sequence pseudocolumns (NEXTVAL/CURRVAL) in such compound queries, so sequence-based
+        // HasDefaultValueSql() defaults aren't supported when upserting more than one entity at a time.
         foreach (var item in entities.Select((e, ind) => new { e, ind }))
         {
             result.Append("SELECT ");

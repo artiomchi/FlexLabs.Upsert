@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
+using FlexLabs.EntityFrameworkCore.Upsert.Internal;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace FlexLabs.EntityFrameworkCore.Upsert.Runners;
@@ -61,20 +62,14 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
         {
             if (match.DbEntity == null)
             {
-                foreach (var prop in typeof(TEntity).GetProperties())
-                {
-                    var propValue = prop.GetValue(match.NewEntity);
-                    var property = entityType.FindProperty(prop.Name);
-                    if (property != null)
-                    {
-                        var newValue = ApplyDefault(property, propValue);
-                        if (!Equals(newValue, propValue))
-                            prop.SetValue(match.NewEntity, newValue);
-                    }
-                }
+                NormaliseDefaults(entityType, match.NewEntity);
                 dbContext.Add(match.NewEntity);
                 continue;
             }
+
+            // The relational providers read the resolved default values from the source row, so the condition
+            // and the update expression need to see the same values here
+            NormaliseDefaults(entityType, match.NewEntity);
 
             if (updateTest?.Invoke(match.DbEntity, match.NewEntity) == false)
                 continue;
@@ -88,11 +83,25 @@ public class InMemoryUpsertCommandRunner : UpsertCommandRunnerBase
     // A value that is null, or equal to the property sentinel, is replaced by the configured default value (if there is one)
     private static object? ApplyDefault(IProperty? property, object? value)
         => property != null &&
-            (value == null || Equals(value, property.Sentinel)) &&
-            property.TryGetDefaultValue(out var defaultValue) &&
-            defaultValue != null
+            (value == null || property.IsSentinel(value)) &&
+            property.TryGetUsableDefaultValue(out var defaultValue)
             ? defaultValue
             : value;
+
+    private static void NormaliseDefaults<TEntity>(IEntityType entityType, TEntity entity)
+    {
+        foreach (var prop in typeof(TEntity).GetProperties())
+        {
+            var property = entityType.FindProperty(prop.Name);
+            if (property == null)
+                continue;
+
+            var value = prop.GetValue(entity);
+            var newValue = ApplyDefault(property, value);
+            if (!Equals(newValue, value))
+                prop.SetValue(entity, newValue);
+        }
+    }
 
     private record struct EntityMatch<TEntity>(
         TEntity? DbEntity,

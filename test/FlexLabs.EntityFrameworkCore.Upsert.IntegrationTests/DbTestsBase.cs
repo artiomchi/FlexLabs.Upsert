@@ -2512,6 +2512,46 @@ public abstract partial class DbTestsBase
             });
     }
 
+    [Fact(DisplayName = "WhenMatched expression should see the default value in place of a sentinel value")]
+    public void Upsert_ValueType_DefaultValue_WhenMatched_UsesDefault()
+    {
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+
+        dbContext.SentinelEntities.Add(new SentinelEntity { Num1 = 1, Num2 = 5 });
+        dbContext.SaveChanges();
+
+        dbContext.SentinelEntities.Upsert(new SentinelEntity { Num1 = 1, Num2 = -1 })
+            .On(j => j.Num1)
+            .WhenMatched((existing, incoming) => new SentinelEntity { Num2 = existing.Num2 + incoming.Num2 })
+            .Run();
+
+        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        verifyContext.SentinelEntities.OrderBy(t => t.ID).Should().SatisfyRespectively(
+            test => test.Num2.Should().Be(5 + 27));
+    }
+
+    [Fact(DisplayName = "Insert with CLR default value (0) should be kept when HasDefaultValue() has no value specified")]
+    public void Upsert_ValueType_UnspecifiedDefaultValue_Insert()
+    {
+        Assert.SkipWhen(_fixture.DbDriver != DbDriver.InMemory, "Relational providers can't create a schema for a column with an unspecified default value");
+        ResetDb();
+        using var dbContext = new TestDbContext(_fixture.DataContextOptions);
+        dbContext.UnspecifiedDefaultEntities.RemoveRange(dbContext.UnspecifiedDefaultEntities);
+        dbContext.SaveChanges();
+
+        dbContext.UnspecifiedDefaultEntities.UpsertRange(
+                new UnspecifiedDefaultEntity { Num1 = 1, Num2 = 0 },
+                new UnspecifiedDefaultEntity { Num1 = 2, Num2 = 5 })
+            .On(j => j.Num1)
+            .Run();
+
+        using var verifyContext = new TestDbContext(_fixture.DataContextOptions);
+        verifyContext.UnspecifiedDefaultEntities.OrderBy(t => t.Num1).Should().SatisfyRespectively(
+            test => { test.Num1.Should().Be(1); test.Num2.Should().Be(0); },
+            test => { test.Num1.Should().Be(2); test.Num2.Should().Be(5); });
+    }
+
     [Fact(DisplayName = "Insert with CLR default value (0) should use HasDefaultValueSql")]
     public void Upsert_ValueType_DefaultValueSql_Insert()
     {
