@@ -1,7 +1,8 @@
 FlexLabs.Upsert
 ==========
 
-[![Build status](https://img.shields.io/github/check-runs/artiomchi/FlexLabs.Upsert/main?logo=github&label=build)](https://github.com/artiomchi/FlexLabs.Upsert/actions/workflows/build.yml?query=branch%3Amain)
+[![Build status](https://img.shields.io/github/actions/workflow/status/artiomchi/FlexLabs.Upsert/build.yml?branch=main
+)](https://github.com/artiomchi/FlexLabs.Upsert/actions/workflows/build.yml?query=branch%3Amain)
 [![FlexLabs.EntityFrameworkCore.Upsert on NuGet](https://img.shields.io/nuget/v/FlexLabs.EntityFrameworkCore.Upsert.svg)](https://www.nuget.org/packages/FlexLabs.EntityFrameworkCore.Upsert)  
 <!-- CI build: [![FlexLabs.EntityFrameworkCore.Upsert on MyGet](https://img.shields.io/myget/artiomchi/vpre/FlexLabs.EntityFrameworkCore.Upsert.svg)](https://github.com/artiomchi/FlexLabs.Upsert/wiki/CI-Builds) -->
 
