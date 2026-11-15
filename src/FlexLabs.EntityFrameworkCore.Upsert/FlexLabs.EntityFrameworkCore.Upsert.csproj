@@ -11,11 +11,11 @@
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <Authors>Artiom Chilaru</Authors>
     <Company>Artiom Chilaru</Company>
-    <Description>Adds basic support for "Upsert" operations to EF Core.
+    <Description>Upsert support for EF Core: insert a row, or update it if it already exists, in a single database command.
 
-Uses `INSERT … ON CONFLICT DO UPDATE` in PostgreSQL/Sqlite, `MERGE` in SqlServer and `INSERT INTO … ON DUPLICATE KEY UPDATE` in MySQL.
-
-Also supports injecting sql command generators to add support for other providers</Description>
+EF Core has no built-in way to do this. The usual workaround is to query first and then insert or update, which costs
+an extra round trip and breaks down when two requests race each other. This library generates the native upsert
+statement for your database instead, so the check and the write happen atomically.</Description>
     <Copyright>Artiom Chilaru © 2018-2026</Copyright>
     <PackageProjectUrl>https://github.com/artiomchi/FlexLabs.Upsert</PackageProjectUrl>
     <RepositoryUrl>https://github.com/artiomchi/FlexLabs.Upsert</RepositoryUrl>
