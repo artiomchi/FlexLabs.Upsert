@@ -16,7 +16,7 @@ internal sealed record RelationalColumn(
 
     private bool IsNull([NotNullWhen(false)] object? entity)
     {
-        ArgumentNullException.ThrowIfNull(entity);
+        if (entity == null) return true;
 
         var complexProperties = new Stack<IComplexProperty>();
 
