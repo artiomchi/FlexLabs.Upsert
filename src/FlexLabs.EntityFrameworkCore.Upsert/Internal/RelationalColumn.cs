@@ -48,8 +48,9 @@ internal sealed record RelationalColumn(
             obj = EntityGetter(entity);
         }
 
-        var rawValue = IsNull(obj) ? null
-            : Property.GetGetter().GetClrValueUsingContainingEntity(obj);
+        bool isAbsent = IsNull(obj);
+        var rawValue = isAbsent ? null
+            : Property.GetGetter().GetClrValueUsingContainingEntity(obj!);
 
         string? defaultSql = null;
         var hasDefaultValue = Property.TryGetUsableDefaultValue(out var defaultValue);
@@ -57,7 +58,7 @@ internal sealed record RelationalColumn(
         var hasConfiguredDefault = hasDefaultValue || defaultValueSql != null;
         if (rawValue == null || (hasConfiguredDefault && Property.IsSentinel(rawValue)))
         {
-            if (hasDefaultValue)
+            if (hasDefaultValue && !isAbsent)
                 rawValue = defaultValue;
             else
                 defaultSql = defaultValueSql;
