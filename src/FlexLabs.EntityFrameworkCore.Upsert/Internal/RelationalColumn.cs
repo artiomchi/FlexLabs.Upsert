@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using FlexLabs.EntityFrameworkCore.Upsert.Internal.Expressions;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -13,6 +14,30 @@ internal sealed record RelationalColumn(
 {
     public string Name => Property.Name;
 
+    private bool IsNull([NotNullWhen(false)] object? entity)
+    {
+        if (entity == null) return true;
+
+        var complexProperties = new Stack<IComplexProperty>();
+
+        // Need to collect root to leaf.
+        // With Parent -> Child -> SubChild you need to check Parent first, then Child, then SubChild.
+        for (var declaringType = Property.DeclaringType; declaringType is IComplexType complexType; declaringType = complexType.ComplexProperty.DeclaringType)
+        {
+            complexProperties.Push(complexType.ComplexProperty);
+        }
+
+        while (complexProperties.TryPop(out var complexProperty))
+        {
+            entity = complexProperty.GetGetter().GetClrValue(entity);
+
+            if (entity == null)
+                return true;
+        }
+
+        return false;
+    }
+
     public (string ColumnName, ConstantValue Value, string? DefaultSql, bool AllowInserts) GetValue(object entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
@@ -23,9 +48,9 @@ internal sealed record RelationalColumn(
             obj = EntityGetter(entity);
         }
 
-        var rawValue = obj != null
-            ? Property.GetGetter().GetClrValueUsingContainingEntity(obj)
-            : null;
+        bool isAbsent = IsNull(obj);
+        var rawValue = isAbsent ? null
+            : Property.GetGetter().GetClrValueUsingContainingEntity(obj!);
 
         string? defaultSql = null;
         var hasDefaultValue = Property.TryGetUsableDefaultValue(out var defaultValue);
@@ -33,7 +58,7 @@ internal sealed record RelationalColumn(
         var hasConfiguredDefault = hasDefaultValue || defaultValueSql != null;
         if (rawValue == null || (hasConfiguredDefault && Property.IsSentinel(rawValue)))
         {
-            if (hasDefaultValue)
+            if (hasDefaultValue && !isAbsent)
                 rawValue = defaultValue;
             else
                 defaultSql = defaultValueSql;

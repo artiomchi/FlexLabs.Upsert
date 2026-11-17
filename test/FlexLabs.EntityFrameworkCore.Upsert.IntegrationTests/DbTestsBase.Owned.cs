@@ -480,6 +480,28 @@ public abstract partial class DbTestsBase
     }
 
     [Fact]
+    public virtual void Upsert_Complex_Property_Null()
+    {
+        Require(Capability.ComplexProperties);
+
+        using var dbContext = Arrange();
+
+        var newParent = new ParentComplex
+        {
+            ID = 1,
+            Child = null,
+            Counter = 3,
+        };
+
+        dbContext.ParentComplexes.Upsert(newParent)
+            .On(p => p.ID)
+            .Run();
+
+        dbContext.ParentComplexes.OrderBy(p => p.ID).Should().SatisfyRespectively(
+            parent => parent.Should().BeEquivalentTo(newParent));
+    }
+
+    [Fact]
     public virtual void Upsert_Complex_Property_WhenMatched_Complex_Direct_Mapping()
     {
         Require(Capability.ComplexProperties);
